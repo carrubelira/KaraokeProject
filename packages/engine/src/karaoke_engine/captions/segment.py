@@ -24,10 +24,8 @@ _DASH = "-"
 
 def group_captions(words: Sequence[TimedWord], rules: Rules) -> list[Caption]:
     """Captions over all the words, in order; their times are the words' until timing.py."""
-    captions: list[Caption] = []
-    for run in _runs(words, rules):
-        captions += [_caption(chunk, rules) for chunk in _chunks(run, rules)]
-    return _dialogues(captions, rules)
+    chunks = [chunk for run in _runs(words, rules) for chunk in _chunks(run, rules)]
+    return _dialogues([_caption(chunk, rules) for chunk in _absorb(chunks, rules)], rules)
 
 
 def _runs(words: Sequence[TimedWord], rules: Rules) -> list[list[TimedWord]]:
@@ -62,6 +60,22 @@ def _chunks(run: list[TimedWord], rules: Rules) -> list[list[TimedWord]]:
     if current:
         chunks.append(current)
     return chunks
+
+
+def _absorb(chunks: list[list[TimedWord]], rules: Rules) -> list[list[TimedWord]]:
+    """A piece of one speaker with no time to be read before the next one starts ("Aquí." and
+    then the rest of the answer) joins the next piece, if together they still fit."""
+    out: list[list[TimedWord]] = []
+    for chunk in chunks:
+        if out:
+            previous = out[-1]
+            hurried = chunk[0].start - previous[0].start < rules.min_duration
+            same = chunk[0].speaker == previous[0].speaker
+            if hurried and same and _fits([*previous, *chunk], rules):
+                out[-1] = [*previous, *chunk]
+                continue
+        out.append(chunk)
+    return out
 
 
 def _fits(words: Sequence[TimedWord], rules: Rules) -> bool:

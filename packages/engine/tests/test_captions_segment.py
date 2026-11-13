@@ -115,3 +115,19 @@ def test_a_caption_that_only_fits_with_a_dangling_break_is_cut_sooner() -> None:
     for caption in group_captions(said(text), Rules()):
         if len(caption.lines) == 2:
             assert caption.lines[0].split()[-1] not in {"unha", "a", "de", "e"}
+
+
+def test_a_word_with_no_time_to_be_read_joins_the_next_caption_as_dialogue() -> None:
+    before = said("Non me lembro de máis.", 0.0, "A")
+    claro = said("Claro,", before[-1].end + 1.5, "B")
+    after = said("Chegaron ao peirao.", claro[-1].end + 0.05, "A")
+    captions = group_captions(before + claro + after, Rules())
+    assert [c.lines for c in captions][-1] == ("-Claro,", "-Chegaron ao peirao.")
+    assert captions[-1].speakers == ("B", "A")
+
+
+def test_a_word_with_no_time_to_be_read_joins_the_next_caption_of_its_speaker() -> None:
+    aqui = said("Aquí.", 0.0, "A")
+    rest = said("Estaba o porto de Lira.", aqui[-1].end + 0.35, "A")
+    captions = group_captions(aqui + rest, Rules())
+    assert [" ".join(c.lines) for c in captions] == ["Aquí. Estaba o porto de Lira."]
