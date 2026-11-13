@@ -147,7 +147,9 @@ the spectrogram of everything it is given: a whole hour at once took the process
    (keeping who speaks from the generated captions it overlaps) and a new review list that flags
    edits breaking the rules (long lines, more than two lines, overlaps). If most captions moved by
    the same amount (the timeline was not at `00:00:00:00`), or the last one ends after the video,
-   it writes nothing and says so.
+   it writes nothing and says so. The SRT must sit next to the video with the video's name
+   (DaVinci suggests `Timeline 1.srt`): without the video its times cannot be checked, so it is
+   refused.
 
 ## What it does not do
 

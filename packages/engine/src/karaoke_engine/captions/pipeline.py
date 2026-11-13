@@ -225,13 +225,17 @@ def rebuild_from_srt(srt: Path, options: CaptionOptions) -> CaptionResult:
     base = srt.name[: -len(suffix)] if srt.name.endswith(suffix) else srt.stem
     video = next((p for p in sorted(srt.parent.iterdir()) if p.stem == base and _is_video(p)), None)
     try:
+        if video is None:
+            raise ValueError(
+                f"no video named {base}.* next to {srt.name}: save the reviewed subtitles over "
+                f"<video name>.{options.language}.srt, next to the video, so their times can be "
+                "checked against it"
+            )
         captions = read_srt(srt.read_text(encoding=SRT_ENCODING))
-        fps, generated = 25.0, None
-        if video is not None:
-            info = probe_source(video)
-            fps = info.fps
-            generated = _load_generated(_generated(options.cache, info))
-            _check_offset(captions, generated, info.duration)
+        info = probe_source(video)
+        fps = info.fps
+        generated = _load_generated(_generated(options.cache, info))
+        _check_offset(captions, generated, info.duration)
         if generated:
             captions = _with_speakers(captions, generated)
         _, vtt, review = outputs_for(srt.parent / f"{base}.x", options.language)
@@ -241,7 +245,7 @@ def rebuild_from_srt(srt: Path, options: CaptionOptions) -> CaptionResult:
         _write_all({
             vtt: (to_vtt(captions, note, options.labels), "utf-8"),
             review: (
-                format_review(items, video=video.name if video else srt.name,
+                format_review(items, video=video.name,
                               captions=len(captions), fps=fps, elapsed=elapsed),
                 "utf-8",
             ),

@@ -282,3 +282,13 @@ def test_forcing_twice_never_loses_a_reviewed_srt(video: Path, options: CaptionO
     backups = sorted(video.parent.glob("MVI_0704.gl.srt.bak*"))
     assert [p.name for p in backups] == ["MVI_0704.gl.srt.bak", "MVI_0704.gl.srt.bak2"]
     assert "Revisado" in backups[0].read_text(encoding=SRT_ENCODING)
+
+
+def test_from_srt_refuses_a_file_with_no_video_beside_it(tmp_path: Path) -> None:
+    # DaVinci exports as "Timeline 1.srt" by default: nothing tells where its times start.
+    srt = tmp_path / "Timeline 1.srt"
+    srt.write_text("1\r\n01:00:01,000 --> 01:00:02,000\r\nOla\r\n", encoding=SRT_ENCODING)
+    result = rebuild_from_srt(srt, CaptionOptions(cache=tmp_path / "c"))
+    assert result.error is not None
+    assert ".gl.srt" in result.error
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["Timeline 1.srt"]
