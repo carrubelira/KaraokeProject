@@ -55,7 +55,7 @@ class CaptionOptions:
     audio_track: int | None = None  # from 0
     model: str = "auto"
     rules: Rules = field(default_factory=Rules)
-    low_confidence: float = 0.3
+    low_confidence: float = 0.15
     cache: Path = field(default_factory=lambda: Path.home() / ".cache" / "karaoke" / "captions")
     steps: Sequence[Step] | None = None  # default_steps() when None
     transcribe: Callable[..., SpeechTranscript] | None = None  # transcribe_speech_in_child

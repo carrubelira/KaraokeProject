@@ -17,6 +17,8 @@ _CLAUSE_END = ",;:"
 _CONJUNCTIONS = frozenset("e ou nin pero mais que se como cando porque pois y".split())  # noqa: SIM905 - a word list reads best as text
 # A question and its answer share a caption only if the answer comes this soon after it.
 _DIALOGUE_GAP = 1.0
+# A caption this short ("Chegaron") is only cut off where a sentence ends.
+_SHORT_PIECE = 12
 _DASH = "-"
 
 
@@ -63,19 +65,27 @@ def _chunks(run: list[TimedWord], rules: Rules) -> list[list[TimedWord]]:
 
 
 def _fits(words: Sequence[TimedWord], rules: Rules) -> bool:
+    """Fits in the time and in the lines, without a line ending on "unha" or "de"."""
     if words[-1].end - words[0].start > rules.max_duration:
         return False
-    return break_lines([w.text for w in words], rules) is not None
+    lines = break_lines([w.text for w in words], rules)
+    return lines is not None and (len(lines) == 1 or not leans_forward(lines[0].split()[-1]))
 
 
 def _best_cut(current: Sequence[TimedWord], following: TimedWord, rules: Rules) -> int:
-    """How many words of `current` close the caption: the best boundary, the latest on a tie."""
-    best_rank, best_cut = _rank(current[-1], following, rules), len(current)
-    for cut in range(len(current) - 1, 0, -1):
-        rank = _rank(current[cut - 1], current[cut], rules)
-        if rank < best_rank:
-            best_rank, best_cut = rank, cut
-    return best_cut
+    """How many words of `current` close the caption: the best boundary, the latest on a tie.
+    A piece shorter than _SHORT_PIECE characters is only left alone where a sentence ends."""
+    boundaries = [(_rank(current[-1], following, rules), len(current))]
+    boundaries += [
+        (_rank(current[cut - 1], current[cut], rules), cut)
+        for cut in range(len(current) - 1, 0, -1)
+    ]
+    long_enough = [
+        (rank, cut)
+        for rank, cut in boundaries
+        if rank == 0 or len(" ".join(w.text for w in current[:cut])) >= _SHORT_PIECE
+    ]
+    return min(long_enough or boundaries, key=lambda b: (b[0], -b[1]))[1]
 
 
 def _rank(before: TimedWord, after: TimedWord, rules: Rules) -> int:

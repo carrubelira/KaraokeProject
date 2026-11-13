@@ -102,3 +102,16 @@ def test_a_word_longer_than_a_line_is_a_caption_of_its_own() -> None:
 
 def test_no_words_no_captions() -> None:
     assert group_captions([], Rules()) == []
+
+
+def test_a_lone_short_word_is_not_cut_off_at_a_pause() -> None:
+    text = "Chegaron cando xa estabamos todos no peirao de abaixo, e ninguén os esperaba aquel día"
+    captions = group_captions(said(text, pause_after={0: 1.0}), Rules())
+    assert texts(captions)[0] != "Chegaron"
+
+
+def test_a_caption_that_only_fits_with_a_dangling_break_is_cut_sooner() -> None:
+    text = "despois que xa colleu unha rede, unha rede de malla fina, e levouna ao porto, e máis"
+    for caption in group_captions(said(text), Rules()):
+        if len(caption.lines) == 2:
+            assert caption.lines[0].split()[-1] not in {"unha", "a", "de", "e"}

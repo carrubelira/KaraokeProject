@@ -53,9 +53,11 @@ def time_captions(
         cut = _nearest(cuts, end, rules.shot_snap_frames)
         if cut is not None and cut - gap >= spoken:
             end = cut - gap
+        end = max(end, start + min_len)
+        # Chained after lengthening too: a short caption made readable must not leave a flicker.
         if following is not None and following - end < rules.chain_gap * fps:
             end = following - gap
-        end = min(max(end, start + min_len), start + max_len)
+        end = min(end, start + max_len)
         if limit is not None:
             end = min(end, limit)
         if end - start < min_len:

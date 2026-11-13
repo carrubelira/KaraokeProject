@@ -101,3 +101,9 @@ def test_text_and_speakers_are_kept() -> None:
 def test_cps_counts_characters_per_second() -> None:
     caption = Caption(0.0, 2.0, ("Era o mar,", "e o porto."), (None, None))
     assert cps(caption) == pytest.approx(len("Era o mar,e o porto.") / 2.0)
+
+
+def test_a_gap_left_by_the_minimum_duration_is_closed_too() -> None:
+    # "Chegaron" lasts 0.2 s; made readable it ends 0.36 s before the next caption: chained.
+    out = timed(cap(5.0, 5.2, "Chegaron"), cap(6.2, 8.0))
+    assert out[1].start - out[0].end == pytest.approx(2 * FRAME)

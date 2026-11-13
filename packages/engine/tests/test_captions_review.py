@@ -21,7 +21,7 @@ def test_only_strong_signals_are_listed() -> None:
     doubtful = cap(4.0, 6.0, "Era en Carnota", confidence=0.1)
     items = review_items([fine, doubtful], Rules(), low_confidence=0.3)
     assert [item.start for item in items] == [4.0]
-    assert items[0].reasons == ("palabra dudosa: «Era», «en», «Carnota»",)
+    assert items[0].reasons == ("palabra dudosa: «Era», «Carnota»",)
 
 
 def test_fast_reading_is_listed() -> None:
@@ -90,3 +90,15 @@ def test_moderately_fast_speech_is_counted_but_not_listed() -> None:
 def test_format_review_counts_fast_captions() -> None:
     text = format_review([], video="v.mp4", captions=119, fps=25.0, elapsed=1.0, fast=40)
     assert "40 pasan de 17 car./s" in text
+
+
+def test_unsure_short_function_words_are_not_listed() -> None:
+    # Whisper is always unsure of the first word of a segment, usually a "Que" or an "E".
+    words = (
+        TimedWord("Que", 1.0, 1.2, 0.03),
+        TimedWord("barco,", 1.3, 1.8, 0.0),
+        TimedWord("Claro,", 1.9, 2.3, 0.2),
+    )
+    caption = Caption(1.0, 3.0, ("Que barco, Claro,",), (None,), words)
+    [item] = review_items([caption], Rules(), low_confidence=0.15)
+    assert item.reasons == ("palabra dudosa: «barco,»",)

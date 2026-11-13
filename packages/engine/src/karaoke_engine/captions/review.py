@@ -10,6 +10,7 @@ The list is read by the owner, in Spanish, with timecodes to jump to in DaVinci 
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from karaoke_engine.captions.lines import leans_forward
 from karaoke_engine.captions.rules import Caption, Rules
 from karaoke_engine.captions.timing import cps
 
@@ -42,7 +43,11 @@ def review_items(
         if caption.start < previous_end:
             reasons.append("se solapa con el anterior")
         previous_end = caption.end
-        unsure = [w.text for w in caption.words if w.confidence < low_confidence]
+        unsure = [
+            w.text
+            for w in caption.words
+            if w.confidence < low_confidence and _says_something(w.text)
+        ]
         if unsure:
             reasons.append("palabra dudosa: " + ", ".join(f"«{w}»" for w in unsure))
         speed = cps(caption)
@@ -57,6 +62,12 @@ def review_items(
     ]
     items += [ReviewItem(start, text, ("texto descartado",)) for start, _, text in dropped]
     return sorted(items, key=lambda item: item.start)
+
+
+def _says_something(word: str) -> bool:
+    """Not a short or grammatical word: Whisper is always unsure of a segment's first "Que"."""
+    letters = "".join(ch for ch in word if ch.isalnum())
+    return len(letters) > 2 and not leans_forward(word)
 
 
 def timecode(seconds: float, fps: float) -> str:
