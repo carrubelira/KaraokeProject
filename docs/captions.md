@@ -111,6 +111,8 @@ voices of the same gender ([benchmark guide](benchmark.md)).
 | Words given to the wrong speaker | 0.0 % |
 | Caption in-time against the voice: median · 90th percentile | 0.05 s · 0.26 s (Whisper's own word times: 0.39 s · 0.81 s, early) |
 | Captions breaking a rule (lines, characters, overlaps, gaps) | 0 |
+| Captions over 17 characters a second (kept word for word, up as long as there is room) | 22 % (156 of 698) |
+| Captions under 5/6 s (no room before the next one) | 3 |
 
 Other settings measured, in [decision 018](plan-v3/decisiones/018-subtitulos-entrevistas.md):
 HiTZ with a beam of 5 gives the same words in twice the time; Proxecto Nós's turbo model makes

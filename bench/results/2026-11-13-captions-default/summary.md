@@ -12,8 +12,8 @@ Settings: `{"model": "hitz-large-v3-gl", "beam_size": 1, "refine": true, "speake
 | onset_error_p90 | 0.257 |
 | onset_bias | 0.045 |
 | onset_missing | 93 |
-| captions | 698 |
-| violations | {'lines': 0, 'chars': 0, 'cps': 224, 'short': 6, 'long': 0, 'overlap': 0, 'gap': 0} |
-| seconds_per_hour | 522.9 |
+| captions | 695 |
+| violations | {'lines': 0, 'chars': 0, 'cps': 156, 'short': 3, 'long': 0, 'overlap': 0, 'gap': 0} |
+| seconds_per_hour | 602.8 |
 | peak_vram_gb | 2.21 |
 | peak_ram_gb | 2.68 |

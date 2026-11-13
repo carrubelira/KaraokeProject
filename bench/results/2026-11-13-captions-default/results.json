@@ -13,24 +13,24 @@
   "onset_error_p90": 0.257,
   "onset_bias": 0.045,
   "onset_missing": 93,
-  "captions": 698,
+  "captions": 695,
   "violations": {
    "lines": 0,
    "chars": 0,
-   "cps": 224,
-   "short": 6,
+   "cps": 156,
+   "short": 3,
    "long": 0,
    "overlap": 0,
    "gap": 0
   },
-  "seconds_per_hour": 522.9,
+  "seconds_per_hour": 602.8,
   "peak_vram_gb": 2.21,
   "peak_ram_gb": 2.68
  },
  "dialogues": [
   {
    "name": "dialogue-01",
-   "seconds": 49.7,
+   "seconds": 56.4,
    "wer": 0.0714,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.042,
@@ -40,7 +40,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 28,
+    "cps": 23,
     "short": 0,
     "long": 0,
     "overlap": 0,
@@ -71,7 +71,7 @@
   },
   {
    "name": "dialogue-02",
-   "seconds": 45.4,
+   "seconds": 46.1,
    "wer": 0.0804,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.059,
@@ -81,7 +81,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 27,
+    "cps": 18,
     "short": 0,
     "long": 0,
     "overlap": 0,
@@ -107,7 +107,7 @@
   },
   {
    "name": "dialogue-03",
-   "seconds": 43.5,
+   "seconds": 47.0,
    "wer": 0.0854,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.037,
@@ -117,7 +117,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 27,
+    "cps": 12,
     "short": 0,
     "long": 0,
     "overlap": 0,
@@ -164,7 +164,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 17,
+    "cps": 13,
     "short": 1,
     "long": 0,
     "overlap": 0,
@@ -198,7 +198,7 @@
   },
   {
    "name": "dialogue-05",
-   "seconds": 41.8,
+   "seconds": 42.0,
    "wer": 0.0764,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.061,
@@ -241,18 +241,18 @@
   },
   {
    "name": "dialogue-06",
-   "seconds": 46.0,
+   "seconds": 44.9,
    "wer": 0.054,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.036,
    "onset_error_p90": 0.377,
    "onset_missing": 9,
-   "captions": 63,
+   "captions": 62,
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 27,
-    "short": 2,
+    "cps": 21,
+    "short": 1,
     "long": 0,
     "overlap": 0,
     "gap": 0
@@ -272,18 +272,18 @@
   },
   {
    "name": "dialogue-07",
-   "seconds": 40.6,
+   "seconds": 40.7,
    "wer": 0.0573,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.102,
    "onset_error_p90": 0.153,
    "onset_missing": 5,
-   "captions": 51,
+   "captions": 50,
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 9,
-    "short": 1,
+    "cps": 6,
+    "short": 0,
     "long": 0,
     "overlap": 0,
     "gap": 0
@@ -306,7 +306,7 @@
   },
   {
    "name": "dialogue-08",
-   "seconds": 47.0,
+   "seconds": 48.7,
    "wer": 0.0939,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.05,
@@ -316,7 +316,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 18,
+    "cps": 15,
     "short": 0,
     "long": 0,
     "overlap": 0,
@@ -342,7 +342,7 @@
   },
   {
    "name": "dialogue-09",
-   "seconds": 51.6,
+   "seconds": 68.5,
    "wer": 0.0864,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.037,
@@ -352,7 +352,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 23,
+    "cps": 13,
     "short": 1,
     "long": 0,
     "overlap": 0,
@@ -388,18 +388,18 @@
   },
   {
    "name": "dialogue-10",
-   "seconds": 46.5,
+   "seconds": 63.2,
    "wer": 0.0492,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.039,
    "onset_error_p90": 0.1,
    "onset_missing": 11,
-   "captions": 64,
+   "captions": 63,
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 20,
-    "short": 1,
+    "cps": 13,
+    "short": 0,
     "long": 0,
     "overlap": 0,
     "gap": 0
@@ -432,7 +432,7 @@
   },
   {
    "name": "dialogue-11",
-   "seconds": 45.4,
+   "seconds": 62.7,
    "wer": 0.0646,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.051,
@@ -442,7 +442,7 @@
    "violations": {
     "lines": 0,
     "chars": 0,
-    "cps": 21,
+    "cps": 15,
     "short": 0,
     "long": 0,
     "overlap": 0,
@@ -476,7 +476,7 @@
   },
   {
    "name": "dialogue-12",
-   "seconds": 41.5,
+   "seconds": 62.6,
    "wer": 0.0659,
    "speaker_word_error": 0.0,
    "onset_error_median": 0.091,

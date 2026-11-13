@@ -72,7 +72,9 @@ comparar modelos y ajustes; cómo se leen las entrevistas reales se juzga viénd
   diálogos (con los ajustes por defecto también). Un primer modelo wav2vec2 (Apache-2.0) fallaba en el 20–37 % de las ventanas con dos
   voces del mismo sexo, y el de WavLM es CC BY-SA, que el proyecto no admite.
 - **Normas**: ningún subtítulo con más de dos líneas, líneas largas, solapes ni huecos de menos
-  de dos fotogramas.
+  de dos fotogramas. Pasan de 17 caracteres por segundo el 22 % (156 de 698): el texto es literal
+  y se queda en pantalla lo que deja el siguiente (antes de estirarlos hacia los huecos libres,
+  el 32 %). Tres duran menos de 5/6 s porque no hay sitio antes del siguiente.
 
 Probado también con las entrevistas reales del dueño (en local, nunca en el repo): seis vídeos
 4K de una cámara, 2 h 50 min, en 29 min (unos 10 min por hora), con 3,3 GB de RAM como mucho en
