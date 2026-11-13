@@ -2,7 +2,8 @@
 
 Someone watches every interview in full before it goes to the museum, so this is a guide, not a
 safety net: only strong signals go in (words the model was unsure of, captions too fast to read,
-voice with no text, text the guards threw away, unsure speaker changes), one line per caption.
+voice with no text, text the guards threw away, unsure speaker changes, and edits that broke the
+rules), one line per caption.
 The list is read by the owner, in Spanish, with timecodes to jump to in DaVinci Resolve.
 """
 
@@ -30,8 +31,17 @@ def review_items(
     unsure_speaker: Sequence[float] = (),
 ) -> list[ReviewItem]:
     items: list[ReviewItem] = []
+    previous_end = float("-inf")
     for caption in captions:
         reasons: list[str] = []
+        longest = max((len(line) for line in caption.lines), default=0)
+        if longest > rules.max_chars:
+            reasons.append(f"línea de {longest} caracteres")
+        if len(caption.lines) > rules.max_lines:
+            reasons.append(f"{len(caption.lines)} líneas")
+        if caption.start < previous_end:
+            reasons.append("se solapa con el anterior")
+        previous_end = caption.end
         unsure = [w.text for w in caption.words if w.confidence < low_confidence]
         if unsure:
             reasons.append("palabra dudosa: " + ", ".join(f"«{w}»" for w in unsure))

@@ -25,13 +25,13 @@ def test_only_strong_signals_are_listed() -> None:
 
 
 def test_fast_reading_is_listed() -> None:
-    fast = cap(1.0, 2.0, "Daquela isto era todo casas baixas e o porto")
+    fast = cap(1.0, 2.0, "Daquela era todo casas baixas e o porto")
     [item] = review_items([fast], Rules(), low_confidence=0.3)
-    assert item.reasons == ("lectura rápida: 44 car./s",)
+    assert item.reasons == ("lectura rápida: 39 car./s",)
 
 
 def test_reasons_of_one_caption_are_merged_into_one_item() -> None:
-    caption = cap(1.0, 2.0, "Daquela isto era todo casas baixas e o porto", confidence=0.1)
+    caption = cap(1.0, 2.0, "Daquela era todo casas baixas e o porto", confidence=0.1)
     items = review_items([caption], Rules(), low_confidence=0.3, unsure_speaker=[1.5])
     assert len(items) == 1
     assert len(items[0].reasons) == 3
@@ -67,3 +67,15 @@ def test_format_review_has_a_summary_and_one_line_per_item() -> None:
 def test_format_review_without_items_says_so() -> None:
     text = format_review([], video="v.mp4", captions=3, fps=25.0, elapsed=1.0)
     assert "0 para mirar" in text
+
+
+def test_edits_that_break_the_rules_are_listed() -> None:
+    long_line = Caption(1.0, 5.0, ("x" * 45,), (None,))
+    three_lines = Caption(6.0, 9.0, ("Un", "dous", "tres"), (None, None, None))
+    overlapping = Caption(8.5, 11.0, ("Catro",), (None,))
+    items = review_items([long_line, three_lines, overlapping], Rules(), low_confidence=0.3)
+    assert [item.reasons for item in items] == [
+        ("línea de 45 caracteres",),
+        ("3 líneas",),
+        ("se solapa con el anterior",),
+    ]

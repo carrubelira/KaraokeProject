@@ -1,5 +1,5 @@
 import hashlib
-import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -9,32 +9,9 @@ from karaoke_engine.align.audio import load_mono16k
 from karaoke_engine.captions.source import cache_key, probe_source, read_source
 
 
-def _make_video(out: Path, *, tones: tuple[int, ...] = (440,), audio: bool = True) -> Path:
-    """8 s at 25 fps: 4 s of black, then 4 s of white (a cut at 4 s), an audio track per tone."""
-    inputs = [
-        "-f", "lavfi", "-i", "color=black:s=160x120:r=25:d=4",
-        "-f", "lavfi", "-i", "color=white:s=160x120:r=25:d=4",
-    ]  # fmt: skip
-    maps = ["-map", "[v]"]
-    for i, tone in enumerate(tones if audio else ()):
-        inputs += ["-f", "lavfi", "-i", f"sine=frequency={tone}:duration=8:sample_rate=48000"]
-        maps += ["-map", f"{i + 2}:a"]
-    subprocess.run(
-        ["ffmpeg", "-nostdin", "-v", "error", *inputs,
-         "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0[v]", *maps,
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(out)],
-        check=True,
-    )  # fmt: skip
-    return out
-
-
 @pytest.fixture(scope="module")
-def video(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    import shutil
-
-    if shutil.which("ffmpeg") is None:
-        pytest.skip("ffmpeg and ffprobe are not installed")
-    return _make_video(tmp_path_factory.mktemp("cam") / "MVI_0001.MP4")
+def video(tmp_path_factory: pytest.TempPathFactory, make_video: Callable[..., Path]) -> Path:
+    return make_video(tmp_path_factory.mktemp("cam") / "MVI_0001.MP4")
 
 
 def _sha256(path: Path) -> str:
@@ -94,8 +71,10 @@ def test_the_video_is_never_modified(video: Path, tmp_path: Path) -> None:
 
 
 @pytest.mark.usefixtures("ffmpeg")
-def test_second_audio_track_is_used_when_asked(tmp_path: Path) -> None:
-    video = _make_video(tmp_path / "two.mov", tones=(440, 880))
+def test_second_audio_track_is_used_when_asked(
+    tmp_path: Path, make_video: Callable[..., Path]
+) -> None:
+    video = make_video(tmp_path / "two.mov", tones=(440, 880))
     info = probe_source(video, audio_track=1)
     assert (info.audio_streams, info.audio_index) == (2, 1)
     read_source(info, tmp_path / "audio.flac", shots=False)
@@ -109,8 +88,8 @@ def test_an_audio_track_that_does_not_exist_is_a_clear_error(video: Path) -> Non
 
 
 @pytest.mark.usefixtures("ffmpeg")
-def test_no_audio_is_a_clear_error(tmp_path: Path) -> None:
-    silent = _make_video(tmp_path / "silent.mp4", audio=False)
+def test_no_audio_is_a_clear_error(tmp_path: Path, make_video: Callable[..., Path]) -> None:
+    silent = make_video(tmp_path / "silent.mp4", audio=False)
     with pytest.raises(ValueError, match="no audio"):
         probe_source(silent)
 
