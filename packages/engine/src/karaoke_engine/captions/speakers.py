@@ -8,14 +8,17 @@ takes the group of the window nearest its middle, and a "turn" of less than a se
 two stretches of the same voice is taken as a mistake and joins them. Where a window sits nearly
 halfway between the two voices, the review list asks who is speaking.
 
-The voice print model is `anton-l/wav2vec2-base-superb-sv` (Apache-2.0): WavLM's speaker model
-would tell voices apart better, but its weights are CC BY-SA, which this project does not take.
+The voice prints come from WeSpeaker's ResNet34 trained on VoxCeleb (CC BY 4.0). On the bench's
+Galician dialogues it puts 0-0.4 % of the windows on the wrong voice where the reference is clean
+(two dialogues reach 10 % because one of their volunteers recorded in two places); a wav2vec2
+x-vector model (Apache-2.0) got 20-37 % wrong with two voices of the same gender, and WeSpeaker
+is far ahead of it on VoxCeleb too. WavLM's speaker model is CC BY-SA, which this project does
+not take.
 """
 
 from collections.abc import Callable, Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -24,14 +27,20 @@ from karaoke_engine.align.audio import SAMPLE_RATE, load_mono16k
 from karaoke_engine.captions.rules import TimedWord
 from karaoke_engine.captions.speech import SpeechTranscript
 
-MODEL = ("anton-l/wav2vec2-base-superb-sv", "eb0be47779dda10620d068ab579fca970ee7e417")
+MODEL = (
+    "Wespeaker/wespeaker-voxceleb-resnet34-LM",
+    "f0c48c298fd835726c27956a5d617bad7115627e",
+    "voxceleb_resnet34_LM.onnx",
+)
 _WINDOW = 1.5
 _HOP = 0.75
 _SHORTEST = 0.4  # a stretch of speech shorter than this gets no voice print
-_SAME_VOICE = 0.9  # cosine between the two centres above which they are one voice
+# Cosine between the two centres above which they are one voice: halves of one voice give
+# 0.88-0.92 on the bench, two voices 0.22-0.37.
+_SAME_VOICE = 0.7
 _SHORTEST_TURN = 1.0
-# Cosine difference between the two voices under which it is unsure (not tuned: the bench has
-# no overlapping speech; checked on the real interviews).
+# Cosine difference between the two voices under which it is unsure; on the bench 95 % of the
+# windows have more than 0.36 (it has no overlapping speech: checked on the real interviews).
 _UNSURE_MARGIN = 0.1
 _STARTS = 10
 _ROUNDS = 30
@@ -48,7 +57,7 @@ def assign_speakers(
         return transcript
     samples = load_mono16k(audio)
     pieces = [samples[round(a * SAMPLE_RATE) : round(b * SAMPLE_RATE)] for a, b in windows]
-    prints = (embed or _XVector())(pieces)
+    prints = (embed or _WeSpeaker())(pieces)
     prints = prints / (np.linalg.norm(prints, axis=1, keepdims=True) + 1e-9)
     groups, centres = _two_groups(prints)
     if float(centres[0] @ centres[1]) > _SAME_VOICE:
@@ -164,31 +173,30 @@ def _smooth(words: Sequence[TimedWord], labels: list[str]) -> list[str]:
     return out
 
 
-class _XVector:
-    """Voice prints from a speaker verification model, on the graphics card if there is one."""
+class _WeSpeaker:
+    """Voice prints from WeSpeaker's ResNet34 (ONNX, on the processor): 80 Kaldi filter banks
+    every 10 ms with the mean taken off, as the model was trained."""
 
     def __init__(self) -> None:
-        import torch
-        from transformers import AutoFeatureExtractor, Wav2Vec2ForXVector
+        import onnxruntime
+        from huggingface_hub import hf_hub_download
 
-        repo, revision = MODEL
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
-        # Untyped in transformers, missing without the ml extra: Any either way.
-        extractor: Any = AutoFeatureExtractor
-        model: Any = Wav2Vec2ForXVector
-        self._features = extractor.from_pretrained(repo, revision=revision)
-        self._net = model.from_pretrained(repo, revision=revision).to(self._device).eval()
+        repo, revision, name = MODEL
+        path = hf_hub_download(repo, name, revision=revision)
+        self._session = onnxruntime.InferenceSession(path, providers=["CPUExecutionProvider"])
+        self._input = self._session.get_inputs()[0].name
 
     def __call__(self, windows: Sequence[npt.NDArray[np.float32]]) -> npt.NDArray[np.float32]:
         import torch
+        import torchaudio.compliance.kaldi as kaldi
 
         out = []
-        for i in range(0, len(windows), 32):
-            batch = [np.asarray(w, dtype=np.float32) for w in windows[i : i + 32]]
-            inputs = self._features(
-                batch, sampling_rate=SAMPLE_RATE, return_tensors="pt", padding=True
-            )
-            with torch.inference_mode():
-                found = self._net(**{k: v.to(self._device) for k, v in inputs.items()})
-            out.append(found.embeddings.float().cpu().numpy())
-        return np.concatenate(out).astype(np.float32)
+        for window in windows:
+            wave = torch.from_numpy(np.asarray(window, dtype=np.float32)).unsqueeze(0)
+            feats = kaldi.fbank(
+                wave * (1 << 15), num_mel_bins=80, frame_length=25, frame_shift=10, dither=0.0,
+                sample_frequency=SAMPLE_RATE, window_type="hamming", use_energy=False,
+            )  # fmt: skip
+            feats = feats - feats.mean(dim=0)
+            out.append(self._session.run(None, {self._input: feats.unsqueeze(0).numpy()})[0][0])
+        return np.asarray(out, dtype=np.float32)
