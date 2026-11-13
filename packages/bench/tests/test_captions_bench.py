@@ -147,13 +147,11 @@ def _groups(items: list[str]):  # type: ignore[no-untyped-def]
     return itertools.groupby(items)
 
 
-def test_run_writes_a_report(tmp_path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def _one_dialogue(tmp_path):  # type: ignore[no-untyped-def]
     import json
     import wave
 
-    from karaoke_bench.captions import run_captions
     from karaoke_bench.paths import BenchPaths
-    from karaoke_engine.captions.speech import SpeechTranscript
 
     paths = BenchPaths(tmp_path / "bench")
     folder = paths.data / "speech-gl" / "dialogues"
@@ -173,17 +171,43 @@ def test_run_writes_a_report(tmp_path, monkeypatch) -> None:  # type: ignore[no-
     )
     pipeline = tmp_path / "captions-fake.toml"
     pipeline.write_text('[captions]\nmodel = "fake"\nbeam_size = 1\n')
+    return paths, pipeline
 
-    def transcribe(audio, language, **options):  # type: ignore[no-untyped-def]
+
+class CountingTranscriber:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def __call__(self, audio, language, **options):  # type: ignore[no-untyped-def]
+        from karaoke_engine.captions.speech import SpeechTranscript
+
         assert options == {"model": "fake", "beam_size": 1}
+        self.calls += 1
         return SpeechTranscript(tuple(_words({"A": "A", "B": "B"})), (), (), "fake@0")
 
-    report = run_captions(paths, pipeline, transcribe=transcribe)
+
+def test_run_writes_a_report(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import json
+
+    from karaoke_bench.captions import run_captions
+
+    paths, pipeline = _one_dialogue(tmp_path)
+    report = run_captions(paths, pipeline, transcribe=CountingTranscriber())
     results = json.loads((report / "results.json").read_text())
     assert results["pipeline"] == "captions-fake"
     assert results["total"]["wer"] == 0.0
     assert results["dialogues"][0]["name"] == "dialogue-01"
     assert (report / "summary.md").is_file()
+
+
+def test_run_reuses_cached_transcripts(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    from karaoke_bench.captions import run_captions
+
+    paths, pipeline = _one_dialogue(tmp_path)
+    transcriber = CountingTranscriber()
+    run_captions(paths, pipeline, transcribe=transcriber)
+    run_captions(paths, pipeline, transcribe=transcriber)
+    assert transcriber.calls == 1
 
 
 def test_cli_captions_without_dialogues_says_how_to_make_them(tmp_path, capsys) -> None:  # type: ignore[no-untyped-def]
@@ -193,3 +217,14 @@ def test_cli_captions_without_dialogues_says_how_to_make_them(tmp_path, capsys) 
     pipeline.write_text("[captions]\n")
     assert main(["--bench-dir", str(tmp_path), "captions", "--pipeline", str(pipeline)]) == 1
     assert "fetch-speech" in capsys.readouterr().err
+
+
+def test_onsets_only_count_sentences_that_open_a_caption() -> None:
+    words = _words({"A": "A", "B": "B"})
+    # One caption holds both sentences: only the first opens a caption; it starts 0.1 s early.
+    # The second is a change of speaker that opens no caption: it counts as missing.
+    both = [Caption(0.4, 4.5, ("Ola, bo día. Nacín aquí mesmo.",), (None,), tuple(words))]
+    metrics = caption_metrics(REFERENCE, both, words, Rules(), 25.0)
+    assert metrics.onsets == (-0.1,)
+    assert metrics.onset_error_median == pytest.approx(0.1)
+    assert metrics.onset_missing == 1

@@ -33,6 +33,7 @@ VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".mxf", ".avi", ".m4v", ".
 # Bumped when a step's output changes, so cached work is redone.
 READ_VERSION = "2"
 SHOTS_VERSION = "1"
+SPEAKERS_VERSION = "1"
 SPEECH_VERSION = "3"
 # Speech this long with no word in it goes to the review list.
 _MISSED_SECONDS = 2.0
@@ -191,15 +192,26 @@ def caption_video(
 
 
 def caption_audio(
-    audio: Path, language: str, options: CaptionOptions, fps: float = 25.0
+    audio: Path,
+    language: str,
+    options: CaptionOptions,
+    fps: float = 25.0,
+    transcript: SpeechTranscript | None = None,
 ) -> tuple[list[Caption], SpeechTranscript]:
-    """The captions of a sound file, as a video's would be (for the bench); nothing is cached."""
-    transcribe = options.transcribe or speech_step.transcribe_speech_in_child
-    transcript = transcribe(audio, language, model=options.model)
-    for step in options.steps if options.steps is not None else default_steps():
-        transcript = step(audio, transcript)
+    """The captions of a sound file, as a video's would be (for the bench); nothing is cached.
+    With a `transcript` (and its steps) already made, only the captions are worked out."""
+    if transcript is None:
+        transcribe = options.transcribe or speech_step.transcribe_speech_in_child
+        transcript = transcribe(audio, language, model=options.model)
+        for step in options.steps if options.steps is not None else default_steps():
+            transcript = step(audio, transcript)
     rules = options.rules
     return time_captions(group_captions(transcript.words, rules), rules, fps), transcript
+
+
+def transcript_from(data: dict[str, Any]) -> SpeechTranscript:
+    """A transcript back from its JSON (asdict) form."""
+    return _transcript_from(data)
 
 
 def rebuild_from_srt(srt: Path, options: CaptionOptions) -> CaptionResult:

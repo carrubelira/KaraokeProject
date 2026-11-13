@@ -13,6 +13,7 @@ and settings with each other; how the real interviews read is judged by watching
 
 import datetime
 import functools
+import hashlib
 import json
 import random
 import resource
@@ -32,8 +33,15 @@ from karaoke_bench.fetch import http_download
 from karaoke_bench.metrics import text_errors
 from karaoke_bench.paths import BenchPaths
 from karaoke_bench.resources import GpuSampler
+from karaoke_bench.textnorm import tokens
 from karaoke_engine.align.audio import load_mono16k
-from karaoke_engine.captions.pipeline import CaptionOptions, caption_audio
+from karaoke_engine.captions.pipeline import (
+    SPEAKERS_VERSION,
+    SPEECH_VERSION,
+    CaptionOptions,
+    caption_audio,
+    transcript_from,
+)
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.speakers import speakers_in_child
 from karaoke_engine.captions.speech import SpeechTranscript, transcribe_speech_in_child
@@ -96,7 +104,8 @@ class CaptionMetrics:
     onset_missing: int
     captions: int
     violations: dict[str, int] = field(default_factory=dict)
-    onsets: tuple[float, ...] = ()  # each sentence's caption start error, seconds
+    # Caption start minus voice start, for each sentence that opens a caption (negative: early).
+    onsets: tuple[float, ...] = ()
 
 
 def plan_dialogues(
@@ -194,25 +203,46 @@ def caption_metrics(
 ) -> CaptionMetrics:
     said = " ".join(u.text for u in reference)
     written = " ".join(" ".join(c.lines) for c in captions).replace("-", " ")
-    onsets: list[float] = []
-    missing = 0
-    for utterance in reference:
-        near = [abs(c.start - utterance.start) for c in captions]
-        best = min(near, default=float("inf"))
-        if best <= _ONSET_REACH:
-            onsets.append(best)
-        else:
-            missing += 1
+    onsets, opened = _onsets(reference, captions)
+    turns = [
+        i for i in range(1, len(reference)) if reference[i].speaker != reference[i - 1].speaker
+    ]
+    missing = sum(i not in opened for i in turns)
+    errors = [abs(o) for o in onsets]
     return CaptionMetrics(
         wer=round(text_errors(said, written).wer, 4),
         speaker_word_error=_speaker_error(reference, words),
-        onset_error_median=round(statistics.median(onsets), 3) if onsets else None,
-        onset_error_p90=round(_percentile(onsets, 0.9), 3) if onsets else None,
+        onset_error_median=round(statistics.median(errors), 3) if errors else None,
+        onset_error_p90=round(_percentile(errors, 0.9), 3) if errors else None,
         onset_missing=missing,
         captions=len(captions),
         violations=violations(captions, rules, fps),
-        onsets=tuple(round(o, 3) for o in onsets),
+        onsets=tuple(onsets),
     )
+
+
+def _onsets(
+    reference: Sequence[RefUtterance], captions: Sequence[Caption]
+) -> tuple[list[float], set[int]]:
+    """For each caption that starts where a sentence starts (its first word, within reach), how
+    far its start is from that sentence's voice; and which sentences open a caption."""
+    firsts = [(tokens(u.text) or [""])[0] for u in reference]
+    onsets: list[float] = []
+    opened: set[int] = set()
+    for caption in captions:
+        first = (tokens(" ".join(caption.lines)) or [""])[0]
+        near = [
+            i
+            for i, u in enumerate(reference)
+            if i not in opened
+            and firsts[i] == first
+            and abs(caption.start - u.start) <= _ONSET_REACH
+        ]
+        if near:
+            i = min(near, key=lambda i: abs(caption.start - reference[i].start))
+            opened.add(i)
+            onsets.append(round(caption.start - reference[i].start, 3))
+    return onsets, opened
 
 
 def violations(captions: Sequence[Caption], rules: Rules, fps: float) -> dict[str, int]:
@@ -302,6 +332,12 @@ def run_captions(
         ),
         steps=(speakers_in_child,) if config.get("speakers") else (),
     )
+    # Transcripts are kept by settings and code version, so a change to the metrics or the
+    # caption rules is measured again in seconds; the time is the one of the first run.
+    key = hashlib.sha256(
+        json.dumps([config, SPEECH_VERSION, SPEAKERS_VERSION], sort_keys=True).encode()
+    ).hexdigest()[:16]
+    cache = paths.cache / "captions" / key
     rows: list[dict[str, Any]] = []
     all_onsets: list[float] = []
     said: list[str] = []
@@ -312,10 +348,18 @@ def run_captions(
         reference = [
             RefUtterance(**u) for u in json.loads(wav.with_suffix(".json").read_text("utf-8"))
         ]
+        cached = cache / f"{wav.stem}.json"
+        known = transcript_from(json.loads(cached.read_text("utf-8"))) if cached.is_file() else None
         started = time.monotonic()
         with GpuSampler() as gpu:
-            captions, transcript = caption_audio(wav, "gl", options)
+            captions, transcript = caption_audio(wav, "gl", options, transcript=known)
         seconds = time.monotonic() - started
+        if known is None:
+            cache.mkdir(parents=True, exist_ok=True)
+            cached.write_text(json.dumps(asdict(transcript), ensure_ascii=False), "utf-8")
+            cached.with_suffix(".seconds").write_text(str(seconds))
+        else:
+            seconds = float(cached.with_suffix(".seconds").read_text())
         metrics = caption_metrics(reference, captions, transcript.words, options.rules, 25.0)
         rows.append({"name": wav.stem, "seconds": round(seconds, 1)} | asdict(metrics))
         all_onsets += metrics.onsets
