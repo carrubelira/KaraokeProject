@@ -169,3 +169,30 @@ def test_a_word_that_is_only_punctuation_joins_the_previous_one(audio: Path) -> 
     )
     out, _ = run(audio, [segment], [(0.9, 3.0)])
     assert [w.text for w in out.words] == ["Si..."]
+
+
+class ChunkWhisper(FakeWhisper):
+    """Says one word a second into each piece it gets, and keeps how long each piece was."""
+
+    def __init__(self) -> None:
+        super().__init__([])
+        self.lengths: list[float] = []
+
+    def transcribe(self, audio: np.ndarray, **options: object) -> tuple[object, FakeInfo]:
+        self.lengths.append(len(audio) / RATE)
+        return iter([said(1.0, f"Tramo{len(self.lengths)}.")]), FakeInfo("gl")
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_long_audio_is_transcribed_in_pieces_cut_in_silences(audio: Path) -> None:
+    # 20 s of audio with speech in four stretches; pieces of at most 8 s.
+    speech = [(0.5, 3.0), (4.0, 7.0), (9.0, 12.0), (14.0, 18.0)]
+    whisper = ChunkWhisper()
+    out = transcribe_speech(audio, "gl", whisper=whisper, speech=speech, chunk_seconds=8.0)
+    assert len(whisper.lengths) == 3
+    assert all(length <= 8.0 for length in whisper.lengths)
+    starts = [w.start for w in out.words]
+    assert starts == sorted(starts)
+    assert len(starts) == 3
+    assert starts[0] == pytest.approx(1.0)
+    assert all(any(a <= s <= b for a, b in speech) for s in starts)

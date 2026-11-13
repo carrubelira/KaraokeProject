@@ -8,6 +8,7 @@ quiet interviewer. Whisper fills silences with stock phrases learnt from subtitl
 and reported, never shown. Text in a public museum must be what was said.
 """
 
+import itertools
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -34,6 +35,8 @@ HALLUCINATIONS: tuple[re.Pattern[str], ...] = tuple(
     )
 )
 _MAX_SAME_IN_A_ROW = 2
+# Longest piece of audio given to Whisper at once (its spectrogram is held whole in memory).
+CHUNK_SECONDS = 600.0
 # Punctuation that closes what came before it.
 _CLOSING = ".,;:!?…)»"
 
@@ -55,49 +58,84 @@ def transcribe_speech(
     beam_size: int = 5,
     whisper: Any = None,
     speech: Sequence[tuple[float, float]] | None = None,
+    chunk_seconds: float = CHUNK_SECONDS,
 ) -> SpeechTranscript:
-    """Words with times and confidence; `speech` regions are detected unless given."""
+    """Words with times and confidence; `speech` regions are detected unless given.
+
+    faster-whisper works out the spectrogram of all the audio it is given at once: for an hour,
+    gigabytes. The audio goes to it in pieces of at most `chunk_seconds`, cut in silences."""
     samples = load_mono16k(audio)
     regions = tuple(speech) if speech is not None else speech_regions(samples)
     name = model if model != "auto" else DEFAULT_SPEECH_MODEL.get(language, "large-v3-turbo")
     transcriber = WhisperTranscriber(model=name, whisper=whisper)
-    found, _ = transcriber.whisper_for_language(language).transcribe(
-        samples,
-        language=language,
-        beam_size=beam_size,
-        word_timestamps=True,
-        vad_filter=True,
-        condition_on_previous_text=False,
-        compression_ratio_threshold=2.4,
-        no_speech_threshold=0.6,
-        log_prob_threshold=-1.0,
-    )
+    whisper_model = transcriber.whisper_for_language(language)
     words: list[TimedWord] = []
     dropped: list[tuple[float, float, str]] = []
     kept_texts: list[str] = []
+    for first, last in pieces(regions, len(samples) / SAMPLE_RATE, chunk_seconds):
+        found, _ = whisper_model.transcribe(
+            samples[round(first * SAMPLE_RATE) : round(last * SAMPLE_RATE)],
+            language=language,
+            beam_size=beam_size,
+            word_timestamps=True,
+            vad_filter=True,
+            condition_on_previous_text=False,
+            compression_ratio_threshold=2.4,
+            no_speech_threshold=0.6,
+            log_prob_threshold=-1.0,
+        )
+        _keep(found, first, regions, words, dropped, kept_texts)
+    transcriber.unload()
+    return SpeechTranscript(
+        tuple(words), regions, tuple(dropped), transcriber.model_for_language(language)
+    )
+
+
+def pieces(
+    regions: Sequence[tuple[float, float]], total: float, limit: float
+) -> list[tuple[float, float]]:
+    """Stretches of at most `limit` seconds (unless one region is longer), cut halfway through
+    the silences between speech regions."""
+    out: list[tuple[float, float]] = []
+    start = 0.0
+    for (_, end), following in itertools.pairwise(regions):
+        if following[1] - start > limit:
+            cut = (end + following[0]) / 2
+            out.append((start, cut))
+            start = cut
+    out.append((start, total))
+    return out
+
+
+def _keep(
+    found: Any,
+    offset: float,
+    regions: Sequence[tuple[float, float]],
+    words: list[TimedWord],
+    dropped: list[tuple[float, float, str]],
+    kept_texts: list[str],
+) -> None:
+    """Adds a piece's segments, moved to the whole audio's time, minus what is made up."""
     for segment in found:
         text = " ".join(segment.text.split())
         if not text:
             continue
+        start, end = segment.start + offset, segment.end + offset
         repeated = len(kept_texts) >= _MAX_SAME_IN_A_ROW and all(
             t.lower() == text.lower() for t in kept_texts[-_MAX_SAME_IN_A_ROW:]
         )
         made_up = (
-            _share(regions, segment.start, segment.end) < MIN_VOICE_SHARE
+            _share(regions, start, end) < MIN_VOICE_SHARE
             or any(p.search(text) for p in HALLUCINATIONS)
             or is_loop(text)
             or repeated
         )
         if made_up:
-            dropped.append((round(segment.start, 3), round(segment.end, 3), text))
+            dropped.append((round(start, 3), round(end, 3), text))
             continue
         kept_texts.append(text)
         for w in segment.words or ():
-            _add_word(words, w.word.strip(), w.start, w.end, w.probability)
-    transcriber.unload()
-    return SpeechTranscript(
-        tuple(words), regions, tuple(dropped), transcriber.model_for_language(language)
-    )
+            _add_word(words, w.word.strip(), w.start + offset, w.end + offset, w.probability)
 
 
 def _add_word(
