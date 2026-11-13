@@ -176,6 +176,18 @@ def caption_video(
     return CaptionResult(video, (srt, vtt, review), len(captions), len(items), elapsed)
 
 
+def caption_audio(
+    audio: Path, language: str, options: CaptionOptions, fps: float = 25.0
+) -> tuple[list[Caption], SpeechTranscript]:
+    """The captions of a sound file, as a video's would be (for the bench); nothing is cached."""
+    transcribe = options.transcribe or speech_step.transcribe_speech_in_child
+    transcript = transcribe(audio, language, model=options.model)
+    for step in options.steps:
+        transcript = step(audio, transcript)
+    rules = options.rules
+    return time_captions(group_captions(transcript.words, rules), rules, fps), transcript
+
+
 def rebuild_from_srt(srt: Path, options: CaptionOptions) -> CaptionResult:
     """The WebVTT and review list again, from an SRT reviewed in an editor."""
     started = time.monotonic()

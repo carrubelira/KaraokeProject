@@ -178,3 +178,23 @@ def test_from_srt_refuses_a_constant_offset(video: Path, options: CaptionOptions
     assert result.error is not None
     assert "3600" in result.error
     assert vtt.read_bytes() == before
+
+
+def test_caption_audio_captions_a_sound_file_for_the_bench(
+    tmp_path: Path, options: CaptionOptions
+) -> None:
+    import wave
+
+    audio = tmp_path / "dialogue.wav"
+    with wave.open(str(audio), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(16000)
+        out.writeframes(b"\0\0" * 16000 * 8)
+    captions, transcript = pipeline.caption_audio(audio, "gl", options, fps=25.0)
+    assert " ".join(" ".join(c.lines) for c in captions) == SENTENCE
+    assert transcript.model == "fake@0"
+    assert (
+        sorted(p.name for p in tmp_path.iterdir()) == ["cache", "dialogue.wav"]
+        or not (tmp_path / "cache").exists()
+    )
