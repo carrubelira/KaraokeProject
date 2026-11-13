@@ -2,3 +2,4 @@
 [captions]
 model = "hitz-large-v3-gl"
 beam_size = 1
+speakers = false

@@ -35,6 +35,7 @@ from karaoke_bench.resources import GpuSampler
 from karaoke_engine.align.audio import load_mono16k
 from karaoke_engine.captions.pipeline import CaptionOptions, caption_audio
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
+from karaoke_engine.captions.speakers import speakers_in_child
 from karaoke_engine.captions.speech import SpeechTranscript, transcribe_speech_in_child
 from karaoke_engine.captions.timing import cps
 
@@ -299,6 +300,7 @@ def run_captions(
         transcribe=functools.partial(
             transcribe or transcribe_speech_in_child, beam_size=int(config.get("beam_size", 5))
         ),
+        steps=(speakers_in_child,) if config.get("speakers") else (),
     )
     rows: list[dict[str, Any]] = []
     all_onsets: list[float] = []

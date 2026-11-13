@@ -36,6 +36,12 @@ class FakeTranscriber:
         return SpeechTranscript(words, ((0.4, 6.0),), (), "fake@0")
 
 
+@pytest.fixture(autouse=True)
+def no_model_steps(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The default steps load models: these tests run without them unless they ask."""
+    monkeypatch.setattr(pipeline, "default_steps", lambda: ())
+
+
 @pytest.fixture
 def options(tmp_path: Path) -> CaptionOptions:
     return CaptionOptions(cache=tmp_path / "cache", transcribe=FakeTranscriber())
@@ -232,3 +238,27 @@ def test_without_shots_no_cuts_are_looked_for(
     monkeypatch.setattr(pipeline, "find_shots", fail)
     options = CaptionOptions(cache=tmp_path / "c", transcribe=FakeTranscriber(), shots=False)
     assert caption_video(video, options).error is None
+
+
+def test_speakers_are_a_default_step() -> None:
+    from karaoke_engine.captions.speakers import speakers_in_child
+
+    assert speakers_in_child in pipeline.__dict__["_DEFAULT_STEPS"]
+
+
+def test_steps_label_speakers_in_the_vtt_and_unsure_ones_in_the_list(
+    video: Path, tmp_path: Path
+) -> None:
+    def label(audio: Path, transcript: SpeechTranscript) -> SpeechTranscript:
+        words = tuple(
+            TimedWord(w.text, w.start, w.end, w.confidence, "B" if i < 3 else "A")
+            for i, w in enumerate(transcript.words)
+        )
+        return SpeechTranscript(words, transcript.speech, (), "fake@0", unsure_speaker=(0.5,))
+
+    options = CaptionOptions(cache=tmp_path / "c", transcribe=FakeTranscriber(), steps=(label,))
+    caption_video(video, options)
+    vtt = (video.parent / "MVI_0704.gl.vtt").read_text(encoding="utf-8")
+    assert "<v Entrevistador>" in vtt
+    assert "<v Entrevistado>" in vtt
+    assert "¿quién habla?" in (video.parent / "MVI_0704.gl.revisar.txt").read_text("utf-8")

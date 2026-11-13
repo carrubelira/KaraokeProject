@@ -25,6 +25,7 @@ from karaoke_engine.captions.review import format_review, review_items
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.segment import group_captions
 from karaoke_engine.captions.source import cache_key, find_shots, probe_source, read_source
+from karaoke_engine.captions.speakers import speakers_in_child
 from karaoke_engine.captions.speech import SpeechTranscript
 from karaoke_engine.captions.timing import cps, time_captions
 
@@ -43,6 +44,7 @@ _ERRORS = (OSError, ValueError, RuntimeError, MemoryError, subprocess.Subprocess
 
 Step = Callable[[Path, SpeechTranscript], SpeechTranscript]
 Progress = Callable[[str, float], None]
+_DEFAULT_STEPS: tuple[Step, ...] = (speakers_in_child,)
 
 
 @dataclass
@@ -55,7 +57,7 @@ class CaptionOptions:
     rules: Rules = field(default_factory=Rules)
     low_confidence: float = 0.3
     cache: Path = field(default_factory=lambda: Path.home() / ".cache" / "karaoke" / "captions")
-    steps: Sequence[Step] = ()
+    steps: Sequence[Step] | None = None  # default_steps() when None
     transcribe: Callable[..., SpeechTranscript] | None = None  # transcribe_speech_in_child
     labels: Mapping[str, str] = field(
         default_factory=lambda: {"A": "Entrevistado", "B": "Entrevistador"}
@@ -71,6 +73,11 @@ class CaptionResult:
     elapsed: float = 0.0
     skipped: str | None = None
     error: str | None = None
+
+
+def default_steps() -> Sequence[Step]:
+    """What runs after transcription unless told otherwise: telling the two voices apart."""
+    return _DEFAULT_STEPS
 
 
 def find_videos(paths: Sequence[Path]) -> list[Path]:
@@ -149,7 +156,7 @@ def caption_video(
         if pending is not None:
             _write_json(shots_file, pending.result())
     cuts = json.loads(shots_file.read_text()) if options.shots else []
-    for step in options.steps:
+    for step in options.steps if options.steps is not None else default_steps():
         transcript = step(audio, transcript)
     report("write", 0.0)
     rules = options.rules
@@ -159,6 +166,7 @@ def caption_video(
     items = review_items(
         captions, rules, low_confidence=options.low_confidence,
         missed=_missed(transcript.speech, transcript.words), dropped=transcript.dropped,
+        unsure_speaker=transcript.unsure_speaker,
     )  # fmt: skip
     elapsed = time.monotonic() - started
     note = f"Subtítulos automáticos, sin revisar.\nModelo: {transcript.model}.\nFecha: {_today()}."
@@ -188,7 +196,7 @@ def caption_audio(
     """The captions of a sound file, as a video's would be (for the bench); nothing is cached."""
     transcribe = options.transcribe or speech_step.transcribe_speech_in_child
     transcript = transcribe(audio, language, model=options.model)
-    for step in options.steps:
+    for step in options.steps if options.steps is not None else default_steps():
         transcript = step(audio, transcript)
     rules = options.rules
     return time_captions(group_captions(transcript.words, rules), rules, fps), transcript
@@ -243,6 +251,7 @@ def _transcript_from(data: dict[str, Any]) -> SpeechTranscript:
         speech=tuple((float(a), float(b)) for a, b in data["speech"]),
         dropped=tuple((float(a), float(b), str(t)) for a, b, t in data["dropped"]),
         model=data["model"],
+        unsure_speaker=tuple(float(t) for t in data.get("unsure_speaker", ())),
     )
 
 

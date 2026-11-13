@@ -44,6 +44,7 @@ class SpeechTranscript:
     speech: tuple[tuple[float, float], ...]  # where the voice detector hears speech
     dropped: tuple[tuple[float, float, str], ...]  # text the guards threw away
     model: str
+    unsure_speaker: tuple[float, ...] = ()  # where the voices could not be told apart
 
 
 def transcribe_speech(

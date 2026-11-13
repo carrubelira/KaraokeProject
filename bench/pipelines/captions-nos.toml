@@ -2,3 +2,4 @@
 [captions]
 model = "nos-turbo-gl"
 beam_size = 5
+speakers = false

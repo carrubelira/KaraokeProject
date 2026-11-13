@@ -19,7 +19,10 @@ def fake_transcribe(audio: Path, language: str, **options: Any) -> SpeechTranscr
 
 @pytest.fixture
 def fake_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    from karaoke_engine.captions import pipeline
+
     monkeypatch.setattr(speech, "transcribe_speech_in_child", fake_transcribe)
+    monkeypatch.setattr(pipeline, "default_steps", lambda: ())
 
 
 @pytest.fixture
