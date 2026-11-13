@@ -59,6 +59,7 @@ def transcribe_speech(
     whisper: Any = None,
     speech: Sequence[tuple[float, float]] | None = None,
     chunk_seconds: float = CHUNK_SECONDS,
+    seed: int = 0,
 ) -> SpeechTranscript:
     """Words with times and confidence; `speech` regions are detected unless given.
 
@@ -69,6 +70,8 @@ def transcribe_speech(
     name = model if model != "auto" else DEFAULT_SPEECH_MODEL.get(language, "large-v3-turbo")
     transcriber = WhisperTranscriber(model=name, whisper=whisper)
     whisper_model = transcriber.whisper_for_language(language)
+    # Whisper samples again with temperature where it is unsure: the same seed, the same words.
+    _seed(seed)
     words: list[TimedWord] = []
     dropped: list[tuple[float, float, str]] = []
     kept_texts: list[str] = []
@@ -89,6 +92,14 @@ def transcribe_speech(
     return SpeechTranscript(
         tuple(words), regions, tuple(dropped), transcriber.model_for_language(language)
     )
+
+
+def _seed(seed: int) -> None:
+    try:
+        import ctranslate2
+    except ImportError:  # the ml extra is not installed (tests with a stand-in model)
+        return
+    ctranslate2.set_random_seed(seed)
 
 
 def pieces(

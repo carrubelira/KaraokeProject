@@ -196,3 +196,13 @@ def test_long_audio_is_transcribed_in_pieces_cut_in_silences(audio: Path) -> Non
     assert len(starts) == 3
     assert starts[0] == pytest.approx(1.0)
     assert all(any(a <= s <= b for a, b in speech) for s in starts)
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_whisper_is_seeded_so_runs_repeat(audio: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from karaoke_engine.captions import speech
+
+    seeds: list[int] = []
+    monkeypatch.setattr(speech, "_seed", seeds.append)
+    run(audio, [said(1.0, "Ola")], [(0.9, 2.0)])
+    assert seeds == [0]
