@@ -25,7 +25,7 @@ from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.segment import group_captions
 from karaoke_engine.captions.source import cache_key, probe_source, read_source
 from karaoke_engine.captions.speech import SpeechTranscript
-from karaoke_engine.captions.timing import time_captions
+from karaoke_engine.captions.timing import cps, time_captions
 
 VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".mxf", ".avi", ".m4v", ".mts"})
 # Bumped when a step's output changes, so cached work is redone.
@@ -156,15 +156,19 @@ def caption_video(
     )  # fmt: skip
     elapsed = time.monotonic() - started
     note = f"Subtítulos automáticos, sin revisar.\nModelo: {transcript.model}.\nFecha: {_today()}."
+    listed = format_review(
+        items,
+        video=video.name,
+        captions=len(captions),
+        fps=info.fps,
+        elapsed=elapsed,
+        fast=sum(cps(c) > rules.max_cps for c in captions),
+        max_cps=rules.max_cps,
+    )
     files = {
         srt: (to_srt(captions), SRT_ENCODING),
         vtt: (to_vtt(captions, note, options.labels), "utf-8"),
-        review: (
-            format_review(
-                items, video=video.name, captions=len(captions), fps=info.fps, elapsed=elapsed
-            ),
-            "utf-8",
-        ),
+        review: (listed, "utf-8"),
     }
     _write_all(files, backup=srt if options.force else None)
     _write_json(_generated(options.cache, info), [asdict(c) | {"words": []} for c in captions])
