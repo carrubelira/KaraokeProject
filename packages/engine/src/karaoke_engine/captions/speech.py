@@ -9,6 +9,7 @@ and reported, never shown. Text in a public museum must be what was said.
 """
 
 import itertools
+import math
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -105,17 +106,25 @@ def _seed(seed: int) -> None:
 def pieces(
     regions: Sequence[tuple[float, float]], total: float, limit: float
 ) -> list[tuple[float, float]]:
-    """Stretches of at most `limit` seconds (unless one region is longer), cut halfway through
-    the silences between speech regions."""
+    """Stretches of at most `limit` seconds, cut halfway through the silences between speech
+    regions, and inside a region only when it alone is longer (constant sound under the voice
+    can make the detector hear one endless region)."""
     out: list[tuple[float, float]] = []
     start = 0.0
     for (_, end), following in itertools.pairwise(regions):
         if following[1] - start > limit:
             cut = (end + following[0]) / 2
-            out.append((start, cut))
+            out += _even(start, cut, limit)
             start = cut
-    out.append((start, total))
+    out += _even(start, total, limit)
     return out
+
+
+def _even(start: float, end: float, limit: float) -> list[tuple[float, float]]:
+    """[start, end] in equal pieces of at most `limit` seconds."""
+    count = max(1, math.ceil((end - start) / limit - 1e-9))
+    step = (end - start) / count
+    return [(start + k * step, start + (k + 1) * step) for k in range(count)]
 
 
 def _keep(
@@ -167,7 +176,8 @@ def speech_regions(samples: npt.NDArray[np.float32]) -> tuple[tuple[float, float
     """Silero's speech regions, in seconds."""
     from faster_whisper.vad import VadOptions, get_speech_timestamps
 
-    found = get_speech_timestamps(samples, VadOptions(min_silence_duration_ms=300))
+    options = VadOptions(min_silence_duration_ms=300, max_speech_duration_s=CHUNK_SECONDS)
+    found = get_speech_timestamps(samples, options)
     return tuple(
         (round(r["start"] / SAMPLE_RATE, 3), round(r["end"] / SAMPLE_RATE, 3)) for r in found
     )

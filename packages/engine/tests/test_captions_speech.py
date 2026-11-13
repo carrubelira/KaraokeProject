@@ -206,3 +206,14 @@ def test_whisper_is_seeded_so_runs_repeat(audio: Path, monkeypatch: pytest.Monke
     monkeypatch.setattr(speech, "_seed", seeds.append)
     run(audio, [said(1.0, "Ola")], [(0.9, 2.0)])
     assert seeds == [0]
+
+
+def test_one_endless_stretch_of_voice_is_cut_too() -> None:
+    from karaoke_engine.captions.speech import pieces
+
+    # Music or wind under the whole recording: the detector hears one 30-minute stretch.
+    cut = pieces([(0.0, 1800.0)], 1800.0, 600.0)
+    assert len(cut) == 3
+    assert all(b - a <= 600.0 for a, b in cut)
+    assert cut[0][0] == 0.0
+    assert cut[-1][1] == 1800.0
