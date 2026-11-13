@@ -369,11 +369,14 @@ def run_captions(
         elapsed += seconds
         peak_vram = max(peak_vram, (gpu.peak_mb or 0.0) / 1024)
     speakers = [r["speaker_word_error"] for r in rows if r["speaker_word_error"] is not None]
+    errors = [abs(o) for o in all_onsets]
     total = {
         "wer": round(text_errors(" ".join(said), " ".join(written)).wer, 4),
         "speaker_word_error": round(statistics.mean(speakers), 4) if speakers else None,
-        "onset_error_median": round(statistics.median(all_onsets), 3) if all_onsets else None,
-        "onset_error_p90": round(_percentile(all_onsets, 0.9), 3) if all_onsets else None,
+        "onset_error_median": round(statistics.median(errors), 3) if errors else None,
+        "onset_error_p90": round(_percentile(errors, 0.9), 3) if errors else None,
+        # Negative: captions come in before the voice.
+        "onset_bias": round(statistics.median(all_onsets), 3) if all_onsets else None,
         "onset_missing": sum(r["onset_missing"] for r in rows),
         "captions": sum(r["captions"] for r in rows),
         "violations": {

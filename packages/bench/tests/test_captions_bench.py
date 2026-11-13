@@ -228,3 +228,24 @@ def test_onsets_only_count_sentences_that_open_a_caption() -> None:
     assert metrics.onsets == (-0.1,)
     assert metrics.onset_error_median == pytest.approx(0.1)
     assert metrics.onset_missing == 1
+
+
+def test_the_total_onset_error_is_absolute_and_the_bias_signed(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import json
+
+    from karaoke_bench.captions import run_captions
+    from karaoke_engine.captions.speech import SpeechTranscript
+
+    paths, pipeline = _one_dialogue(tmp_path)
+
+    def early(audio, language, **options):  # type: ignore[no-untyped-def]
+        words = tuple(
+            TimedWord(w.text, w.start - 0.2, w.end, w.confidence, w.speaker)
+            for w in _words({"A": "A", "B": "B"})
+        )
+        return SpeechTranscript(words, (), (), "fake@0")
+
+    report = run_captions(paths, pipeline, transcribe=early)
+    total = json.loads((report / "results.json").read_text())["total"]
+    assert total["onset_error_median"] == pytest.approx(0.2, abs=0.04)
+    assert total["onset_bias"] == pytest.approx(-0.2, abs=0.04)
