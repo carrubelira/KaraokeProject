@@ -142,3 +142,30 @@ def test_child_crash_is_a_memory_error(tmp_path: Path, monkeypatch: pytest.Monke
 
     with pytest.raises(MemoryError, match="out of memory"):
         transcribe_speech_in_child(tmp_path / "audio.flac", "gl", work=child_crash.die)
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_punctuation_whisper_glues_to_the_next_word_goes_back(audio: Path) -> None:
+    segment = FakeSegment(
+        1.0,
+        2.5,
+        " Que foi .E o mar",
+        [
+            FakeWord(" Que", 1.0, 1.2, 0.9),
+            FakeWord(" foi", 1.3, 1.6, 0.9),
+            FakeWord(" .E", 1.7, 1.8, 0.9),
+            FakeWord(" o", 1.9, 2.0, 0.9),
+            FakeWord(" mar", 2.1, 2.5, 0.9),
+        ],
+    )
+    out, _ = run(audio, [segment], [(0.9, 3.0)])
+    assert [w.text for w in out.words] == ["Que", "foi.", "E", "o", "mar"]
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_a_word_that_is_only_punctuation_joins_the_previous_one(audio: Path) -> None:
+    segment = FakeSegment(
+        1.0, 2.0, " Si ...", [FakeWord(" Si", 1.0, 1.3, 0.9), FakeWord(" ...", 1.3, 1.4, 0.9)]
+    )
+    out, _ = run(audio, [segment], [(0.9, 3.0)])
+    assert [w.text for w in out.words] == ["Si..."]

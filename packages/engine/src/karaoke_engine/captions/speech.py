@@ -34,6 +34,8 @@ HALLUCINATIONS: tuple[re.Pattern[str], ...] = tuple(
     )
 )
 _MAX_SAME_IN_A_ROW = 2
+# Punctuation that closes what came before it.
+_CLOSING = ".,;:!?…)»"
 
 
 @dataclass(frozen=True)
@@ -89,15 +91,26 @@ def transcribe_speech(
             dropped.append((round(segment.start, 3), round(segment.end, 3), text))
             continue
         kept_texts.append(text)
-        words += [
-            TimedWord(w.word.strip(), round(w.start, 3), round(w.end, 3), round(w.probability, 3))
-            for w in segment.words or ()
-            if w.word.strip()
-        ]
+        for w in segment.words or ():
+            _add_word(words, w.word.strip(), w.start, w.end, w.probability)
     transcriber.unload()
     return SpeechTranscript(
         tuple(words), regions, tuple(dropped), transcriber.model_for_language(language)
     )
+
+
+def _add_word(
+    words: list[TimedWord], text: str, start: float, end: float, probability: float
+) -> None:
+    """Adds a word, giving back to the previous one the punctuation Whisper glued to its front
+    (".E" after "está" is "está." and "E") or a word that is only punctuation ("...")."""
+    lead = len(text) - len(text.lstrip(_CLOSING))
+    if lead and words:
+        last = words[-1]
+        words[-1] = TimedWord(last.text + text[:lead], last.start, last.end, last.confidence)
+        text = text[lead:]
+    if text:
+        words.append(TimedWord(text, round(start, 3), round(end, 3), round(probability, 3)))
 
 
 def speech_regions(samples: npt.NDArray[np.float32]) -> tuple[tuple[float, float], ...]:

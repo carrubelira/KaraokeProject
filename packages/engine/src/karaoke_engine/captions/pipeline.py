@@ -30,7 +30,7 @@ from karaoke_engine.captions.timing import time_captions
 VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".mxf", ".avi", ".m4v", ".mts"})
 # Bumped when a step's output changes, so cached work is redone.
 READ_VERSION = "1"
-SPEECH_VERSION = "1"
+SPEECH_VERSION = "2"
 # Speech this long with no word in it goes to the review list.
 _MISSED_SECONDS = 2.0
 # A reviewed SRT whose captions mostly moved by the same amount was exported from a timeline
