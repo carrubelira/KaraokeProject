@@ -13,7 +13,10 @@ class Rules:
     max_chars: int = 42  # per line
     max_lines: int = 2
     target_cps: float = 15.0  # characters per second a caption should not exceed
-    max_cps: float = 17.0  # beyond this it goes to the review list
+    max_cps: float = 17.0  # beyond this a caption is fast: counted in the review list
+    # Spontaneous speech often runs at 17 to 25 characters a second; captions stay word for word
+    # (testimony), so only the unreadable ones are listed.
+    review_cps: float = 25.0
     min_duration: float = 5 / 6
     max_duration: float = 7.0
     min_gap_frames: int = 2

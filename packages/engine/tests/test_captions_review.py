@@ -79,3 +79,14 @@ def test_edits_that_break_the_rules_are_listed() -> None:
         ("3 líneas",),
         ("se solapa con el anterior",),
     ]
+
+
+def test_moderately_fast_speech_is_counted_but_not_listed() -> None:
+    # 20 characters per second: over the 17 aimed at, but readable; it stays word for word.
+    caption = cap(1.0, 2.7, "Pódese ir, pero mellor con tres")
+    assert review_items([caption], Rules(), low_confidence=0.3) == []
+
+
+def test_format_review_counts_fast_captions() -> None:
+    text = format_review([], video="v.mp4", captions=119, fps=25.0, elapsed=1.0, fast=40)
+    assert "40 pasan de 17 car./s" in text

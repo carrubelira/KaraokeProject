@@ -46,7 +46,7 @@ def review_items(
         if unsure:
             reasons.append("palabra dudosa: " + ", ".join(f"«{w}»" for w in unsure))
         speed = cps(caption)
-        if speed > rules.max_cps:
+        if speed > rules.review_cps:
             reasons.append(f"lectura rápida: {speed:.0f} car./s")
         if any(caption.start <= t <= caption.end for t in unsure_speaker):
             reasons.append("¿quién habla?")
@@ -70,13 +70,27 @@ def timecode(seconds: float, fps: float) -> str:
 
 
 def format_review(
-    items: Sequence[ReviewItem], *, video: str, captions: int, fps: float, elapsed: float
+    items: Sequence[ReviewItem],
+    *,
+    video: str,
+    captions: int,
+    fps: float,
+    elapsed: float,
+    fast: int = 0,
+    max_cps: float = 17.0,
 ) -> str:
     minutes, secs = divmod(round(elapsed), 60)
     head = [
         f"Revisión de subtítulos · {video}",
         f"{captions} subtítulos · {len(items)} para mirar · hecho en {minutes} min {secs} s",
         f"Tiempos a {fps:g} fps. En DaVinci, la línea de tiempo debe empezar en 00:00:00:00.",
+    ]
+    if fast:
+        head.append(
+            f"{fast} pasan de {max_cps:g} car./s: el habla es rápida y se dejan literales; "
+            "aquí solo salen los que no se pueden leer."
+        )
+    head += [
         "",
     ]
     lines = [
