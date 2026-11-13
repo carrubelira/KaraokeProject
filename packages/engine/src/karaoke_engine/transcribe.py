@@ -149,14 +149,20 @@ class WhisperTranscriber:
             share = _voice_share(active, segment.start, segment.end)
             if not text or share < MIN_VOICE_SHARE:
                 continue
-            looping = _is_loop(text) or _repeats(kept, text) >= _MAX_SAME_IN_A_ROW
+            looping = is_loop(text) or _repeats(kept, text) >= _MAX_SAME_IN_A_ROW
             if looping and share < _SURE_VOICE_SHARE:
                 continue
-            if _is_loop(text):
+            if is_loop(text):
                 # A chant may be real, but Whisper runs on with it: keep one line of it.
                 text = " ".join(text.split()[:_CHANT_WORDS])
             kept.append(TranscriptSegment(segment.start, segment.end, text))
         return Transcript(language=language, segments=tuple(kept))
+
+    def whisper_for_language(self, language: str) -> Any:
+        """The faster-whisper model this transcriber uses for a language, loaded."""
+        if self._injected is not None:
+            return self._injected
+        return self._whisper_for(self._name_for(language))
 
     def unload(self) -> None:
         import gc
@@ -346,7 +352,8 @@ def _voice_share(active: npt.NDArray[np.bool_], start: float, end: float) -> flo
     return float(span.mean()) if len(span) else 0.0
 
 
-def _is_loop(text: str) -> bool:
+def is_loop(text: str) -> bool:
+    """Ten or more words made of one or two: Whisper running on with a chant or a silence."""
     words = text.lower().split()
     return len(words) >= _LOOP_WORDS and len(set(words)) <= 2
 
