@@ -1,6 +1,6 @@
 """`karaoke captions`: from an interview video to SRT, WebVTT and a review list beside it.
 
-The video is read once (source.py) and never written. The heavy work (the speech track, the
+The video is only read (source.py), never written. The heavy work (the speech track, the
 transcript) is cached under ~/.cache/karaoke/captions, keyed by the file and the step versions,
 so a run that stops resumes where it was. The three files next to the video are written aside
 and only take their names when all three are ready: an unplugged disk never leaves half a file.
@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import time
 from collections.abc import Callable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -23,13 +24,14 @@ from karaoke_engine.captions.formats import SRT_ENCODING, read_srt, to_srt, to_v
 from karaoke_engine.captions.review import format_review, review_items
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.segment import group_captions
-from karaoke_engine.captions.source import cache_key, probe_source, read_source
+from karaoke_engine.captions.source import cache_key, find_shots, probe_source, read_source
 from karaoke_engine.captions.speech import SpeechTranscript
 from karaoke_engine.captions.timing import cps, time_captions
 
 VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".mxf", ".avi", ".m4v", ".mts"})
 # Bumped when a step's output changes, so cached work is redone.
-READ_VERSION = "1"
+READ_VERSION = "2"
+SHOTS_VERSION = "1"
 SPEECH_VERSION = "2"
 # Speech this long with no word in it goes to the review list.
 _MISSED_SECONDS = 2.0
@@ -132,17 +134,21 @@ def caption_video(
     info = probe_source(video, options.audio_track)
     work = options.cache / cache_key(info, "read", READ_VERSION, f"a{info.audio_index}")
     work.mkdir(parents=True, exist_ok=True)
-    audio, shots_file = work / "audio.flac", work / f"shots-{options.shots}.json"
-    if not (audio.is_file() and shots_file.is_file()):
+    audio, shots_file = work / "audio.flac", work / f"shots-{SHOTS_VERSION}.json"
+    if not audio.is_file():
         report("read", 0.0)
-        cuts = read_source(
-            info, audio, shots=options.shots, on_progress=lambda d: report("read", d)
-        )
-        _write_json(shots_file, cuts)
-    cuts = json.loads(shots_file.read_text())
-
-    report("transcribe", 0.0)
-    transcript = _transcript(audio, work, options)
+        read_source(info, audio, on_progress=lambda d: report("read", d))
+    # The cuts come from decoding the picture, slower than the speech is transcribed: a second
+    # reader does it at the same time (the decoder and Whisper use different parts of the card).
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = None
+        if options.shots and not shots_file.is_file():
+            pending = pool.submit(find_shots, info, work, on_progress=lambda d: report("cuts", d))
+        report("transcribe", 0.0)
+        transcript = _transcript(audio, work, options)
+        if pending is not None:
+            _write_json(shots_file, pending.result())
+    cuts = json.loads(shots_file.read_text()) if options.shots else []
     for step in options.steps:
         transcript = step(audio, transcript)
     report("write", 0.0)

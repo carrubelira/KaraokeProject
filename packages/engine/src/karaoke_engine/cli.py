@@ -289,7 +289,12 @@ def _join_clitics(package: Path) -> int:
     return 0
 
 
-_CAPTION_STEPS = {"read": "reading the video", "transcribe": "transcribing", "write": "writing"}
+_CAPTION_STEPS = {
+    "read": "reading the audio",
+    "cuts": "finding cuts",
+    "transcribe": "transcribing",
+    "write": "writing",
+}
 
 
 def _captions(args: argparse.Namespace) -> int:

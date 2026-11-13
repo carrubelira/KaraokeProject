@@ -1,10 +1,11 @@
 """The interview video, read once and only read.
 
-The video may be tens of gigabytes on a USB disk, so it is read a single time: one ffmpeg pass
-writes the speech track as 16 kHz mono FLAC to the cache and, if asked, finds the cuts between
-shots (scene changes on frames shrunk on the graphics card when it can). The video file is only
-ever opened for reading; everything ffmpeg writes goes to the cache, under a side name that takes
-its final one when the pass has finished.
+Reading only the audio of a 4K interview goes at about 30 times real time (an hour in two
+minutes from a USB disk); decoding its picture to find the cuts between shots goes at about 6
+times, so the cuts are found by a second ffmpeg while Whisper transcribes (the decoder and the
+model use different parts of the graphics card). The video file is only ever opened for reading;
+everything ffmpeg writes goes to the cache, under a side name that takes its final one when the
+pass has finished.
 """
 
 import hashlib
@@ -15,7 +16,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-_SCENE_THRESHOLD = 0.4
+_FFMPEG = ("ffmpeg", "-nostdin", "-v", "error", "-y", "-progress", "pipe:1", "-nostats")
+# scdet's score, from 0 to 100 (its default): a cut, not a camera move or a change of light.
+_SCENE_THRESHOLD = 10
 _SHOT_WIDTH = 320
 _PTS_TIME = re.compile(r"pts_time:([0-9.]+)")
 
@@ -75,56 +78,54 @@ def probe_source(path: Path, audio_track: int | None = None) -> SourceInfo:
 
 
 def read_source(
-    info: SourceInfo,
-    audio_out: Path,
-    *,
-    shots: bool,
-    on_progress: Callable[[float], None] | None = None,
+    info: SourceInfo, audio_out: Path, *, on_progress: Callable[[float], None] | None = None
+) -> None:
+    """Writes the speech track to `audio_out` (16 kHz mono FLAC), reading only the audio."""
+    part = audio_out.with_name(audio_out.name + ".part")
+    command = [*_FFMPEG, "-i", str(info.path), "-map", f"0:a:{info.audio_index}"]
+    command += ["-vn", "-sn", "-dn", "-ac", "1", "-ar", "16000", "-c:a", "flac", "-f", "flac"]
+    try:
+        error = _run([*command, str(part)], info.duration, on_progress)
+        if error:
+            raise RuntimeError(f"ffmpeg could not read {info.path.name}: {error.strip()[-400:]}")
+        part.replace(audio_out)
+    finally:
+        part.unlink(missing_ok=True)
+
+
+def find_shots(
+    info: SourceInfo, work: Path, *, on_progress: Callable[[float], None] | None = None
 ) -> list[float]:
-    """Writes the speech track to `audio_out` and returns the cut times (empty without shots)."""
-    audio_part = audio_out.with_name(audio_out.name + ".part")
-    shots_part = audio_out.with_name(audio_out.name + ".shots.part")
-    attempts = (
-        [_command(info, audio_part, shots_part, gpu) for gpu in (True, False)]
-        if shots
-        else [_command(info, audio_part, None, gpu=False)]
-    )
+    """The times of the cuts between shots: decoded on the graphics card if it can, shrunk, and
+    scored by ffmpeg's scene change detector, which lets every frame through (so the progress
+    is known) and marks the cuts."""
+    found = work / f".shots-{info.audio_index}.part"
     error = ""
     try:
-        for command in attempts:
+        for gpu in (True, False):
+            shrink = (
+                f"scale_cuda={_SHOT_WIDTH}:-2,hwdownload,format=nv12"
+                if gpu
+                else f"scale={_SHOT_WIDTH}:-2"
+            )
+            marks = f"scdet=threshold={_SCENE_THRESHOLD},metadata=print:key=lavfi.scd.time"
+            command = [*_FFMPEG]
+            if gpu:
+                command += ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]
+            command += ["-i", str(info.path), "-map", "0:v:0", "-an", "-sn", "-dn"]
+            command += ["-vf", f"{shrink},{marks}:file={_escape(found)}", "-f", "null", "-"]
             error = _run(command, info.duration, on_progress)
             if not error:
-                cuts = _cuts(shots_part) if shots else []
-                audio_part.replace(audio_out)
-                return cuts
+                return _cuts(found)
     finally:
-        audio_part.unlink(missing_ok=True)
-        shots_part.unlink(missing_ok=True)
-    raise RuntimeError(f"ffmpeg could not read {info.path.name}: {error.strip()[-400:]}")
+        found.unlink(missing_ok=True)
+    raise RuntimeError(f"ffmpeg could not look for cuts in {info.path.name}: {error[-400:]}")
 
 
 def cache_key(info: SourceInfo, *parts: str) -> str:
     """Names the cached work for this exact file (path, size and date) and these step versions."""
     text = "|".join([str(info.path.resolve()), str(info.size), str(info.mtime_ns), *parts])
     return hashlib.sha256(text.encode()).hexdigest()[:32]
-
-
-def _command(info: SourceInfo, audio: Path, shots: Path | None, gpu: bool) -> list[str]:
-    command = ["ffmpeg", "-nostdin", "-v", "error", "-y", "-progress", "pipe:1", "-nostats"]
-    if shots is not None and gpu:
-        command += ["-hwaccel", "cuda", "-hwaccel_output_format", "cuda"]
-    command += ["-i", str(info.path), "-map", f"0:a:{info.audio_index}", "-vn", "-sn", "-dn"]
-    command += ["-ac", "1", "-ar", "16000", "-c:a", "flac", "-f", "flac", str(audio)]
-    if shots is not None:
-        shrink = (
-            f"scale_cuda={_SHOT_WIDTH}:-2,hwdownload,format=nv12"
-            if gpu
-            else f"scale={_SHOT_WIDTH}:-2"
-        )
-        select = f"select='gt(scene\\,{_SCENE_THRESHOLD})',metadata=print:file={_escape(shots)}"
-        command += ["-map", "0:v:0", "-an", "-sn", "-dn", "-vf", f"{shrink},{select}"]
-        command += ["-f", "null", "-"]
-    return command
 
 
 def _run(command: list[str], duration: float, on_progress: Callable[[float], None] | None) -> str:

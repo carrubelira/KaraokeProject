@@ -198,3 +198,37 @@ def test_caption_audio_captions_a_sound_file_for_the_bench(
         sorted(p.name for p in tmp_path.iterdir()) == ["cache", "dialogue.wav"]
         or not (tmp_path / "cache").exists()
     )
+
+
+def test_cuts_are_found_while_transcribing(
+    video: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import threading
+
+    transcribing = threading.Event()
+    seen_during: list[bool] = []
+
+    def find_shots(info: Any, work: Path, *, on_progress: Any = None) -> list[float]:
+        seen_during.append(transcribing.wait(timeout=5))
+        return [4.0]
+
+    class Waiting(FakeTranscriber):
+        def __call__(self, audio: Path, language: str, **options: Any) -> SpeechTranscript:
+            transcribing.set()
+            return super().__call__(audio, language, **options)
+
+    monkeypatch.setattr(pipeline, "find_shots", find_shots)
+    result = caption_video(video, CaptionOptions(cache=tmp_path / "c", transcribe=Waiting()))
+    assert result.error is None
+    assert seen_during == [True]
+
+
+def test_without_shots_no_cuts_are_looked_for(
+    video: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*args: Any, **kwargs: Any) -> list[float]:
+        raise AssertionError("looked for cuts")
+
+    monkeypatch.setattr(pipeline, "find_shots", fail)
+    options = CaptionOptions(cache=tmp_path / "c", transcribe=FakeTranscriber(), shots=False)
+    assert caption_video(video, options).error is None

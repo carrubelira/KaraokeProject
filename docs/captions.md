@@ -26,9 +26,11 @@ marked as default, or the first), `--model` (a Whisper model from
 
 ## The video is never modified
 
-- It is opened only for reading, and only once: one ffmpeg pass writes the speech track (16 kHz
-  mono FLAC) to `~/.cache/karaoke/captions/` and, unless `--no-shots`, finds the cuts between
-  shots on frames shrunk by the graphics card (NVDEC), or the processor if that fails.
+- It is only opened for reading. One ffmpeg reads just its audio and writes the speech track
+  (16 kHz mono FLAC) to `~/.cache/karaoke/captions/`: about 30 times real time for a 4K interview
+  on a USB disk. Unless `--no-shots`, a second ffmpeg finds the cuts between shots while Whisper
+  transcribes, decoding the picture on the graphics card (NVDEC) or, if that fails, the processor:
+  about 6 times real time, so doing it at the same time keeps it off the total.
 - Nothing else is written next to it: the three files are written under hidden side names and
   only take theirs when all three are ready, so an interrupted run or an unplugged disk never
   leaves half a file.

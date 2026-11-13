@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from karaoke_engine.align.audio import load_mono16k
-from karaoke_engine.captions.source import cache_key, probe_source, read_source
+from karaoke_engine.captions.source import cache_key, find_shots, probe_source, read_source
 
 
 @pytest.fixture(scope="module")
@@ -36,26 +36,33 @@ def test_probe_reads_fps_duration_and_audio(video: Path) -> None:
 
 
 @pytest.mark.usefixtures("ffmpeg")
-def test_read_writes_16k_mono_flac_and_finds_the_cut(video: Path, tmp_path: Path) -> None:
+def test_read_writes_16k_mono_flac(video: Path, tmp_path: Path) -> None:
     audio = tmp_path / "audio.flac"
-    shots = read_source(probe_source(video), audio, shots=True)
-    assert shots == [pytest.approx(4.0, abs=0.04)]
+    read_source(probe_source(video), audio)
     samples = load_mono16k(audio)
     assert len(samples) == pytest.approx(8 * 16000, rel=0.02)
     assert _dominant_hz(samples) == pytest.approx(440, abs=2)
-    assert not list(tmp_path.glob("*.part"))
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["audio.flac"]
 
 
 @pytest.mark.usefixtures("ffmpeg")
-def test_read_without_shots_finds_none(video: Path, tmp_path: Path) -> None:
-    assert read_source(probe_source(video), tmp_path / "audio.flac", shots=False) == []
-    assert (tmp_path / "audio.flac").is_file()
+def test_find_shots_finds_the_cut(video: Path, tmp_path: Path) -> None:
+    assert find_shots(probe_source(video), tmp_path) == [pytest.approx(4.0, abs=0.04)]
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_find_shots_reports_progress(video: Path, tmp_path: Path) -> None:
+    seen: list[float] = []
+    find_shots(probe_source(video), tmp_path, on_progress=seen.append)
+    assert seen
+    assert seen == sorted(seen)
 
 
 @pytest.mark.usefixtures("ffmpeg")
 def test_progress_is_reported(video: Path, tmp_path: Path) -> None:
     seen: list[float] = []
-    read_source(probe_source(video), tmp_path / "a.flac", shots=False, on_progress=seen.append)
+    read_source(probe_source(video), tmp_path / "a.flac", on_progress=seen.append)
     assert seen
     assert seen == sorted(seen)
     assert 0.0 <= seen[-1] <= 1.0
@@ -65,7 +72,8 @@ def test_progress_is_reported(video: Path, tmp_path: Path) -> None:
 def test_the_video_is_never_modified(video: Path, tmp_path: Path) -> None:
     before = (_sha256(video), video.stat().st_size, video.stat().st_mtime_ns)
     folder_before = sorted(video.parent.iterdir())
-    read_source(probe_source(video), tmp_path / "audio.flac", shots=True)
+    read_source(probe_source(video), tmp_path / "audio.flac")
+    find_shots(probe_source(video), tmp_path)
     assert (_sha256(video), video.stat().st_size, video.stat().st_mtime_ns) == before
     assert sorted(video.parent.iterdir()) == folder_before
 
@@ -77,7 +85,7 @@ def test_second_audio_track_is_used_when_asked(
     video = make_video(tmp_path / "two.mov", tones=(440, 880))
     info = probe_source(video, audio_track=1)
     assert (info.audio_streams, info.audio_index) == (2, 1)
-    read_source(info, tmp_path / "audio.flac", shots=False)
+    read_source(info, tmp_path / "audio.flac")
     assert _dominant_hz(load_mono16k(tmp_path / "audio.flac")) == pytest.approx(880, abs=2)
 
 
