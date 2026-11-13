@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -129,24 +130,30 @@ def cache_key(info: SourceInfo, *parts: str) -> str:
 
 
 def _run(command: list[str], duration: float, on_progress: Callable[[float], None] | None) -> str:
-    """Runs ffmpeg, reporting progress from its `-progress` lines; returns stderr on failure."""
-    with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    ) as process:
-        assert process.stdout is not None
-        last = -1.0
-        for line in process.stdout:
-            key, _, value = line.strip().partition("=")
-            if key == "out_time_us" and on_progress is not None and duration > 0:
-                try:
-                    done = min(max(int(value) / 1e6 / duration, 0.0), 1.0)
-                except ValueError:
-                    continue
-                if done > last:
-                    on_progress(done)
-                    last = done
-        stderr = process.stderr.read() if process.stderr else ""
-    return "" if process.returncode == 0 else stderr or f"exit code {process.returncode}"
+    """Runs ffmpeg, reporting progress from its `-progress` lines; returns stderr on failure.
+
+    stderr goes to a temporary file, not a pipe: a damaged video makes the decoder print more
+    than a pipe holds, and ffmpeg would wait on it while this waits on stdout, forever.
+    """
+    with tempfile.TemporaryFile() as errors:
+        with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=errors, text=True) as process:
+            assert process.stdout is not None
+            last = -1.0
+            for line in process.stdout:
+                key, _, value = line.strip().partition("=")
+                if key == "out_time_us" and on_progress is not None and duration > 0:
+                    try:
+                        done = min(max(int(value) / 1e6 / duration, 0.0), 1.0)
+                    except ValueError:
+                        continue
+                    if done > last:
+                        on_progress(done)
+                        last = done
+        if process.returncode == 0:
+            return ""
+        errors.seek(0)
+        tail = errors.read()[-4000:].decode(errors="replace")
+        return tail or f"exit code {process.returncode}"
 
 
 def _cuts(shots: Path) -> list[float]:

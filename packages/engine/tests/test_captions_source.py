@@ -110,3 +110,22 @@ def test_cache_key_changes_with_the_file_and_the_parts(video: Path, tmp_path: Pa
     copy = tmp_path / "MVI_0001.MP4"
     copy.write_bytes(video.read_bytes())
     assert cache_key(probe_source(copy), "audio-1") != cache_key(info, "audio-1")
+
+
+def test_a_flood_of_errors_from_ffmpeg_does_not_hang() -> None:
+    import threading
+
+    from karaoke_engine.captions import source
+
+    # A damaged file makes the decoder print far more than a pipe holds before the progress ends.
+    command = ["sh", "-c", "head -c 300000 /dev/zero | tr '\\0' 'e' >&2; echo out_time_us=500000"]
+    seen: list[float] = []
+    done: list[str] = []
+    worker = threading.Thread(
+        target=lambda: done.append(source._run(command, 1.0, seen.append)), daemon=True
+    )
+    worker.start()
+    worker.join(timeout=10)
+    assert not worker.is_alive()
+    assert done == [""]
+    assert seen == [0.5]
