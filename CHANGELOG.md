@@ -9,6 +9,15 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ### Added
 
+- `karaoke captions`: professional subtitles for long interviews, phrase by phrase and in sync
+  with the voice, written next to each video as SRT (for DaVinci Resolve, Premiere and VLC) and
+  WebVTT (for the web and archives, with who speaks), plus a short list of places to check. The
+  video is only read, never written or re-encoded. Interviewer and interviewee are told apart,
+  captions follow broadcast rules (two lines of 42 characters, reading speed, two-frame gaps,
+  cuts between shots) and `--from-srt` brings back a subtitle file reviewed in an editor
+  ([`docs/captions.md`](docs/captions.md)).
+- `karaoke-bench fetch-speech` and `karaoke-bench captions`: Galician dialogues built from
+  OpenSLR 77 to measure interview captions (word errors, wrong speakers, timing, rule breaks).
 - **Descargar** in the player: the song's karaoke videos, made right there with their progress
   live and kept to download (or delete) any time, plus the music without vocals, the vocals, the
   synced lyrics and the offline copy. A video made before a correction of the lyrics says so.

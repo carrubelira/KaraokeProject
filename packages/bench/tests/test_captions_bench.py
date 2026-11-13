@@ -198,6 +198,7 @@ def test_run_writes_a_report(tmp_path) -> None:  # type: ignore[no-untyped-def]
     assert results["total"]["wer"] == 0.0
     assert results["dialogues"][0]["name"] == "dialogue-01"
     assert (report / "summary.md").is_file()
+    assert (report / "results.json").read_text().endswith("}\n")
 
 
 def test_run_reuses_cached_transcripts(tmp_path) -> None:  # type: ignore[no-untyped-def]

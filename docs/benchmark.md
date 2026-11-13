@@ -140,6 +140,26 @@ A table per language with A, B and the difference, and the list of songs that go
 of median start error or +5 WER points). It warns when the normalisation, the set or the mode
 changed.
 
+## Interview captions
+
+`karaoke captions` ([guide](captions.md)) is measured apart, on speech rather than songs:
+
+```bash
+uv run karaoke-bench fetch-speech        # OpenSLR 77 (2.2 GB, once) and the 12 dialogues
+uv run karaoke-bench captions --pipeline bench/pipelines/captions-default.toml
+```
+
+`fetch-speech` joins sentences read by volunteers of OpenSLR 77 (Galician, CC BY-SA 4.0, with the
+speaker in each file name) into 12 dialogues of about five minutes (`bench/sets/speech-gl.toml`):
+an interviewer says one or two sentences, an interviewee three to eight, with pauses of 0.2 to
+1.5 s, and half of them pair two voices of the same gender. A caption pipeline is a `[captions]`
+table: `model`, `beam_size`, `refine` (word times from the CTC aligner) and `speakers`. The report
+(`bench/results/<date>-<pipeline>/`) gives the WER, the share of words given to the wrong speaker,
+how far captions that open with a sentence start from its voice (size and bias; negative is
+early), changes of speaker that open no caption, the captions breaking each rule, the time per
+hour and the peak memory. Transcripts are cached by settings and code version, so a change to the
+rules or the metrics is measured again in seconds.
+
 ## Galician references
 
 There are no published timings for songs in Galician, so they are made like this:

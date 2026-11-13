@@ -396,7 +396,9 @@ def run_captions(
     out = paths.results / f"{datetime.date.today().isoformat()}-{name}"  # noqa: DTZ011 - a folder name
     out.mkdir(parents=True, exist_ok=True)
     results = {"pipeline": name, "config": config, "total": total, "dialogues": rows}
-    (out / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False), "utf-8")
+    (out / "results.json").write_text(
+        json.dumps(results, indent=1, ensure_ascii=False) + "\n", "utf-8"
+    )
     (out / "summary.md").write_text(_summary(name, config, total, len(rows)), "utf-8")
     return out
 
