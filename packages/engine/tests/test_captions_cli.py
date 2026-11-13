@@ -85,3 +85,21 @@ def test_a_folder_without_videos_says_so(
     (tmp_path / "notas.txt").write_text("nada")
     assert main(["captions", str(tmp_path)]) == 1
     assert "no videos" in capsys.readouterr().err
+
+
+@pytest.mark.usefixtures("fake_model", "cache")
+def test_captions_say_how_long_the_long_steps_should_take(
+    tmp_path: Path, make_video: Callable[..., Path], capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_video(tmp_path / "a.mp4")
+    assert main(["captions", str(tmp_path / "a.mp4"), "--no-shots"]) == 0
+    err = capsys.readouterr().err
+    assert "transcribing (under a minute)" in err
+
+
+def test_estimates_scale_with_the_length_of_the_video() -> None:
+    from karaoke_engine.captions.pipeline import estimate
+
+    assert estimate("transcribe", 3600.0) == pytest.approx(330.0)
+    assert estimate("speakers", 1800.0) == pytest.approx(45.0)
+    assert estimate("write", 3600.0) is None

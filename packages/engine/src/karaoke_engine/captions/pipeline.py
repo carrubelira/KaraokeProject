@@ -45,10 +45,13 @@ _OFFSET_MIN = 1.0
 _ERRORS = (OSError, ValueError, RuntimeError, MemoryError, subprocess.SubprocessError)
 
 Step = Callable[[Path, SpeechTranscript], SpeechTranscript]
-Progress = Callable[[str, float], None]
+# A step's name, how far it is (0-1) and, when it starts, about how long it should take (s).
+Progress = Callable[[str, float, float | None], None]
 # Measured on the bench dialogues (decision 018): the aligner takes captions from 0.39 s early
 # to 0.05 s off the voice, and the voice prints put no word on the wrong speaker.
 _DEFAULT_STEPS: tuple[Step, ...] = (refine_in_child, speakers_in_child)
+_STEP_NAMES: dict[Step, str] = {refine_in_child: "refine", speakers_in_child: "speakers"}
+_MINUTES_PER_HOUR = {"transcribe": 5.5, "refine": 2.0, "speakers": 1.5}
 
 
 @dataclass
@@ -77,6 +80,17 @@ class CaptionResult:
     elapsed: float = 0.0
     skipped: str | None = None
     error: str | None = None
+
+
+def _quiet(step: str, done: float, eta: float | None) -> None:
+    """Progress nobody asked for."""
+
+
+def estimate(step: str, seconds: float) -> float | None:
+    """About how long a step without its own progress takes for this much audio, in seconds
+    (measured on the RTX 3050 with 4K interviews: decision 018)."""
+    per_hour = _MINUTES_PER_HOUR.get(step)
+    return per_hour * seconds / 60 if per_hour is not None else None
 
 
 def default_steps() -> Sequence[Step]:
@@ -112,7 +126,7 @@ def outputs_for(video: Path, language: str) -> tuple[Path, Path, Path]:
 def caption_all(
     paths: Sequence[Path],
     options: CaptionOptions,
-    progress: Callable[[int, int, Path, str, float], None] | None = None,
+    progress: Callable[[int, int, Path, str, float, float | None], None] | None = None,
 ) -> list[CaptionResult]:
     """Captions every video in turn; one that fails is reported and the rest go on."""
     videos = find_videos(paths)
@@ -120,9 +134,11 @@ def caption_all(
     for n, video in enumerate(videos, 1):
         started = time.monotonic()
 
-        def report(step: str, done: float, n: int = n, video: Path = video) -> None:
+        def report(
+            step: str, done: float, eta: float | None = None, n: int = n, video: Path = video
+        ) -> None:
             if progress is not None:
-                progress(n, len(videos), video, step, done)
+                progress(n, len(videos), video, step, done, eta)
 
         try:
             results.append(caption_video(video, options, report))
@@ -139,7 +155,7 @@ def caption_video(
     video: Path, options: CaptionOptions, progress: Progress | None = None
 ) -> CaptionResult:
     started = time.monotonic()
-    report = progress or (lambda _step, _done: None)
+    report: Progress = progress or _quiet
     srt, vtt, review = outputs_for(video, options.language)
     if srt.exists() and not options.force:
         return CaptionResult(video, skipped=f"{srt.name} already exists (--force redoes it)")
@@ -148,22 +164,26 @@ def caption_video(
     work.mkdir(parents=True, exist_ok=True)
     audio, shots_file = work / "audio.flac", work / f"shots-{SHOTS_VERSION}.json"
     if not audio.is_file():
-        report("read", 0.0)
-        read_source(info, audio, on_progress=lambda d: report("read", d))
+        report("read", 0.0, None)
+        read_source(info, audio, on_progress=lambda d: report("read", d, None))
     # The cuts come from decoding the picture, slower than the speech is transcribed: a second
     # reader does it at the same time (the decoder and Whisper use different parts of the card).
     with ThreadPoolExecutor(max_workers=1) as pool:
         pending = None
         if options.shots and not shots_file.is_file():
-            pending = pool.submit(find_shots, info, work, on_progress=lambda d: report("cuts", d))
-        report("transcribe", 0.0)
+            pending = pool.submit(
+                find_shots, info, work, on_progress=lambda d: report("cuts", d, None)
+            )
+        report("transcribe", 0.0, estimate("transcribe", info.duration))
         transcript = _transcript(audio, work, options)
         if pending is not None:
             _write_json(shots_file, pending.result())
     cuts = json.loads(shots_file.read_text()) if options.shots else []
     for step in options.steps if options.steps is not None else default_steps():
+        name = _STEP_NAMES.get(step, "step")
+        report(name, 0.0, estimate(name, info.duration))
         transcript = step(audio, transcript)
-    report("write", 0.0)
+    report("write", 0.0, None)
     rules = options.rules
     captions = time_captions(
         group_captions(transcript.words, rules), rules, info.fps, cuts, info.duration
@@ -191,7 +211,7 @@ def caption_video(
     }
     _write_all(files, backup=srt if options.force else None)
     _write_json(_generated(options.cache, info), [asdict(c) | {"words": []} for c in captions])
-    report("write", 1.0)
+    report("write", 1.0, None)
     return CaptionResult(video, (srt, vtt, review), len(captions), len(items), elapsed)
 
 

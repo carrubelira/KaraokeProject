@@ -293,6 +293,9 @@ _CAPTION_STEPS = {
     "read": "reading the audio",
     "cuts": "finding cuts",
     "transcribe": "transcribing",
+    "refine": "timing the words",
+    "speakers": "telling the voices apart",
+    "step": "processing",
     "write": "writing",
 }
 
@@ -318,12 +321,18 @@ def _captions(args: argparse.Namespace) -> int:
     else:
         shown: dict[tuple[int, str], int] = {}
 
-        def progress(n: int, total: int, video: Path, step: str, done: float) -> None:
+        def progress(
+            n: int, total: int, video: Path, step: str, done: float, eta: float | None
+        ) -> None:
+            where = f"[{n}/{total}] {video.name} · {_CAPTION_STEPS[step]}"
+            if eta is not None:
+                about = "under a minute" if eta < 60 else f"about {round(eta / 60)} min"
+                print(f"{where} ({about})", file=sys.stderr)
+                return
             tenth = int(done * 10)
             if shown.get((n, step), -1) < tenth:
                 shown[(n, step)] = tenth
-                print(f"[{n}/{total}] {video.name} · {_CAPTION_STEPS[step]} {done:4.0%}",
-                      file=sys.stderr)  # fmt: skip
+                print(f"{where} {done:4.0%}", file=sys.stderr)
 
         results = caption_all(args.paths, options, progress)
         if not results:
