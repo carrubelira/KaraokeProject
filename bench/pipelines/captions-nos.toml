@@ -1,0 +1,4 @@
+# Interview captions (karaoke-bench captions): Proxecto Nós Whisper large-v3-turbo Galician, beam 5.
+[captions]
+model = "nos-turbo-gl"
+beam_size = 5

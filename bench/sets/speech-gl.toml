@@ -1,0 +1,13 @@
+# Interview captions set: 12 Galician dialogues of about 5 minutes, built locally with
+# `karaoke-bench fetch-speech` (karaoke_bench/captions.py). The sentences come from OpenSLR 77,
+# "Crowdsourced high-quality Galician speech data set" (Google, 2019), CC BY-SA 4.0:
+# https://www.openslr.org/77/ (Kjartansson et al., SLTU-CCURL 2020). The speaker is in each file
+# name. An interviewer (B) says 1-2 sentences, an interviewee (A) 3-8, with 0.2-1.5 s pauses in a
+# turn and 0.1-1.0 s between turns; half the dialogues pair two voices of the same gender. The
+# reference is each sentence's text, speaker, and where its voice starts and ends.
+# Change `seed`, `count` or `seconds` and the set is a different one: compare like with like.
+source = "https://www.openslr.org/77/"
+licence = "CC-BY-SA-4.0"
+seed = 0
+count = 12
+seconds = 300

@@ -51,6 +51,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     run_cmd.add_argument("--songs", nargs="+", help="only these song ids")
     run_cmd.add_argument("--no-cache", action="store_true", help="recompute every step")
 
+    commands.add_parser(
+        "fetch-speech", help="download Galician speech (OpenSLR 77) and make the dialogue set"
+    )
+    captions = commands.add_parser("captions", help="measure interview captions on the dialogues")
+    captions.add_argument("--pipeline", type=Path, required=True, help="captions TOML file")
+    captions.add_argument("--limit", type=int, help="only the first N dialogues")
+
     compare = commands.add_parser("compare", help="compare two runs (folders or results.json)")
     compare.add_argument("run_a", type=Path)
     compare.add_argument("run_b", type=Path)
@@ -98,6 +105,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.command == "fetch":
             return _fetch(paths, args.set_name)
+        if args.command == "fetch-speech":
+            from karaoke_bench.captions import build_set
+
+            print(f"dialogues in {build_set(paths)}")
+            return 0
+        if args.command == "captions":
+            return _captions(paths, args.pipeline, args.limit)
         if args.command == "compare":
             return _compare(args.run_a, args.run_b, args.out)
         if args.command == "draft":
@@ -128,6 +142,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     ) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+
+def _captions(paths: BenchPaths, pipeline: Path, limit: int | None) -> int:
+    from karaoke_bench.captions import dialogues_dir, run_captions
+
+    if not any(dialogues_dir(paths).glob("*.wav")):
+        print("error: no dialogues yet: run `karaoke-bench fetch-speech` first", file=sys.stderr)
+        return 1
+    report = run_captions(paths, pipeline, limit=limit)
+    print((report / "summary.md").read_text(encoding="utf-8"))
+    return 0
 
 
 def _fetch(paths: BenchPaths, set_name: str) -> int:
