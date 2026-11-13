@@ -6,7 +6,7 @@ direction (k-means on the cosine, several starts, fixed seed). The group that ta
 interviewee. Two groups whose centres point the same way are one voice: a monologue. Each word
 takes the group of the window nearest its middle, and a "turn" of less than a second between
 two stretches of the same voice is taken as a mistake and joins them. Where a window sits nearly
-halfway between the two voices, the review list asks who is speaking.
+halfway between the two voices at a change of speaker, the review list asks who is speaking.
 
 The voice prints come from WeSpeaker's ResNet34 trained on VoxCeleb (CC BY 4.0). On the bench's
 Galician dialogues it puts 0-0.4 % of the windows on the wrong voice where the reference is clean
@@ -82,15 +82,29 @@ def assign_speakers(
 def _with_unsure(
     transcript: SpeechTranscript, words: tuple[TimedWord, ...], margins: Sequence[float]
 ) -> SpeechTranscript:
-    """The transcript with these words, and the start of each run of words the voices blur."""
-    unsure: list[float] = []
-    previous = False
-    for word, margin in zip(words, margins, strict=True):
-        blurred = margin < _UNSURE_MARGIN
-        if blurred and not previous:
-            unsure.append(word.start)
-        previous = blurred
-    return replace(transcript, words=words, unsure_speaker=tuple(unsure))
+    labels = [w.speaker or "A" for w in words]
+    return replace(transcript, words=words, unsure_speaker=unsure_changes(words, labels, margins))
+
+
+def unsure_changes(
+    words: Sequence[TimedWord], labels: Sequence[str], margins: Sequence[float]
+) -> tuple[float, ...]:
+    """Where the voices blur at a change of speaker: the start of each blurred run of words
+    that holds a change, or borders one. Inside one person's turn a blur changes nothing."""
+    found: list[float] = []
+    i = 0
+    while i < len(words):
+        if margins[i] >= _UNSURE_MARGIN:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(words) and margins[j + 1] < _UNSURE_MARGIN:
+            j += 1
+        around = set(labels[max(i - 1, 0) : min(j + 2, len(labels))])
+        if len(around) > 1:
+            found.append(words[i].start)
+        i = j + 1
+    return tuple(found)
 
 
 def speakers_in_child(audio: Path, transcript: SpeechTranscript) -> SpeechTranscript:

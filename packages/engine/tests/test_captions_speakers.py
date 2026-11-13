@@ -116,3 +116,23 @@ def test_no_speech_leaves_the_transcript_as_it_was(tmp_path: Path) -> None:
     audio = _audio(tmp_path, [], 5.0)
     transcript = SpeechTranscript((), (), (), "fake@0")
     assert assign_speakers(audio, transcript, embed=tone_embed) == transcript
+
+
+def _plain_words(count: int) -> tuple[TimedWord, ...]:
+    return tuple(TimedWord("palabra", i * 0.5, i * 0.5 + 0.4, 0.9) for i in range(count))
+
+
+def test_a_blurred_stretch_inside_one_turn_is_not_asked_about() -> None:
+    from karaoke_engine.captions.speakers import unsure_changes
+
+    labels = ["A"] * 10
+    margins = [0.5, 0.5, 0.5, 0.02, 0.03, 0.5, 0.5, 0.5, 0.5, 0.5]
+    assert unsure_changes(_plain_words(10), labels, margins) == ()
+
+
+def test_a_blurred_change_of_turn_is_asked_about() -> None:
+    from karaoke_engine.captions.speakers import unsure_changes
+
+    labels = ["A"] * 4 + ["B"] * 6
+    margins = [0.5, 0.5, 0.5, 0.02, 0.03, 0.5, 0.5, 0.5, 0.5, 0.5]
+    assert unsure_changes(_plain_words(10), labels, margins) == (1.5,)
