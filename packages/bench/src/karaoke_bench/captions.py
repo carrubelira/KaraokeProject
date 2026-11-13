@@ -42,6 +42,7 @@ from karaoke_engine.captions.pipeline import (
     caption_audio,
     transcript_from,
 )
+from karaoke_engine.captions.refine import refine_in_child
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.speakers import speakers_in_child
 from karaoke_engine.captions.speech import SpeechTranscript, transcribe_speech_in_child
@@ -330,7 +331,11 @@ def run_captions(
         transcribe=functools.partial(
             transcribe or transcribe_speech_in_child, beam_size=int(config.get("beam_size", 5))
         ),
-        steps=(speakers_in_child,) if config.get("speakers") else (),
+        steps=tuple(
+            step
+            for step, wanted in ((refine_in_child, "refine"), (speakers_in_child, "speakers"))
+            if config.get(wanted)
+        ),
     )
     # Transcripts are kept by settings and code version, so a change to the metrics or the
     # caption rules is measured again in seconds; the time is the one of the first run.

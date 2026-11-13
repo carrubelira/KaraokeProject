@@ -21,6 +21,7 @@ from typing import Any
 
 from karaoke_engine.captions import speech as speech_step
 from karaoke_engine.captions.formats import SRT_ENCODING, read_srt, to_srt, to_vtt
+from karaoke_engine.captions.refine import refine_in_child
 from karaoke_engine.captions.review import format_review, review_items
 from karaoke_engine.captions.rules import Caption, Rules, TimedWord
 from karaoke_engine.captions.segment import group_captions
@@ -34,7 +35,7 @@ VIDEO_EXTENSIONS = frozenset({".mp4", ".mov", ".mkv", ".mxf", ".avi", ".m4v", ".
 READ_VERSION = "2"
 SHOTS_VERSION = "1"
 SPEAKERS_VERSION = "1"
-SPEECH_VERSION = "3"
+SPEECH_VERSION = "4"
 # Speech this long with no word in it goes to the review list.
 _MISSED_SECONDS = 2.0
 # A reviewed SRT whose captions mostly moved by the same amount was exported from a timeline
@@ -45,7 +46,9 @@ _ERRORS = (OSError, ValueError, RuntimeError, MemoryError, subprocess.Subprocess
 
 Step = Callable[[Path, SpeechTranscript], SpeechTranscript]
 Progress = Callable[[str, float], None]
-_DEFAULT_STEPS: tuple[Step, ...] = (speakers_in_child,)
+# Measured on the bench dialogues (decision 018): the aligner takes captions from 0.39 s early
+# to 0.05 s off the voice, and the voice prints put no word on the wrong speaker.
+_DEFAULT_STEPS: tuple[Step, ...] = (refine_in_child, speakers_in_child)
 
 
 @dataclass
@@ -77,7 +80,8 @@ class CaptionResult:
 
 
 def default_steps() -> Sequence[Step]:
-    """What runs after transcription unless told otherwise: telling the two voices apart."""
+    """What runs after transcription unless told otherwise: word times from the CTC aligner,
+    then telling the two voices apart."""
     return _DEFAULT_STEPS
 
 

@@ -240,10 +240,19 @@ def test_without_shots_no_cuts_are_looked_for(
     assert caption_video(video, options).error is None
 
 
-def test_speakers_are_a_default_step() -> None:
+def test_word_times_are_refined_before_the_speakers_are_told_apart() -> None:
+    from karaoke_engine.captions.refine import refine_in_child
     from karaoke_engine.captions.speakers import speakers_in_child
 
-    assert speakers_in_child in pipeline.__dict__["_DEFAULT_STEPS"]
+    assert pipeline.__dict__["_DEFAULT_STEPS"] == (refine_in_child, speakers_in_child)
+
+
+def test_whisper_searches_with_a_beam_of_one_by_default() -> None:
+    import inspect
+
+    from karaoke_engine.captions.speech import transcribe_speech
+
+    assert inspect.signature(transcribe_speech).parameters["beam_size"].default == 1
 
 
 def test_steps_label_speakers_in_the_vtt_and_unsure_ones_in_the_list(

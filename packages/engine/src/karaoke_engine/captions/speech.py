@@ -55,7 +55,7 @@ def transcribe_speech(
     language: str,
     *,
     model: str = "auto",
-    beam_size: int = 5,
+    beam_size: int = 1,  # the same words as 5 on the bench, in half the time
     whisper: Any = None,
     speech: Sequence[tuple[float, float]] | None = None,
     chunk_seconds: float = CHUNK_SECONDS,
