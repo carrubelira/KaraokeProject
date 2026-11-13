@@ -107,3 +107,16 @@ def test_a_gap_left_by_the_minimum_duration_is_closed_too() -> None:
     # "Chegaron" lasts 0.2 s; made readable it ends 0.36 s before the next caption: chained.
     out = timed(cap(5.0, 5.2, "Chegaron"), cap(6.2, 8.0))
     assert out[1].start - out[0].end == pytest.approx(2 * FRAME)
+
+
+def test_a_fast_caption_stays_long_enough_to_read_when_there_is_room() -> None:
+    text = "Daquela era todo casas baixas e o porto"  # 39 characters said in one second
+    [fast, _] = timed(cap(1.0, 2.0, text), cap(6.0, 7.0))
+    assert fast.end - fast.start >= len(text) / 15 - FRAME
+    assert fast.end <= 6.0 - 2 * FRAME
+
+
+def test_a_fast_caption_never_runs_into_the_next() -> None:
+    text = "Daquela era todo casas baixas e o porto"
+    out = timed(cap(1.0, 2.0, text), cap(3.0, 4.0))
+    assert out[0].end == pytest.approx(3.0 - 2 * FRAME)

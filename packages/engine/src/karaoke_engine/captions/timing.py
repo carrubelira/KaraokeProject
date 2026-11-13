@@ -1,11 +1,11 @@
 """When each caption comes in and goes out, on the video's frames.
 
 The work is done in whole frames, as an editor's timeline does. A caption comes in with its first
-word, or on a cut close to it. It stays up to half a second after its last word, closing the gap
-to two frames when the next caption is near (chained captions do not flicker), and ending two
-frames before a nearby cut, as long as that does not hide words still being said. Short captions
-are lengthened to be readable. Captions never overlap or go backwards, even when two people
-talk at once.
+word, or on a cut close to it. It stays up to half a second after its last word, or longer when
+its text is too fast to read and there is room; it closes the gap to two frames when the next
+caption is near (chained captions do not flicker), and ends two frames before a nearby cut, as
+long as that does not hide words still being said. Short captions are lengthened to be readable.
+Captions never overlap or go backwards, even when two people talk at once.
 """
 
 import math
@@ -53,6 +53,14 @@ def time_captions(
         cut = _nearest(cuts, end, rules.shot_snap_frames)
         if cut is not None and cut - gap >= spoken:
             end = cut - gap
+        # Fast speech stays word for word, so the caption stays up longer where there is room:
+        # long enough to read at the target speed, but not across a cut.
+        readable = start + math.ceil(
+            sum(len(line) for line in caption.lines) / rules.target_cps * fps - 1e-9
+        )
+        if readable > end:
+            crossed = [c for c in cuts if end < c <= readable and c - gap >= spoken]
+            end = crossed[0] - gap if crossed else readable
         end = max(end, start + min_len)
         # Chained after lengthening too: a short caption made readable must not leave a flicker.
         if following is not None and following - end < rules.chain_gap * fps:
