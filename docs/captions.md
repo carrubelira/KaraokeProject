@@ -20,7 +20,7 @@ Next to each video it writes three files:
 | `<name>.gl.revisar.txt` | a short list of places worth a second look, with the editor's timecode (`HH:MM:SS:FF`) and the time in seconds |
 
 Options: `--lang` (default `gl`), `--force` (redo subtitles that exist; the old SRT is kept as
-`.srt.bak`), `--no-shots` (do not look for cuts), `--audio-track N` (from 1; by default the track
+`.srt.bak`, then `.srt.bak2` and so on, so a review is never lost), `--no-shots` (do not look for cuts), `--audio-track N` (from 1; by default the track
 marked as default, or the first), `--model` (a Whisper model from
 [`languages-and-models.md`](languages-and-models.md)).
 

@@ -339,13 +339,23 @@ def _write_all(files: Mapping[Path, tuple[str, str]], backup: Path | None = None
         for target, (text, encoding) in files.items():
             _write_part(parts[target], text, encoding)
         if backup is not None and backup.exists():
-            shutil.copy2(backup, backup.with_name(backup.name + ".bak"))
+            shutil.copy2(backup, _free_backup(backup))
         for target, part in parts.items():
             part.replace(target)
     finally:
         for part in parts.values():
             with contextlib.suppress(OSError):
                 part.unlink(missing_ok=True)
+
+
+def _free_backup(path: Path) -> Path:
+    """`name.bak`, or `name.bak2`, `name.bak3`…: a backup is never overwritten, since it may be
+    the only copy of a review."""
+    candidate, n = path.with_name(path.name + ".bak"), 1
+    while candidate.exists():
+        n += 1
+        candidate = path.with_name(f"{path.name}.bak{n}")
+    return candidate
 
 
 def _write_part(path: Path, text: str, encoding: str) -> None:

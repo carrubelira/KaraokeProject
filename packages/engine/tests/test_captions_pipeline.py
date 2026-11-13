@@ -271,3 +271,14 @@ def test_steps_label_speakers_in_the_vtt_and_unsure_ones_in_the_list(
     assert "<v Entrevistador>" in vtt
     assert "<v Entrevistado>" in vtt
     assert "¿quién habla?" in (video.parent / "MVI_0704.gl.revisar.txt").read_text("utf-8")
+
+
+def test_forcing_twice_never_loses_a_reviewed_srt(video: Path, options: CaptionOptions) -> None:
+    srt = video.parent / "MVI_0704.gl.srt"
+    srt.write_text("1\r\n00:00:01,000 --> 00:00:02,000\r\nRevisado\r\n", encoding=SRT_ENCODING)
+    forced = CaptionOptions(cache=options.cache, transcribe=options.transcribe, force=True)
+    caption_video(video, forced)
+    caption_video(video, forced)
+    backups = sorted(video.parent.glob("MVI_0704.gl.srt.bak*"))
+    assert [p.name for p in backups] == ["MVI_0704.gl.srt.bak", "MVI_0704.gl.srt.bak2"]
+    assert "Revisado" in backups[0].read_text(encoding=SRT_ENCODING)
