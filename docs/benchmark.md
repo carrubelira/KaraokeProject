@@ -134,7 +134,10 @@ The reports themselves are written in Spanish.
 - **Speed**: seconds per step and song, real-time factor (seconds ÷ duration) and an estimate for a
   4-minute song (the sum of the medians × 240 s plus the loads).
 - **Memory**: each step's peak VRAM with NVML, minus what was already in use at the start (Windows
-  uses ~1 GB). If the step uses torch, also its own peak. The process's peak RAM.
+  uses ~1 GB). If the step uses torch, also its own peak. The process's peak RAM. NVML sees the
+  whole card, so another program that takes GPU memory during a step adds to its figure, and a run
+  that reuses cached songs keeps the peak of the run that made them: check a figure that jumps
+  against the same step in another set, or with `--no-cache`.
 
 ## Comparing
 

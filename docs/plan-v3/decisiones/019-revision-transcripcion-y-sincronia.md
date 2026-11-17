@@ -168,9 +168,9 @@ El modelo de música tiene 581 millones de parámetros y se publica en 32 bits (
 |---|---|---|---|
 | VRAM pico | 1,6 GB | 2,1 GB | ≤ 3 GB ✓ |
 | RAM pico, una canción | 2,7 GB | 3,8 GB | ≤ 4 GB ✓ |
-| RAM pico, 79 canciones en cuatro idiomas en un proceso (banco) | 3,7 GB | 4,0 GB | justo en el límite |
+| RAM pico, 79 canciones en cuatro idiomas en un proceso (banco) | 3,7 GB | 4,0–4,3 GB | por encima, solo en el banco (el servidor hace cada canción en su proceso) |
 | Tiempo por duración de la canción | 0,016 | 0,054 | — |
-| Canción de 4 min con letra, con cargas | 60 s | 69 s | ≤ 2 min ✓ |
+| Canción de 4 min con letra, con cargas | 60 s | 69–72 s | ≤ 2 min ✓ |
 | «un aire» (4:47) con letra, `karaoke make` entero, dos pasadas | 83–87 s | 94–102 s | — |
 | … de ello, alinear (comparte la CPU con la codificación del audio) | 12–14 s | 26–33 s | — |
 
@@ -256,7 +256,8 @@ queda en el karaoke tras alinear y filtrar:
 | Qwen3-ASR 0,6B, tramos de 28 s | 20,7 % | — | 22,9 % |
 
 - En JamendoLyrics, 21 canciones mejoran más de 5 puntos y 10 empeoran; ninguna cambia de
-  idioma. Una canción de 4 min sin letra tarda 73 s en vez de 65 s.
+  idioma. Una canción de 4 min sin letra tarda 73 s en vez de 65 s solo por los tramos; con el
+  alineador nuevo detrás, 83 s (90 s en gallego, que transcribe con HiTZ large).
 - Qwen3-ASR (entrenado también con canciones) es el mejor en inglés, 4,5 puntos por debajo de
   Whisper, y peor en castellano, alemán y francés. No entra: sería un segundo motor de
   transcripción para un solo idioma que no es la prioridad del proyecto. Queda medido y anotado
@@ -275,6 +276,15 @@ queda en el karaoke tras alinear y filtrar:
 - **Banco**: `import-lrc` y referencias por línea; WER tolerante para el gallego.
 - Pipelines del barrido en `bench/pipelines/rev-*.toml`; informes en `bench/results/2026-11-1[67]-*`
   (los de las canciones privadas, solo en local).
+
+Confirmado el 17/11 con `c4-default` tal como quedó (alineador 16, transcriptor 6;
+`bench/results/2026-11-17-c4-default-*`): las mismas cifras al decimal que las pipelines del
+barrido, con letra en `stress`, `gl`, `jamendo` y las privadas, y sin letra en `gl`, `quick`,
+`jamendo` y las privadas. Los informes de `quick` y `jamendo` con letra marcan 3,3 GB de VRAM, y
+no es el alineador: el banco mide la memoria de toda la tarjeta, algo más la ocupó durante la
+ejecución de `quick`, y la de `jamendo` reutiliza esas canciones con su pico. La memoria de la
+tarjeta no depende de la letra (la búsqueda va en la CPU), y las mismas canciones sin letra, igual
+que `stress` y `gl`, se quedan en 2,1–2,3 GB.
 
 ## Lo que queda por debajo de lo mejor
 
