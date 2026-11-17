@@ -66,11 +66,11 @@ Medido co banco de probas do proxecto, con cancións de licenza libre, nunha RTX
 
 | | Resultado |
 |---|---|
-| Sincronía coa letra, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 cancións en inglés, castelán, francés e alemán) | **98,8 %** das palabras comezan a ≤ 0,3 s da referencia; erro medio de 0,093 s ([informe](bench/results/2026-10-29-c4-default-jamendo-lyrics/report.md)) |
-| Sincronía coa letra, cancións en galego | **99,8 %** a ≤ 0,3 s ([informe](bench/results/2026-11-06-c9-despois-gl-lyrics/report.md)) |
-| Transcrición sen letra (taxa de erro de palabras) | 23,2 % en JamendoLyrics e 26,5 % en galego, fronte ao 33,7 % e ao 35,9 % dunha base con Demucs e Whisper |
+| Sincronía coa letra, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 cancións en inglés, castelán, francés e alemán) | **99,3 %** das palabras comezan a ≤ 0,3 s da referencia; erro medio de 0,062 s ([informe](bench/results/2026-11-17-rev-final-b-jamendo-lyrics/report.md)) |
+| Sincronía coa letra, cancións en galego | **100 %** a ≤ 0,3 s ([informe](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
+| Transcrición sen letra (taxa de erro de palabras) | 21,3 % en JamendoLyrics e 25,9 % en galego, fronte ao 33,7 % e ao 35,9 % dunha base con Demucs e Whisper |
 | Cambios de lingua sen pedilo | ningún, en todo o banco |
-| Unha canción de 4:47 con letra, do ficheiro ao karaoke | uns 85 s |
+| Unha canción de 4:47 con letra, do ficheiro ao karaoke | uns 95 s |
 | Un MP4 1080p de 4 minutos | menos dun minuto |
 
 Como funciona o banco e todos os informes: [`docs/benchmark.md`](docs/benchmark.md) (en inglés) e
@@ -90,11 +90,12 @@ flowchart LR
 ```
 
 O **motor** separa a voz, transcríbea cando non hai letra e aliña a letra coa voz cun modelo para
-cada lingua (o de Proxecto Nós para o galego; o Omnilingual de Meta para calquera das preto de
-1600 que non teñen un propio). O resultado é un só documento, `karaoke.json`, que o **reprodutor
-web** e a **exportación de vídeo** debuxan do mesmo xeito. Un **servidor na casa** pon os
-traballos en cola na GPU, garda a biblioteca e serve a aplicación a todos os aparellos da casa.
-Cada modelo escolleuse co banco, e cada paso cabe en 4 GB de memoria de vídeo.
+cada lingua (o de Proxecto Nós para o galego) e outro adestrado con cancións, que escoitan xuntos;
+o segundo, só, vale para as linguas que non teñen un propio. O resultado é un só documento,
+`karaoke.json`, que o **reprodutor web** e a **exportación de vídeo** debuxan do mesmo xeito. Un
+**servidor na casa** pon os traballos en cola na GPU, garda a biblioteca e serve a aplicación a
+todos os aparellos da casa. Cada modelo escolleuse co banco, e cada paso cabe en 4 GB de memoria de
+vídeo.
 
 Python 3.12 (uv, FastAPI, PyTorch, faster-whisper), TypeScript (SvelteKit, Web Audio), ffmpeg. A
 arquitectura e o porqué de cada decisión: [`docs/architecture.md`](docs/architecture.md) (en

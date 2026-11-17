@@ -1,8 +1,9 @@
 # Lyrics timing (`karaoke_engine.align`)
 
 How the engine places each word of the lyrics at the moment it is sung. The decisions and the
-numbers are in [`plan-v3/decisiones/005-sincronia.md`](plan-v3/decisiones/005-sincronia.md) (in
-Spanish), and how to measure in [`benchmark.md`](benchmark.md).
+numbers are in [`plan-v3/decisiones/005-sincronia.md`](plan-v3/decisiones/005-sincronia.md) and
+[`019-revision-transcripcion-y-sincronia.md`](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md)
+(in Spanish), and how to measure in [`benchmark.md`](benchmark.md).
 
 ## What it does
 
@@ -43,9 +44,16 @@ Spanish), and how to measure in [`benchmark.md`](benchmark.md).
 2. **Turns each word into what is said** (`spoken.spoken`), only to align: lowercase, no
    punctuation, and numbers and symbols in words in Galician, Spanish, Portuguese and English
    (`2024` → «dous mil vinte e catro»; `&` → «e»).
-3. **Computes the CTC emissions** of the separated voice with the language's model
-   (`emissions.EmissionModel`). It works in 30 s windows with 2 s of context, and only the columns
-   the lyrics use leave the GPU.
+3. **Computes the CTC emissions** of the separated voice (`emissions.EmissionModel`), in 30 s
+   windows with 2 s of context; only the columns the lyrics use leave the GPU. Two models listen,
+   one after the other: the language's own, trained on speech, and one trained on songs in many
+   languages. Their probabilities are averaged (`emissions.blend`): each misses different
+   passages, and a letter either of them hears is heard. The mean is of probabilities, not of
+   their logarithms, because a CTC model puts each letter on a frame or two and two models rarely
+   pick the same one. The song's shape (how each repeat mark reads, which lines are sung again)
+   is decided by the language's model alone, which is sharper: the music model spreads its
+   probabilities over time, and in the mean a line stretched over a repeat cost less than singing
+   it again. The second search, with both, then times those lines in that order.
 4. **Looks at where the voice sounds** (`activity.vocal_activity`): the separated voice's energy
    compared with the song's own singing.
 5. **Searches for the best path** (`ctc.align_segments`), with four freedoms classic CTC alignment
@@ -58,7 +66,11 @@ Spanish), and how to measure in [`benchmark.md`](benchmark.md).
      because sites write a couplet or a stanza sung several times in a row only once. Each time
      comes out as a line of its own;
    - an **extra cost for each letter** where the voice is silent, so the lyrics do not slip into
-     the instrumental breaks.
+     the instrumental breaks;
+   - a **small cost for resting** between two words of a line while the voice is silent. A word
+     of one or two letters finds something like itself anywhere: with free rests, the «A» that
+     opens a line was found in the intro, eight seconds before its line, and a line of «uh, uh»
+     stretched over a whole instrumental break.
 6. **Adjusts the ends**: a word ends where its voice stops (at the first pause longer than 0.3 s),
    with a 0.1 s margin. Moving the starts to the voice's onset too (`refine_onsets`) is available,
    but it makes JamendoLyrics worse and is off.
@@ -86,6 +98,14 @@ language's default comes from the benchmark (decision 005).
 | `w2v2-en`, `xlsr-en` | [facebook/wav2vec2-base-960h](https://huggingface.co/facebook/wav2vec2-base-960h), [jonatasgrosman/wav2vec2-large-xlsr-53-english](https://huggingface.co/jonatasgrosman/wav2vec2-large-xlsr-53-english) | Apache-2.0 | English (comparison) |
 | `xlsr-es`, `xlsr-fr`, `xlsr-de`, `xlsr-pt` | [jonatasgrosman/wav2vec2-large-xlsr-53-*](https://huggingface.co/jonatasgrosman) | Apache-2.0 | Spanish, French, German, Portuguese |
 | `ifrz-gl` | [ifrz/wav2vec2-large-xlsr-galician](https://huggingface.co/ifrz/wav2vec2-large-xlsr-galician) | no published licence | only to compare in the benchmark |
+| `music-w2vbert-ctc` | [mrfakename/w2v-bert-2.0-music-lyrics-ctc](https://huggingface.co/mrfakename/w2v-bert-2.0-music-lyrics-ctc) | MIT | the second model of every language, and the only one for a language without a model of its own |
+
+A language without its own model is aligned by the music model alone when it can write the lyrics
+(Latin, Cyrillic, Greek, Arabic, Hebrew, Thai, Japanese and Korean letters), and by Omnilingual
+when it cannot. The music model is published in 32 bits (2.3 GB): the first time, it is stored in
+16 bits in `~/.cache/karaoke/models/ctc/` (`emissions.half_copy`, a few seconds in a process of
+its own) and loaded from there, at half the memory. With two models, each one leaves the GPU
+before the other loads: a 4 GB card holds one at a time.
 
 ## Parameters (`LyricsAligner`)
 
@@ -96,12 +116,15 @@ audio instead of the long ones that are really sung.
 
 | Parameter | What it does |
 |---|---|
-| `model` | a name from the table; without it, the language's (and Omnilingual if the language has none) |
+| `model` | a name from the table; without it, the language's (and the music model if the language has none) |
+| `second` | a second model whose probabilities are averaged with the first one's; without it, the music model next to a language's default model, and none next to a model chosen by hand; `""` turns it off |
+| `second_weight` | the second model's share in the average (0.5) |
 | `filler_penalty` | the cost per frame of explaining a sound with the filler; higher forces the lyrics to cover more |
 | `skip_penalty` | the cost per letter of skipping a lead line |
 | `backing_skip_penalty` | the cost per letter of skipping a backing line (lower: backing vocals often overlap the voice or cannot be heard) |
 | `edge_skip_penalty` | the cost per letter of leaving out lines at the start or end of the lyrics (for clips or short versions); off, because on whole songs it can drop a verse that is sung |
 | `silence_penalty` | the extra cost per letter in a stretch without voice |
+| `rest_penalty` | the cost per silent frame of resting between two words of a line |
 | `repeat_penalty` | the cost of singing again lines of the same stanza right after them (lyrics that write a repeated couplet or stanza once); `inf` turns it off |
 | `refine_onsets` | move the starts to the voice's onset |
 | `parts` | give words syllables with timings (gl, es, pt) |
@@ -119,12 +142,24 @@ uv run karaoke make song.m4a --lyrics lyrics.txt --overlap-backing       # overl
 
 - **With `--lyrics`**: the lyrics as pasted from a website.
 - **With `--lrclib`**: looks the lyrics up on [LRCLIB](https://lrclib.net), an open and free lyrics
-  database. It only sends the title and the artist, and nothing unless asked. It keeps the entry
-  with the closest duration (±5 s); if there is none, it transcribes.
+  database. It only sends the title and the artist, and nothing unless asked. A song that comes
+  from a video is named the way video pages name it («The Rapants - Viaxei (Official Video)»),
+  which the database does not know: the name is asked as it came, then without the artist in
+  front, the kind of video and the guests (`lyrics_lookup.song_names`), and last as a free
+  search, keeping only entries by that artist. It keeps the entry with the closest duration
+  (±5 s), or one the audio outlasts by up to a minute (a video with a spoken opening or
+  credits); if there is none, it transcribes. Lyrics someone wrote, aligned, are far better than
+  a transcription: this is the way to try first.
 - **Without lyrics**: transcribes the separated voice with Whisper (for Galician, the Galician model
-  the benchmark chose), always in the language asked for. It removes the stretches where the voice
-  is silent, because Whisper fills silences with stock phrases, and looping repeats. It splits the
-  text into lines by sentence and about every nine words, and aligns it like pasted lyrics.
+  the benchmark chose), always in the language asked for. Whisper reads 30 s at a time; given a
+  whole song, its speech detector (trained on talk) drops sung passages and its windows cut
+  through phrases. So the song goes to it in **stretches of singing** cut where the separated
+  voice rests (`activity.voiced_stretches`), each read whole: up to 28 s for a large model, which
+  uses the context, and 12 s for a turbo one, which loses the thread in a long stretch. Looping
+  repeats go, and the text is split into lines by sentence and about every nine words and
+  aligned like pasted lyrics. The aligner is then a **second listener**: a line it hears with
+  next to no confidence where it placed it was made up by the transcriber, and is left out
+  (`aligner.heard`).
 
 The first transcription in Galician downloads and converts HiTZ's model (about 6 GB). The
 conversion needs about 6 GB of free memory for a few minutes: close other programs. It runs in a

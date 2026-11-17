@@ -1,7 +1,9 @@
 # 005 · Sincronía con letra: alineador nuevo, modelos y cómo se mide
 
 - **Fecha**: 29/10/2026
-- **Estado**: propuesta (área C4); se aprueba con su PR
+- **Estado**: propuesta (área C4); se aprueba con su PR. Revisada en `019` (16/11/2026): un
+  segundo modelo entrenado con canciones, coste por descansar en silencio, nuevo respaldo para
+  los idiomas sin modelo y transcripción por tramos de canto.
 - **Afecta a**: C5 y C7 (líneas de coro y confianza por palabra), C8 (memoria y tiempo del
   servidor), C2 (cambios en el banco)
 

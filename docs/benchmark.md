@@ -113,6 +113,12 @@ The reports themselves are written in Spanish.
   and splits on hyphens (`vou-te` → `vou te`). **Accents count**: in Galician `é` and `e` are
   different words. What goes in parentheses (backing vocals) stays, because it is sung. Numbers are
   not spelled out: the references are written in words.
+- **Lenient WER** (only in `asr`, only Galician): the WER without the spelling choices that are no
+  mistakes. Lyrics sites write songs the way they sound, and a transcriber that writes the
+  standard form of the same word heard it right: gheada («janarme» / «ganarme»), seseo
+  («corasón» / «corazón»), accents, and pronouns apart from their verb or joined to it («deixei
+  che» / «deixeiche») count as the same word (`textnorm.lenient`). The strict WER stays next to
+  it: the gap between the two is spelling, what is left is what was misheard.
 - **Word timing**: the output's words are paired with the reference's (a Levenshtein alignment
   ignoring accents) and only those that match count:
   - absolute start error (median, mean and % ≤ 0.3 s);
@@ -235,6 +241,20 @@ uv run karaoke-bench import-srt private/<id> my-timings.srt
 The reference is marked **approximate**: a hand-made subtitle is reliable to a few tenths of a
 second, so for those songs the report also gives the % of words within 0.5 s.
 
+If the song has **synchronised lyrics** (an `.lrc` file, a time before each line, as open lyrics
+databases such as [LRCLIB](https://lrclib.net) hold for many songs), they make a reference with
+no work at all:
+
+```bash
+uv run karaoke-bench import-lrc private/<id> lyrics.lrc
+```
+
+Someone timed those lines while listening, so they are a check made by hand of where each line
+starts. The reference is marked **by lines**: only the start of the first word of each line is
+scored (ends are not), and, like any timing tapped by hand, it is good to a few tenths of a
+second: look at the % within 0.5 s and at the bias. The lines must belong to the same recording
+(an entry timed for the album version does not fit a video with a spoken intro).
+
 Without a reference, the benchmark only measures speed, memory and language. With `draft` and
 `review` you can make one, as for the Galician set.
 
@@ -243,7 +263,7 @@ Without a reference, the benchmark only measures speed, memory and language. Wit
 ```json
 {
   "song_id": "…", "language": "gl", "duration": 215.3,
-  "timing": "manual | semiautomatic | approximate", "approved": true,
+  "timing": "manual | semiautomatic | approximate | lines", "approved": true,
   "lines": [
     { "text": "Vou-te ver, d'aquí", "start": 12.3, "end": 15.8,
       "status": "draft | ok | wrong | unsure", "anchor": null, "note": null, "revised": false,

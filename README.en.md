@@ -64,11 +64,11 @@ Measured with the project's benchmark of freely licensed songs on an RTX 3050 La
 
 | | Result |
 |---|---|
-| Timing with lyrics, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 songs in English, Spanish, French and German) | **98.8 %** of words start within 0.3 s of the reference; mean error 0.093 s ([report](bench/results/2026-10-29-c4-default-jamendo-lyrics/report.md)) |
-| Timing with lyrics, Galician songs | **99.8 %** within 0.3 s ([report](bench/results/2026-11-06-c9-despois-gl-lyrics/report.md)) |
-| Transcription without lyrics (word error rate) | 23.2 % on JamendoLyrics, 26.5 % in Galician, down from 33.7 % and 35.9 % for a Demucs + Whisper baseline |
+| Timing with lyrics, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 songs in English, Spanish, French and German) | **99.3 %** of words start within 0.3 s of the reference; mean error 0.062 s ([report](bench/results/2026-11-17-rev-final-b-jamendo-lyrics/report.md)) |
+| Timing with lyrics, Galician songs | **100 %** within 0.3 s ([report](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
+| Transcription without lyrics (word error rate) | 21.3 % on JamendoLyrics, 25.9 % in Galician, down from 33.7 % and 35.9 % for a Demucs + Whisper baseline |
 | Language switched without asking | never, in the whole benchmark |
-| A 4:47 song with lyrics, from file to karaoke | about 85 s |
+| A 4:47 song with lyrics, from file to karaoke | about 95 s |
 | A 4-minute 1080p MP4 | under a minute |
 
 How the benchmark works and every report: [`docs/benchmark.md`](docs/benchmark.md) and
@@ -88,11 +88,12 @@ flowchart LR
 ```
 
 The **engine** separates the vocals, transcribes them when there are no lyrics, and aligns the
-lyrics to the voice with a model for each language (Proxecto Nós for Galician; Meta's
-Omnilingual for any of the some 1,600 without one of their own). The result is one document,
-`karaoke.json`, that the **web player** and the **video export** draw in the same way. A **home
-server** queues the jobs on the GPU, keeps the library and serves the app to every device in the
-house. Every model was chosen with the benchmark, and each step fits in 4 GB of video memory.
+lyrics to the voice with a model for each language (Proxecto Nós for Galician) and one trained on
+songs, which listen together; the second one alone serves the languages without their own. The
+result is one document, `karaoke.json`, that the **web player** and the **video export** draw in
+the same way. A **home server** queues the jobs on the GPU, keeps the library and serves the app to
+every device in the house. Every model was chosen with the benchmark, and each step fits in 4 GB of
+video memory.
 
 Python 3.12 (uv, FastAPI, PyTorch, faster-whisper), TypeScript (SvelteKit, Web Audio), ffmpeg.
 The architecture and the reasoning behind each decision: [`docs/architecture.md`](docs/architecture.md).

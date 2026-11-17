@@ -39,8 +39,9 @@ experience, on a phone, a laptop and a TV) and the MP4 (an export).
 
 Galician sets the bar: it has its own models (Proxecto Nós for alignment, HiTZ for transcription),
 its own rules (numbers, syllables, enclitic pronouns) and its own songs in the benchmark. Every other
-language works with the same pipeline: six have a dedicated alignment model, any of some 1,600 is
-aligned with Meta's Omnilingual model, and Whisper transcribes about a hundred. What each language
+language works with the same pipeline: six have a dedicated alignment model, every language is
+also heard by a model trained on songs (alone where there is no dedicated one; Meta's Omnilingual
+for lyrics in a script it cannot write), and Whisper transcribes about a hundred. What each language
 gets: [`languages-and-models.md`](languages-and-models.md).
 
 ## The pieces
@@ -67,12 +68,13 @@ model at a time: each step frees its memory before the next one loads its own.
 2. **Separation**: Kim's Mel-Band RoFormer vocal model through audio-separator, in 8 s chunks (about
    3 GB of VRAM). The separated voice is what gets aligned and the player's guide vocals.
 3. **Transcription**, only when there are no lyrics (or `--lrclib` finds none): Whisper on the
-   separated voice, always in the language asked for. HiTZ `whisper-large-v3-gl` for Galician,
-   large-v3-turbo for the rest; it drops the stretches where the voice is silent and the loops
-   Whisper makes up.
-4. **Alignment**: the language's CTC model (Proxecto Nós for Galician; Omnilingual for those without
-   their own) and a search that allows fillers between lines (ad-libs, backing vocals not in the
-   lyrics), skipping lines nobody sings, and that penalises placing lyrics where the voice is silent.
+   separated voice, always in the language asked for, one stretch of singing at a time. HiTZ
+   `whisper-large-v3-gl` for Galician, large-v3-turbo for the rest; it drops the loops Whisper
+   makes up, and the aligner then leaves out the lines it cannot hear.
+4. **Alignment**: two CTC models heard together, the language's own (Proxecto Nós for Galician)
+   and one trained on songs in many languages (alone for those without their own), and a search
+   that allows fillers between lines (ad-libs, backing vocals not in the lyrics), skipping lines
+   nobody sings, and that penalises placing lyrics where the voice is silent.
    Then it fits the ends to the voice, splits the words into timed syllables (Galician, Spanish and
    Portuguese), gives each word a confidence and, in Galician, joins pronouns written apart to their
    verb.
@@ -148,11 +150,11 @@ offline). The API client uses types generated from the server's OpenAPI.
 
 | What | Result | Source |
 |---|---|---|
-| Timing with lyrics, JamendoLyrics (79 songs, 4 languages) | 98.8 % of words start within 0.3 s; mean error 0.093 s | [report](../bench/results/2026-10-29-c4-default-jamendo-lyrics/report.md) |
-| Timing with lyrics, Galician (5 songs) | 99.8 % within 0.3 s | [report](../bench/results/2026-11-06-c9-despois-gl-lyrics/report.md) |
-| Transcription without lyrics (WER) | 23.2 % on JamendoLyrics; 26.5 % in Galician | [decision 005](plan-v3/decisiones/005-sincronia.md) |
+| Timing with lyrics, JamendoLyrics (79 songs, 4 languages) | 99.3 % of words start within 0.3 s; mean error 0.062 s | [report](../bench/results/2026-11-17-rev-final-b-jamendo-lyrics/report.md) |
+| Timing with lyrics, Galician (5 songs) | 100 % within 0.3 s | [report](../bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md) |
+| Transcription without lyrics (WER) | 21.3 % on JamendoLyrics; 25.9 % in Galician | [decision 019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) |
 | Silent language switches | none in the whole benchmark | [decision 005](plan-v3/decisiones/005-sincronia.md) |
-| Making a 4:47 karaoke with lyrics | about 85 s | [report](../bench/results/2026-11-06-c9-calidad/) |
+| Making a 4:47 karaoke with lyrics | about 95 s | [report](../bench/results/2026-11-06-c9-calidad/), [decision 019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) |
 | Exporting a 4-minute 1080p MP4 | under a minute with NVENC | [report](../bench/results/2026-10-30-c6-render/report.md) |
 | Lyrics animation | 60 fps with the CPU slowed down ×6 | [`quality.md`](quality.md) |
 
@@ -166,6 +168,7 @@ offline). The API client uses types generated from the server's OpenAPI.
 | [003](plan-v3/decisiones/003-banco-y-metas.md) | Benchmark and goals | JamendoLyrics and free Galician songs; goals set from measurements |
 | [004](plan-v3/decisiones/004-audio.md) | Audio | Mel-Band RoFormer in 8 s chunks; −14 LUFS in m4a; the web audio engine |
 | [005](plan-v3/decisiones/005-sincronia.md) | Timing | our own CTC aligner per language; Whisper HiTZ for Galician |
+| [019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) | Timing, reviewed | a second aligner model trained on songs; transcription by stretches of singing; LRCLIB finds songs from videos |
 | [006](plan-v3/decisiones/006-coros.md) | Backing vocals | `backing` lines that may overlap (contract 1.1.0) |
 | [007](plan-v3/decisiones/007-subtitulos.md) | Subtitles | one layout in Python and TS; themes with OFL fonts |
 | [008](plan-v3/decisiones/008-video.md) | Video | ASS + libass + NVENC; video, cover or gradient backgrounds |

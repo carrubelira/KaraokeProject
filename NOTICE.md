@@ -28,7 +28,8 @@ for interview captions in
 | Alignment, Galician | [`proxectonos/Nos_ASR-wav2vec2-xls-r-300m-gl`](https://huggingface.co/proxectonos/Nos_ASR-wav2vec2-xls-r-300m-gl) | Proxecto Nós | Apache-2.0 |
 | Alignment, English | [`facebook/wav2vec2-large-960h-lv60-self`](https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self) | Meta | Apache-2.0 |
 | Alignment, Spanish, French, German, Portuguese | `jonatasgrosman/wav2vec2-large-xlsr-53-*` | Jonatas Grosman | Apache-2.0 |
-| Alignment, any other language | Omnilingual ASR CTC 300M ([conversion](https://huggingface.co/aadel4/omniASR-CTC-300M-v2)) | Meta | Apache-2.0 |
+| Alignment, every language (next to its own model, and alone where there is none) | [`mrfakename/w2v-bert-2.0-music-lyrics-ctc`](https://huggingface.co/mrfakename/w2v-bert-2.0-music-lyrics-ctc), from Meta's w2v-BERT 2.0 (MIT) | mrfakename | MIT |
+| Alignment, lyrics in letters the music model does not have | Omnilingual ASR CTC 300M ([conversion](https://huggingface.co/aadel4/omniASR-CTC-300M-v2)) | Meta | Apache-2.0 |
 | Telling speakers apart (interview captions) | [`Wespeaker/wespeaker-voxceleb-resnet34-LM`](https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM) (ONNX) | WeSpeaker (Hongji Wang et al.) | CC-BY-4.0 |
 
 Used only by the benchmark, to compare: Demucs (MIT), `proxectonos/whisper-large-v3-turbo-gl-v1.0`

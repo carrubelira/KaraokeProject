@@ -20,7 +20,26 @@ Tablero de las áreas de trabajo. Cada área actualiza **su fila** tras cada hit
 
 (Avisos que un área deja a otra: «C4 → C5: …». Borra los que ya estén atendidos.)
 
-- Mantenimiento → C4, C2 (13/11, rama `v3/subtitulos`, `decisiones/018`): subtítulos
+- Mantenimiento → C4, C2, C8, C10 (16–17/11, rama `v3/revision-c4`, `decisiones/019`):
+  revisión de transcripción y sincronía con lo publicado hasta hoy. El alineador escucha con dos
+  modelos: el de cada idioma y `mrfakename/w2v-bert-2.0-music-lyrics-ctc` (MIT, entrenado con
+  canciones), promediando probabilidades (`emissions.blend`, `DEFAULT_SECOND`, peso 0,3; uno cada
+  vez en la GPU; copia en 16 bits en `~/.cache/karaoke/models/ctc/`, `emissions.half_copy`).
+  Descansar entre palabras en silencio cuesta 0,05 (`rest_penalty`; arregla la «A» de la demo
+  «laverca», la nota de C10 que había aquí). El modelo de música alinea solo los idiomas sin modelo
+  propio (`FALLBACK_MODEL`; Omnilingual queda en `WIDE_FALLBACK_MODEL`). El modelo del idioma solo
+  decide repeticiones y marcas (`aligner._sung_order`, si no la mezcla rompía `016`).
+  `LyricsAligner.version` = 16: jamendo 98,8 → 99,3 % (media 0,093 → 0,062 s, inglés 97,6 → 98,6),
+  `repeats` igual, gl 100 %, VRAM 2,1 GB, RAM 3,8 GB, 4 min en 69 s. Sin letra: Whisper por tramos
+  de canto (`WhisperTranscriber(by_voice=True)`, `WhisperSpec.stretch`, `version` = 6) y fuera las
+  líneas que el alineador no oye (`aligner.heard`, `make.ASR_MIN_CONFIDENCE`); jamendo 23,2 →
+  21,3 %; gallego (texto final, WER tolerante) urbanas 39,8 → 36,8 %, públicas 32,4 → 30,8 %.
+  LRCLIB encuentra las canciones que vienen de un vídeo (`lyrics_lookup.song_names`). El banco gana
+  `import-lrc` (referencias por línea, `Timing = "lines"`), el WER tolerante del gallego y
+  `karaoke_bench.baseline.qwen`. `make ci` pasa y el dueño dio el OK. Pendiente: rehacer el paquete «laverca» (`fixtures/packages/cloplas-laverca`) con el motor
+  nuevo cuando la GPU esté libre.
+
+- Mantenimiento → C4, C2 (13/11, PR #22, `decisiones/018`): subtítulos
   profesionales para entrevistas largas, sin tocar el vídeo. `karaoke captions <vídeos|carpeta>`
   (`karaoke_engine.captions`) deja junto a cada vídeo `.gl.srt`, `.gl.vtt` y `.gl.revisar.txt`;
   `--from-srt` rehace el `.vtt` tras revisar en DaVinci. Whisper con tiempos por palabra y VAD
@@ -80,10 +99,6 @@ Tablero de las áreas de trabajo. Cada área actualiza **su fila** tras cada hit
   el proyecto va en `## [Unreleased]` del CHANGELOG; publicar: `docs/releasing.md`. Un modelo o
   una dependencia nuevos, en `NOTICE.md`. Las guías técnicas de `docs/` se escriben en inglés (las
   del plan, en castellano).
-- C10 → C4: en el paquete de demostración («laverca», `fixtures/packages/cloplas-laverca`) la
-  primera palabra («A», confianza 0,64) quedó en 3,98 s cuando se canta en 31,9 s, y «o», al final
-  de esa línea, 2 s tarde: palabras de una letra con poca confianza en el borde de una línea saltan
-  a la intro. Son 2 de 378 (el banco sigue en 99,8 %), pero se ven en la primera línea.
 - C10 → C3: `diffq` (lo pide audio-separator para sus modelos Demucs; licencia no comercial) ya no
   se instala (`override-dependencies` en `pyproject.toml`); la separación con RoFormer no lo usa.
 - C8 → C7: la API real es la de `decisiones/010` con añadidos (`decisiones/011`): `Job.error_code`,
