@@ -1,0 +1,7 @@
+# Interview captions (karaoke-bench captions): HiTZ Whisper large-v3 Galician, beam 1, with the
+# word times moved to the Galician CTC aligner's (karaoke_engine.captions.refine).
+[captions]
+model = "hitz-large-v3-gl"
+beam_size = 1
+refine = true
+speakers = false

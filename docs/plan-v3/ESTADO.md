@@ -20,6 +20,15 @@ Tablero de las áreas de trabajo. Cada área actualiza **su fila** tras cada hit
 
 (Avisos que un área deja a otra: «C4 → C5: …». Borra los que ya estén atendidos.)
 
+- Mantenimiento → C4, C2 (13/11, rama `v3/subtitulos`, `decisiones/018`): subtítulos
+  profesionales para entrevistas largas, sin tocar el vídeo. `karaoke captions <vídeos|carpeta>`
+  (`karaoke_engine.captions`) deja junto a cada vídeo `.gl.srt`, `.gl.vtt` y `.gl.revisar.txt`;
+  `--from-srt` rehace el `.vtt` tras revisar en DaVinci. Whisper con tiempos por palabra y VAD
+  Silero, quién habla con huellas de WeSpeaker (ONNX, CC BY 4.0), normas de Netflix/UNE 153010 en
+  fotogramas y cortes de plano buscados en paralelo. `transcribe.py` expone
+  `WhisperTranscriber.whisper_for_language` e `is_loop`. El extra `ml` declara `onnxruntime` y
+  `torchaudio`. El banco gana `fetch-speech` y `captions` (diálogos gallegos de OpenSLR 77).
+
 - Mantenimiento → C7, C10 (13/11, rama `v3/noite`, `decisiones/017`): rediseño «Noite» de toda la
   web, a falta del OK del usuario y de verlo en su móvil, portátil y tele. Un planeta 3D con
   Galicia como única tierra (relieve, costa, luces y faros reales) vive en un lienzo bajo todas

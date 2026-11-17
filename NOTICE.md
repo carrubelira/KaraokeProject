@@ -15,7 +15,9 @@ Downloaded from Hugging Face the first time they are needed (`karaoke-server pre
 advance), each pinned to a revision in the code: separation in
 [`make.py`](packages/engine/src/karaoke_engine/make.py), transcription in
 [`transcribe.py`](packages/engine/src/karaoke_engine/transcribe.py) and alignment in
-[`align/models.py`](packages/engine/src/karaoke_engine/align/models.py).
+[`align/models.py`](packages/engine/src/karaoke_engine/align/models.py), and the voice prints
+for interview captions in
+[`captions/speakers.py`](packages/engine/src/karaoke_engine/captions/speakers.py).
 
 | Step | Model | Authors | Licence |
 |---|---|---|---|
@@ -27,11 +29,14 @@ advance), each pinned to a revision in the code: separation in
 | Alignment, English | [`facebook/wav2vec2-large-960h-lv60-self`](https://huggingface.co/facebook/wav2vec2-large-960h-lv60-self) | Meta | Apache-2.0 |
 | Alignment, Spanish, French, German, Portuguese | `jonatasgrosman/wav2vec2-large-xlsr-53-*` | Jonatas Grosman | Apache-2.0 |
 | Alignment, any other language | Omnilingual ASR CTC 300M ([conversion](https://huggingface.co/aadel4/omniASR-CTC-300M-v2)) | Meta | Apache-2.0 |
+| Telling speakers apart (interview captions) | [`Wespeaker/wespeaker-voxceleb-resnet34-LM`](https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM) (ONNX) | WeSpeaker (Hongji Wang et al.) | CC-BY-4.0 |
 
 Used only by the benchmark, to compare: Demucs (MIT), `proxectonos/whisper-large-v3-turbo-gl-v1.0`
 and `proxectonos/w2v-bert-2.0-gl` (Apache-2.0), `BSC-LT/whisper-large-v3-LoS` (Apache-2.0),
 Omnilingual CTC 1B (Apache-2.0), `facebook/wav2vec2-base-960h` (Apache-2.0) and
 `ifrz/wav2vec2-large-xlsr-galician`, which states no licence and is therefore never a default.
+The interview captions set is built from OpenSLR 77, Google's crowdsourced Galician speech
+(CC BY-SA 4.0), downloaded on the bench machine and never redistributed.
 
 ## Libraries
 
@@ -42,6 +47,7 @@ Installed by uv and pnpm from PyPI and npm. The main ones:
 | PyTorch, torchaudio | BSD-3-Clause | running the models |
 | Transformers, Hugging Face Hub | Apache-2.0 | the alignment models and downloads |
 | faster-whisper, CTranslate2 | MIT | transcription |
+| ONNX Runtime | MIT | the voice prints for interview captions |
 | audio-separator | MIT | vocal separation |
 | NumPy, SciPy, librosa | BSD-3-Clause, BSD-3-Clause, ISC | audio |
 | pydantic | MIT | the `karaoke.json` and `theme.json` contracts |

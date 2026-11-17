@@ -1,0 +1,5 @@
+# Interview captions (karaoke-bench captions): Whisper large-v3-turbo (multilingual), beam 1.
+[captions]
+model = "large-v3-turbo"
+beam_size = 1
+speakers = false

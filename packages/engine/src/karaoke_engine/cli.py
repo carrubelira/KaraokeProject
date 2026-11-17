@@ -109,7 +109,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     clitics.add_argument("package", type=Path)
 
+    captions = commands.add_parser(
+        "captions",
+        help="subtitle interviews: SRT, WebVTT and a review list next to each video (never "
+        "modified)",
+    )
+    captions.add_argument("paths", nargs="*", type=Path, help="videos, or folders of videos")
+    captions.add_argument("--lang", default="gl", help="language spoken (default: gl)")
+    captions.add_argument("--force", action="store_true", help="redo existing subtitles")
+    captions.add_argument("--no-shots", action="store_true", help="do not look for cuts")
+    captions.add_argument("--audio-track", type=int, help="audio track to transcribe, from 1")
+    captions.add_argument("--model", default="auto", help="Whisper model (default: auto)")
+    captions.add_argument(
+        "--from-srt", type=Path, help="rebuild the WebVTT from an SRT reviewed in an editor"
+    )
+
     args = parser.parse_args(argv)
+    if args.command == "captions":
+        return _captions(args)
     if args.command == "join-clitics":
         return _join_clitics(args.package)
     if args.command == "render":
@@ -270,6 +287,67 @@ def _join_clitics(package: Path) -> int:
         return 1
     print(f"{package}: {joined} pronouns joined to their verb")
     return 0
+
+
+_CAPTION_STEPS = {
+    "read": "reading the audio",
+    "cuts": "finding cuts",
+    "transcribe": "transcribing",
+    "refine": "timing the words",
+    "speakers": "telling the voices apart",
+    "step": "processing",
+    "write": "writing",
+}
+
+
+def _captions(args: argparse.Namespace) -> int:
+    from karaoke_engine.captions.pipeline import CaptionOptions, caption_all, rebuild_from_srt
+
+    if not args.paths and args.from_srt is None:
+        print("error: give one or more videos (or folders), or --from-srt", file=sys.stderr)
+        return 2
+    if args.audio_track is not None and args.audio_track < 1:
+        print("error: --audio-track counts from 1", file=sys.stderr)
+        return 2
+    options = CaptionOptions(
+        language=args.lang,
+        force=args.force,
+        shots=not args.no_shots,
+        audio_track=args.audio_track - 1 if args.audio_track else None,
+        model=args.model,
+    )
+    if args.from_srt is not None:
+        results = [rebuild_from_srt(args.from_srt, options)]
+    else:
+        shown: dict[tuple[int, str], int] = {}
+
+        def progress(
+            n: int, total: int, video: Path, step: str, done: float, eta: float | None
+        ) -> None:
+            where = f"[{n}/{total}] {video.name} · {_CAPTION_STEPS[step]}"
+            if eta is not None:
+                about = "under a minute" if eta < 60 else f"about {round(eta / 60)} min"
+                print(f"{where} ({about})", file=sys.stderr)
+                return
+            tenth = int(done * 10)
+            if shown.get((n, step), -1) < tenth:
+                shown[(n, step)] = tenth
+                print(f"{where} {done:4.0%}", file=sys.stderr)
+
+        results = caption_all(args.paths, options, progress)
+        if not results:
+            print("error: no videos found there", file=sys.stderr)
+            return 1
+    for result in results:
+        if result.error is not None:
+            print(f"{result.video.name}: error: {result.error}")
+        elif result.skipped is not None:
+            print(f"{result.video.name}: skipped: {result.skipped}")
+        else:
+            plural = "" if result.captions == 1 else "s"
+            print(f"{result.video.name}: {result.captions} subtitle{plural}, "
+                  f"{result.to_review} to review ({result.elapsed / 60:.1f} min)")  # fmt: skip
+    return 1 if any(r.error is not None for r in results) else 0
 
 
 def _validate(path: Path) -> int:

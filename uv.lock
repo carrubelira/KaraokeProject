@@ -1022,7 +1022,9 @@ ml = [
     { name = "faster-whisper" },
     { name = "huggingface-hub" },
     { name = "nvidia-cublas-cu12" },
+    { name = "onnxruntime" },
     { name = "torch" },
+    { name = "torchaudio" },
     { name = "torchvision" },
     { name = "transformers" },
 ]
@@ -1037,8 +1039,10 @@ requires-dist = [
     { name = "karaoke-contracts", editable = "packages/contracts" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "nvidia-cublas-cu12", marker = "extra == 'ml'" },
+    { name = "onnxruntime", marker = "extra == 'ml'", specifier = ">=1.20" },
     { name = "pydantic", specifier = ">=2.12" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.8", index = "https://download.pytorch.org/whl/cu130" },
+    { name = "torchaudio", marker = "extra == 'ml'", specifier = ">=2.9", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchvision", marker = "extra == 'ml'", index = "https://download.pytorch.org/whl/cu130" },
     { name = "transformers", marker = "extra == 'ml'", specifier = ">=5.21" },
 ]

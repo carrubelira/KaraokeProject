@@ -1,0 +1,8 @@
+# Interview captions (karaoke-bench captions): what `karaoke captions` does by default. HiTZ
+# Whisper large-v3 Galician with beam 1, word times from the Galician CTC aligner, and the
+# interviewer and the interviewee told apart.
+[captions]
+model = "hitz-large-v3-gl"
+beam_size = 1
+refine = true
+speakers = true

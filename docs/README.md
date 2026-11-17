@@ -21,6 +21,7 @@ The technical guides of Proxecto Karaoke en Galego. The project's presentation i
 | [Lyrics timing](lyrics-sync.md) | how each word and syllable is placed, transcription and the models |
 | [Animated lyrics](subtitles.md) | the lyrics layout, the themes and the ASS generator |
 | [Video](video.md) | backgrounds and MP4 export |
+| [Interview captions](captions.md) | SRT and WebVTT subtitles for long interviews, without touching the video |
 | [Web app](web.md) | routes, screens, the stand-in server and browser tests |
 | [Benchmark](benchmark.md) | measuring an engine change, sets, metrics and adding songs |
 | [Languages and models](languages-and-models.md) | what each language gets, adding one and changing a model |
