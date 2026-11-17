@@ -171,6 +171,8 @@ El modelo de música tiene 581 millones de parámetros y se publica en 32 bits (
 | RAM pico, 79 canciones en cuatro idiomas en un proceso (banco) | 3,7 GB | 4,0 GB | justo en el límite |
 | Tiempo por duración de la canción | 0,016 | 0,054 | — |
 | Canción de 4 min con letra, con cargas | 60 s | 69 s | ≤ 2 min ✓ |
+| «un aire» (4:47) con letra, `karaoke make` entero, dos pasadas | 83–87 s | 94–102 s | — |
+| … de ello, alinear (comparte la CPU con la codificación del audio) | 12–14 s | 26–33 s | — |
 
 En disco, el modelo de música ocupa 2,3 GB tal como se publica y 1,2 GB su copia en 16 bits.
 

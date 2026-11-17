@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "id": "cloplas-laverca",
   "title": "laverca",
   "artist": "Clo Plas",
@@ -22,27 +22,27 @@
   "lines": [
     {
       "id": "l1",
-      "start": 3.983,
+      "start": 31.882,
       "end": 35.424,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "A",
-          "start": 3.983,
-          "end": 4.003,
-          "confidence": 0.636,
+          "start": 31.882,
+          "end": 31.902,
+          "confidence": 0.679,
           "parts": []
         },
         {
           "text": "avoa",
-          "start": 31.882,
+          "start": 32.002,
           "end": 32.182,
-          "confidence": 0.147,
+          "confidence": 0.025,
           "parts": [
             {
               "text": "a",
-              "start": 31.882,
+              "start": 32.002,
               "end": 32.022
             },
             {
@@ -61,7 +61,7 @@
           "text": "descoxe",
           "start": 32.222,
           "end": 32.602,
-          "confidence": 0.639,
+          "confidence": 0.451,
           "parts": [
             {
               "text": "des",
@@ -84,7 +84,7 @@
           "text": "unha",
           "start": 32.662,
           "end": 32.762,
-          "confidence": 0.662,
+          "confidence": 0.465,
           "parts": [
             {
               "text": "u",
@@ -102,7 +102,7 @@
           "text": "camisa",
           "start": 32.822,
           "end": 33.222,
-          "confidence": 0.95,
+          "confidence": 0.667,
           "parts": [
             {
               "text": "ca",
@@ -125,7 +125,7 @@
           "text": "para",
           "start": 33.363,
           "end": 33.543,
-          "confidence": 0.12,
+          "confidence": 0.085,
           "parts": [
             {
               "text": "pa",
@@ -143,7 +143,7 @@
           "text": "o",
           "start": 35.404,
           "end": 35.424,
-          "confidence": 0.075,
+          "confidence": 0.053,
           "parts": []
         }
       ]
@@ -159,14 +159,14 @@
           "text": "Meu",
           "start": 35.524,
           "end": 35.704,
-          "confidence": 0.787,
+          "confidence": 0.551,
           "parts": []
         },
         {
           "text": "grao",
           "start": 35.784,
           "end": 36.004,
-          "confidence": 0.846,
+          "confidence": 0.595,
           "parts": [
             {
               "text": "gra",
@@ -184,14 +184,14 @@
           "text": "de",
           "start": 36.084,
           "end": 36.164,
-          "confidence": 0.948,
+          "confidence": 0.676,
           "parts": []
         },
         {
           "text": "embarazada",
           "start": 36.685,
           "end": 37.265,
-          "confidence": 0.998,
+          "confidence": 0.702,
           "parts": [
             {
               "text": "em",
@@ -224,7 +224,7 @@
           "text": "que",
           "start": 37.425,
           "end": 37.525,
-          "confidence": 0.089,
+          "confidence": 0.078,
           "parts": []
         }
       ]
@@ -240,7 +240,7 @@
           "text": "Aquí",
           "start": 39.086,
           "end": 39.167,
-          "confidence": 0.013,
+          "confidence": 0.01,
           "parts": [
             {
               "text": "A",
@@ -258,35 +258,35 @@
           "text": "non",
           "start": 39.247,
           "end": 39.327,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": []
         },
         {
           "text": "vai",
           "start": 39.407,
           "end": 39.507,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": []
         },
         {
           "text": "ser,",
           "start": 39.607,
           "end": 39.767,
-          "confidence": 0.999,
+          "confidence": 0.706,
           "parts": []
         },
         {
           "text": "non",
           "start": 40.628,
-          "end": 40.748,
-          "confidence": 0.888,
+          "end": 40.728,
+          "confidence": 0.681,
           "parts": []
         },
         {
           "text": "este",
           "start": 40.828,
           "end": 40.968,
-          "confidence": 0.987,
+          "confidence": 0.692,
           "parts": [
             {
               "text": "es",
@@ -304,7 +304,7 @@
           "text": "verán",
           "start": 41.028,
           "end": 41.248,
-          "confidence": 0.103,
+          "confidence": 0.073,
           "parts": [
             {
               "text": "ve",
@@ -331,7 +331,7 @@
           "text": "Inventou",
           "start": 42.969,
           "end": 43.349,
-          "confidence": 0.962,
+          "confidence": 0.675,
           "parts": [
             {
               "text": "In",
@@ -354,28 +354,28 @@
           "text": "que",
           "start": 43.429,
           "end": 43.509,
-          "confidence": 0.96,
+          "confidence": 0.675,
           "parts": []
         },
         {
           "text": "si,",
           "start": 43.59,
           "end": 43.67,
-          "confidence": 0.999,
+          "confidence": 0.709,
           "parts": []
         },
         {
           "text": "e",
           "start": 44.09,
           "end": 44.11,
-          "confidence": 0.996,
+          "confidence": 0.697,
           "parts": []
         },
         {
           "text": "agora?",
           "start": 44.23,
           "end": 44.53,
-          "confidence": 1.0,
+          "confidence": 0.702,
           "parts": [
             {
               "text": "a",
@@ -407,7 +407,7 @@
           "text": "Intenta",
           "start": 47.012,
           "end": 47.512,
-          "confidence": 0.865,
+          "confidence": 0.61,
           "parts": [
             {
               "text": "In",
@@ -430,7 +430,7 @@
           "text": "facela",
           "start": 47.812,
           "end": 48.133,
-          "confidence": 0.815,
+          "confidence": 0.575,
           "parts": [
             {
               "text": "fa",
@@ -453,14 +453,14 @@
           "text": "máis",
           "start": 48.213,
           "end": 48.393,
-          "confidence": 0.965,
+          "confidence": 0.679,
           "parts": []
         },
         {
           "text": "pequena",
           "start": 48.513,
           "end": 48.913,
-          "confidence": 0.972,
+          "confidence": 0.683,
           "parts": [
             {
               "text": "pe",
@@ -492,28 +492,28 @@
           "text": "E",
           "start": 50.654,
           "end": 50.674,
-          "confidence": 0.966,
+          "confidence": 0.676,
           "parts": []
         },
         {
           "text": "eu",
           "start": 50.774,
           "end": 50.874,
-          "confidence": 0.831,
+          "confidence": 0.674,
           "parts": []
         },
         {
           "text": "non",
           "start": 50.955,
           "end": 51.035,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": []
         },
         {
           "text": "podo",
           "start": 51.135,
           "end": 51.275,
-          "confidence": 0.999,
+          "confidence": 0.704,
           "parts": [
             {
               "text": "po",
@@ -531,7 +531,7 @@
           "text": "quita-los",
           "start": 51.355,
           "end": 51.715,
-          "confidence": 0.46,
+          "confidence": 0.33,
           "parts": [
             {
               "text": "qui",
@@ -554,7 +554,7 @@
           "text": "óxos",
           "start": 51.835,
           "end": 52.035,
-          "confidence": 0.025,
+          "confidence": 0.018,
           "parts": [
             {
               "text": "ó",
@@ -572,14 +572,14 @@
           "text": "da",
           "start": 52.095,
           "end": 52.155,
-          "confidence": 0.987,
+          "confidence": 0.691,
           "parts": []
         },
         {
           "text": "agulla",
           "start": 52.255,
           "end": 52.616,
-          "confidence": 0.799,
+          "confidence": 0.563,
           "parts": [
             {
               "text": "a",
@@ -603,7 +603,7 @@
     {
       "id": "l7",
       "start": 55.678,
-      "end": 56.258,
+      "end": 56.238,
       "singer": "s1",
       "role": "lead",
       "words": [
@@ -611,14 +611,14 @@
           "text": "É",
           "start": 55.678,
           "end": 55.698,
-          "confidence": 0.964,
+          "confidence": 0.675,
           "parts": []
         },
         {
           "text": "domingo.",
           "start": 55.798,
-          "end": 56.258,
-          "confidence": 0.956,
+          "end": 56.238,
+          "confidence": 0.707,
           "parts": [
             {
               "text": "do",
@@ -633,7 +633,7 @@
             {
               "text": "go.",
               "start": 56.158,
-              "end": 56.258
+              "end": 56.238
             }
           ]
         }
@@ -650,28 +650,28 @@
           "text": "E",
           "start": 57.499,
           "end": 57.519,
-          "confidence": 0.973,
+          "confidence": 0.681,
           "parts": []
         },
         {
           "text": "non",
           "start": 57.599,
           "end": 57.679,
-          "confidence": 0.997,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "hai",
           "start": 57.739,
           "end": 57.839,
-          "confidence": 0.994,
+          "confidence": 0.704,
           "parts": []
         },
         {
           "text": "nada",
           "start": 57.979,
           "end": 58.199,
-          "confidence": 0.998,
+          "confidence": 0.704,
           "parts": [
             {
               "text": "na",
@@ -689,14 +689,14 @@
           "text": "de",
           "start": 58.299,
           "end": 58.34,
-          "confidence": 0.997,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "ruído.",
           "start": 58.46,
           "end": 58.78,
-          "confidence": 0.983,
+          "confidence": 0.688,
           "parts": [
             {
               "text": "ruí",
@@ -723,14 +723,14 @@
           "text": "É",
           "start": 62.302,
           "end": 62.322,
-          "confidence": 0.919,
+          "confidence": 0.644,
           "parts": []
         },
         {
           "text": "domingo",
           "start": 62.402,
           "end": 62.702,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "do",
@@ -753,7 +753,7 @@
           "text": "ao",
           "start": 62.742,
           "end": 62.783,
-          "confidence": 0.339,
+          "confidence": 0.241,
           "parts": [
             {
               "text": "a",
@@ -771,7 +771,7 @@
           "text": "mediodía",
           "start": 62.823,
           "end": 63.263,
-          "confidence": 0.885,
+          "confidence": 0.707,
           "parts": [
             {
               "text": "me",
@@ -799,28 +799,28 @@
           "text": "e",
           "start": 63.403,
           "end": 63.443,
-          "confidence": 0.962,
+          "confidence": 0.673,
           "parts": []
         },
         {
           "text": "non",
           "start": 63.503,
           "end": 63.603,
-          "confidence": 0.935,
+          "confidence": 0.656,
           "parts": []
         },
         {
           "text": "hai",
           "start": 63.663,
           "end": 63.763,
-          "confidence": 0.993,
+          "confidence": 0.708,
           "parts": []
         },
         {
           "text": "nada",
           "start": 63.903,
           "end": 64.123,
-          "confidence": 0.874,
+          "confidence": 0.703,
           "parts": [
             {
               "text": "na",
@@ -838,14 +838,14 @@
           "text": "de",
           "start": 64.203,
           "end": 64.244,
-          "confidence": 0.985,
+          "confidence": 0.689,
           "parts": []
         },
         {
           "text": "ruído",
           "start": 64.364,
           "end": 64.624,
-          "confidence": 0.968,
+          "confidence": 0.678,
           "parts": [
             {
               "text": "ruí",
@@ -872,14 +872,14 @@
           "text": "Nin",
           "start": 65.905,
           "end": 66.125,
-          "confidence": 0.962,
+          "confidence": 0.674,
           "parts": []
         },
         {
           "text": "coa",
           "start": 66.245,
           "end": 66.365,
-          "confidence": 0.886,
+          "confidence": 0.623,
           "parts": [
             {
               "text": "co",
@@ -897,7 +897,7 @@
           "text": "ventá",
           "start": 66.385,
           "end": 66.585,
-          "confidence": 0.652,
+          "confidence": 0.457,
           "parts": [
             {
               "text": "ven",
@@ -915,7 +915,7 @@
           "text": "aberta.",
           "start": 66.725,
           "end": 67.045,
-          "confidence": 0.962,
+          "confidence": 0.674,
           "parts": [
             {
               "text": "a",
@@ -947,28 +947,28 @@
           "text": "Nin",
           "start": 70.047,
           "end": 70.188,
-          "confidence": 0.942,
+          "confidence": 0.66,
           "parts": []
         },
         {
           "text": "eu,",
           "start": 70.288,
           "end": 70.388,
-          "confidence": 0.956,
+          "confidence": 0.681,
           "parts": []
         },
         {
           "text": "fun",
           "start": 70.828,
           "end": 70.948,
-          "confidence": 0.891,
+          "confidence": 0.624,
           "parts": []
         },
         {
           "text": "aos",
           "start": 71.048,
           "end": 71.148,
-          "confidence": 0.895,
+          "confidence": 0.634,
           "parts": [
             {
               "text": "a",
@@ -986,7 +986,7 @@
           "text": "viños",
           "start": 71.188,
           "end": 71.508,
-          "confidence": 0.988,
+          "confidence": 0.692,
           "parts": [
             {
               "text": "vi",
@@ -1013,7 +1013,7 @@
           "text": "Podo",
           "start": 74.35,
           "end": 74.51,
-          "confidence": 0.998,
+          "confidence": 0.704,
           "parts": [
             {
               "text": "Po",
@@ -1031,7 +1031,7 @@
           "text": "oír",
           "start": 74.591,
           "end": 74.731,
-          "confidence": 0.341,
+          "confidence": 0.239,
           "parts": [
             {
               "text": "o",
@@ -1049,14 +1049,14 @@
           "text": "as",
           "start": 74.811,
           "end": 74.851,
-          "confidence": 0.756,
+          "confidence": 0.538,
           "parts": []
         },
         {
           "text": "súas",
           "start": 74.891,
           "end": 75.071,
-          "confidence": 0.953,
+          "confidence": 0.68,
           "parts": [
             {
               "text": "sú",
@@ -1074,7 +1074,7 @@
           "text": "puntadas",
           "start": 75.131,
           "end": 75.671,
-          "confidence": 0.984,
+          "confidence": 0.692,
           "parts": [
             {
               "text": "pun",
@@ -1097,7 +1097,7 @@
           "text": "e...",
           "start": 75.851,
           "end": 75.871,
-          "confidence": 0.988,
+          "confidence": 0.692,
           "parts": []
         }
       ]
@@ -1113,14 +1113,14 @@
           "text": "O",
           "start": 77.533,
           "end": 77.553,
-          "confidence": 0.988,
+          "confidence": 0.692,
           "parts": []
         },
         {
           "text": "segundeiro",
           "start": 77.633,
           "end": 78.313,
-          "confidence": 0.947,
+          "confidence": 0.693,
           "parts": [
             {
               "text": "se",
@@ -1148,14 +1148,14 @@
           "text": "do",
           "start": 78.573,
           "end": 78.633,
-          "confidence": 0.951,
+          "confidence": 0.666,
           "parts": []
         },
         {
           "text": "reloxo",
           "start": 78.733,
           "end": 79.054,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "re",
@@ -1178,14 +1178,14 @@
           "text": "da",
           "start": 79.134,
           "end": 79.194,
-          "confidence": 0.996,
+          "confidence": 0.697,
           "parts": []
         },
         {
           "text": "sala.",
           "start": 79.274,
           "end": 79.554,
-          "confidence": 0.91,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "sa",
@@ -1212,7 +1212,7 @@
           "text": "Martela,",
           "start": 81.375,
           "end": 81.895,
-          "confidence": 0.995,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "Mar",
@@ -1235,14 +1235,14 @@
           "text": "en",
           "start": 82.016,
           "end": 82.056,
-          "confidence": 0.398,
+          "confidence": 0.306,
           "parts": []
         },
         {
           "text": "min.",
           "start": 82.216,
           "end": 82.396,
-          "confidence": 0.892,
+          "confidence": 0.633,
           "parts": []
         }
       ]
@@ -1258,7 +1258,7 @@
           "text": "Parece",
           "start": 85.338,
           "end": 85.538,
-          "confidence": 0.944,
+          "confidence": 0.665,
           "parts": [
             {
               "text": "Pa",
@@ -1281,7 +1281,7 @@
           "text": "unha",
           "start": 85.638,
           "end": 85.738,
-          "confidence": 0.211,
+          "confidence": 0.148,
           "parts": [
             {
               "text": "u",
@@ -1299,7 +1299,7 @@
           "text": "casa",
           "start": 85.778,
           "end": 85.998,
-          "confidence": 0.998,
+          "confidence": 0.704,
           "parts": [
             {
               "text": "ca",
@@ -1317,14 +1317,14 @@
           "text": "no",
           "start": 86.118,
           "end": 86.178,
-          "confidence": 0.934,
+          "confidence": 0.673,
           "parts": []
         },
         {
           "text": "medio",
           "start": 86.338,
           "end": 86.499,
-          "confidence": 0.834,
+          "confidence": 0.64,
           "parts": [
             {
               "text": "me",
@@ -1342,14 +1342,14 @@
           "text": "dun",
           "start": 86.559,
           "end": 86.659,
-          "confidence": 0.83,
+          "confidence": 0.585,
           "parts": []
         },
         {
           "text": "trado,",
           "start": 86.719,
           "end": 86.959,
-          "confidence": 0.269,
+          "confidence": 0.221,
           "parts": [
             {
               "text": "tra",
@@ -1376,7 +1376,7 @@
           "text": "pero",
           "start": 87.059,
           "end": 87.239,
-          "confidence": 0.946,
+          "confidence": 0.678,
           "parts": [
             {
               "text": "pe",
@@ -1394,21 +1394,21 @@
           "text": "é",
           "start": 88.14,
           "end": 88.16,
-          "confidence": 0.795,
+          "confidence": 0.557,
           "parts": []
         },
         {
           "text": "un",
           "start": 88.26,
           "end": 88.3,
-          "confidence": 0.997,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "piso",
           "start": 88.34,
           "end": 88.5,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "pi",
@@ -1426,14 +1426,14 @@
           "text": "na",
           "start": 88.56,
           "end": 88.62,
-          "confidence": 0.995,
+          "confidence": 0.706,
           "parts": []
         },
         {
           "text": "billa.",
           "start": 88.66,
           "end": 88.9,
-          "confidence": 0.629,
+          "confidence": 0.453,
           "parts": [
             {
               "text": "bi",
@@ -1460,7 +1460,7 @@
           "text": "Pode",
           "start": 92.983,
           "end": 93.163,
-          "confidence": 0.995,
+          "confidence": 0.697,
           "parts": [
             {
               "text": "Po",
@@ -1478,14 +1478,14 @@
           "text": "que",
           "start": 93.263,
           "end": 93.323,
-          "confidence": 0.997,
+          "confidence": 0.911,
           "parts": []
         },
         {
           "text": "cando",
           "start": 93.503,
           "end": 93.663,
-          "confidence": 0.998,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "can",
@@ -1503,7 +1503,7 @@
           "text": "dean",
           "start": 93.743,
           "end": 93.944,
-          "confidence": 0.985,
+          "confidence": 0.69,
           "parts": [
             {
               "text": "de",
@@ -1521,14 +1521,14 @@
           "text": "as",
           "start": 94.024,
           "end": 94.104,
-          "confidence": 0.72,
+          "confidence": 0.537,
           "parts": []
         },
         {
           "text": "dúas",
           "start": 94.144,
-          "end": 94.504,
-          "confidence": 0.903,
+          "end": 94.484,
+          "confidence": 0.744,
           "parts": [
             {
               "text": "dú",
@@ -1538,7 +1538,7 @@
             {
               "text": "as",
               "start": 94.344,
-              "end": 94.504
+              "end": 94.484
             }
           ]
         },
@@ -1546,7 +1546,7 @@
           "text": "ou",
           "start": 94.784,
           "end": 94.944,
-          "confidence": 0.157,
+          "confidence": 0.11,
           "parts": []
         }
       ]
@@ -1562,14 +1562,14 @@
           "text": "O",
           "start": 96.525,
           "end": 96.545,
-          "confidence": 0.991,
+          "confidence": 0.694,
           "parts": []
         },
         {
           "text": "reloxo",
           "start": 96.645,
           "end": 96.966,
-          "confidence": 0.999,
+          "confidence": 0.749,
           "parts": [
             {
               "text": "re",
@@ -1598,15 +1598,15 @@
         {
           "text": "moi",
           "start": 97.066,
-          "end": 97.146,
-          "confidence": 0.003,
+          "end": 97.126,
+          "confidence": 0.011,
           "parts": []
         },
         {
           "text": "drague",
           "start": 97.206,
           "end": 97.526,
-          "confidence": 0.273,
+          "confidence": 0.25,
           "parts": [
             {
               "text": "dra",
@@ -1624,18 +1624,18 @@
           "text": "e",
           "start": 97.906,
           "end": 97.926,
-          "confidence": 0.966,
+          "confidence": 0.676,
           "parts": []
         },
         {
           "text": "apareza",
-          "start": 98.086,
+          "start": 98.066,
           "end": 98.547,
-          "confidence": 0.962,
+          "confidence": 0.674,
           "parts": [
             {
               "text": "a",
-              "start": 98.086,
+              "start": 98.066,
               "end": 98.146
             },
             {
@@ -1668,21 +1668,21 @@
           "text": "Non",
           "start": 100.848,
           "end": 100.948,
-          "confidence": 0.993,
+          "confidence": 0.696,
           "parts": []
         },
         {
           "text": "os",
           "start": 101.028,
           "end": 101.088,
-          "confidence": 0.146,
+          "confidence": 0.105,
           "parts": []
         },
         {
           "text": "alá",
           "start": 101.128,
           "end": 101.249,
-          "confidence": 0.525,
+          "confidence": 0.368,
           "parts": [
             {
               "text": "a",
@@ -1700,7 +1700,7 @@
           "text": "igual,",
           "start": 101.349,
           "end": 101.629,
-          "confidence": 0.983,
+          "confidence": 0.75,
           "parts": [
             {
               "text": "i",
@@ -1727,21 +1727,21 @@
           "text": "con",
           "start": 101.909,
           "end": 102.009,
-          "confidence": 0.96,
+          "confidence": 0.672,
           "parts": []
         },
         {
           "text": "dos",
           "start": 102.049,
           "end": 102.189,
-          "confidence": 0.825,
+          "confidence": 0.624,
           "parts": []
         },
         {
           "text": "vestidos",
           "start": 102.229,
           "end": 102.609,
-          "confidence": 0.986,
+          "confidence": 0.719,
           "parts": [
             {
               "text": "ves",
@@ -1764,14 +1764,14 @@
           "text": "que",
           "start": 102.69,
           "end": 102.75,
-          "confidence": 0.995,
+          "confidence": 0.922,
           "parts": []
         },
         {
           "text": "ela",
           "start": 102.79,
           "end": 102.89,
-          "confidence": 0.938,
+          "confidence": 0.771,
           "parts": [
             {
               "text": "e",
@@ -1789,14 +1789,14 @@
           "text": "me",
           "start": 102.95,
           "end": 102.99,
-          "confidence": 0.997,
+          "confidence": 0.704,
           "parts": []
         },
         {
           "text": "fixo",
           "start": 103.07,
           "end": 103.33,
-          "confidence": 0.999,
+          "confidence": 0.753,
           "parts": [
             {
               "text": "fi",
@@ -1823,14 +1823,14 @@
           "text": "E",
           "start": 104.791,
           "end": 104.811,
-          "confidence": 0.964,
+          "confidence": 0.675,
           "parts": []
         },
         {
           "text": "poñéndolle",
           "start": 104.891,
           "end": 105.271,
-          "confidence": 0.93,
+          "confidence": 0.652,
           "parts": [
             {
               "text": "po",
@@ -1858,7 +1858,7 @@
           "text": "unha",
           "start": 105.311,
           "end": 105.391,
-          "confidence": 0.973,
+          "confidence": 0.688,
           "parts": [
             {
               "text": "u",
@@ -1874,13 +1874,13 @@
         },
         {
           "text": "bisneda",
-          "start": 105.451,
+          "start": 105.431,
           "end": 105.772,
-          "confidence": 0.55,
+          "confidence": 0.46,
           "parts": [
             {
               "text": "bis",
-              "start": 105.451,
+              "start": 105.431,
               "end": 105.592
             },
             {
@@ -1899,14 +1899,14 @@
           "text": "nos",
           "start": 105.852,
           "end": 105.952,
-          "confidence": 0.992,
+          "confidence": 0.695,
           "parts": []
         },
         {
           "text": "brazos.",
           "start": 106.012,
           "end": 106.412,
-          "confidence": 0.957,
+          "confidence": 0.695,
           "parts": [
             {
               "text": "bra",
@@ -1925,7 +1925,7 @@
     {
       "id": "l22",
       "start": 108.173,
-      "end": 110.055,
+      "end": 110.015,
       "singer": "s1",
       "role": "lead",
       "words": [
@@ -1933,56 +1933,56 @@
           "text": "E",
           "start": 108.173,
           "end": 108.193,
-          "confidence": 0.977,
+          "confidence": 0.684,
           "parts": []
         },
         {
           "text": "non",
           "start": 108.293,
           "end": 108.373,
-          "confidence": 0.999,
+          "confidence": 0.754,
           "parts": []
         },
         {
           "text": "vai",
           "start": 108.453,
           "end": 108.554,
-          "confidence": 0.994,
+          "confidence": 0.696,
           "parts": []
         },
         {
           "text": "ser,",
           "start": 108.654,
           "end": 108.834,
-          "confidence": 0.994,
+          "confidence": 0.758,
           "parts": []
         },
         {
           "text": "non",
           "start": 109.094,
           "end": 109.174,
-          "confidence": 0.926,
+          "confidence": 0.649,
           "parts": []
         },
         {
           "text": "vai",
           "start": 109.254,
           "end": 109.354,
-          "confidence": 0.931,
+          "confidence": 0.652,
           "parts": []
         },
         {
           "text": "ser",
           "start": 109.434,
           "end": 109.554,
-          "confidence": 0.995,
+          "confidence": 0.697,
           "parts": []
         },
         {
           "text": "problema.",
           "start": 109.654,
-          "end": 110.055,
-          "confidence": 0.045,
+          "end": 110.015,
+          "confidence": 0.147,
           "parts": [
             {
               "text": "pro",
@@ -1997,7 +1997,7 @@
             {
               "text": "ma.",
               "start": 109.974,
-              "end": 110.055
+              "end": 110.015
             }
           ]
         }
@@ -2014,7 +2014,7 @@
           "text": "Pérdome",
           "start": 111.956,
           "end": 112.256,
-          "confidence": 0.773,
+          "confidence": 0.541,
           "parts": [
             {
               "text": "Pér",
@@ -2037,7 +2037,7 @@
           "text": "aí",
           "start": 112.296,
           "end": 112.356,
-          "confidence": 0.541,
+          "confidence": 0.38,
           "parts": [
             {
               "text": "a",
@@ -2055,14 +2055,14 @@
           "text": "un",
           "start": 112.416,
           "end": 112.456,
-          "confidence": 0.92,
+          "confidence": 0.645,
           "parts": []
         },
         {
           "text": "pedazo",
           "start": 112.496,
           "end": 112.856,
-          "confidence": 0.982,
+          "confidence": 0.719,
           "parts": [
             {
               "text": "pe",
@@ -2094,7 +2094,7 @@
           "text": "Voume",
           "start": 116.399,
           "end": 116.619,
-          "confidence": 0.984,
+          "confidence": 0.723,
           "parts": [
             {
               "text": "Vou",
@@ -2112,7 +2112,7 @@
           "text": "sentindo",
           "start": 116.699,
           "end": 117.219,
-          "confidence": 0.933,
+          "confidence": 0.72,
           "parts": [
             {
               "text": "sen",
@@ -2144,7 +2144,7 @@
           "text": "Home,",
           "start": 123.504,
           "end": 123.704,
-          "confidence": 0.143,
+          "confidence": 0.131,
           "parts": [
             {
               "text": "Ho",
@@ -2162,7 +2162,7 @@
           "text": "sentindo",
           "start": 123.764,
           "end": 124.104,
-          "confidence": 0.927,
+          "confidence": 0.687,
           "parts": [
             {
               "text": "sen",
@@ -2185,7 +2185,7 @@
           "text": "como",
           "start": 124.164,
           "end": 124.304,
-          "confidence": 0.907,
+          "confidence": 0.708,
           "parts": [
             {
               "text": "co",
@@ -2203,7 +2203,7 @@
           "text": "inchada",
           "start": 124.404,
           "end": 124.785,
-          "confidence": 0.976,
+          "confidence": 0.697,
           "parts": [
             {
               "text": "in",
@@ -2235,7 +2235,7 @@
           "text": "Obsesionada,",
           "start": 127.506,
           "end": 128.367,
-          "confidence": 0.871,
+          "confidence": 0.67,
           "parts": [
             {
               "text": "Ob",
@@ -2268,28 +2268,28 @@
           "text": "con",
           "start": 128.627,
           "end": 128.727,
-          "confidence": 0.981,
+          "confidence": 0.687,
           "parts": []
         },
         {
           "text": "que",
           "start": 128.787,
           "end": 128.867,
-          "confidence": 0.817,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "me",
           "start": 128.907,
           "end": 128.967,
-          "confidence": 0.997,
+          "confidence": 0.719,
           "parts": []
         },
         {
           "text": "pasa",
           "start": 129.047,
           "end": 129.248,
-          "confidence": 0.996,
+          "confidence": 0.722,
           "parts": [
             {
               "text": "pa",
@@ -2307,7 +2307,7 @@
           "text": "algo",
           "start": 129.368,
           "end": 129.568,
-          "confidence": 0.9,
+          "confidence": 0.723,
           "parts": [
             {
               "text": "al",
@@ -2334,7 +2334,7 @@
           "text": "Algo",
           "start": 131.189,
           "end": 131.329,
-          "confidence": 0.997,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "Al",
@@ -2352,7 +2352,7 @@
           "text": "raro,",
           "start": 131.449,
           "end": 131.649,
-          "confidence": 0.992,
+          "confidence": 0.701,
           "parts": [
             {
               "text": "ra",
@@ -2370,7 +2370,7 @@
           "text": "algo",
           "start": 131.809,
           "end": 131.969,
-          "confidence": 0.982,
+          "confidence": 0.7,
           "parts": [
             {
               "text": "al",
@@ -2388,7 +2388,7 @@
           "text": "inesperado",
           "start": 132.29,
           "end": 132.81,
-          "confidence": 0.879,
+          "confidence": 0.633,
           "parts": [
             {
               "text": "i",
@@ -2430,7 +2430,7 @@
           "text": "Algo...",
           "start": 134.971,
           "end": 135.192,
-          "confidence": 0.704,
+          "confidence": 0.493,
           "parts": [
             {
               "text": "Al",
@@ -2448,7 +2448,7 @@
           "text": "como",
           "start": 135.992,
           "end": 136.112,
-          "confidence": 0.968,
+          "confidence": 0.686,
           "parts": [
             {
               "text": "co",
@@ -2466,28 +2466,28 @@
           "text": "de",
           "start": 136.192,
           "end": 136.232,
-          "confidence": 0.959,
+          "confidence": 0.672,
           "parts": []
         },
         {
           "text": "ser",
           "start": 136.272,
           "end": 136.352,
-          "confidence": 0.968,
+          "confidence": 0.712,
           "parts": []
         },
         {
           "text": "un",
           "start": 136.412,
           "end": 136.452,
-          "confidence": 0.868,
+          "confidence": 0.659,
           "parts": []
         },
         {
           "text": "desastre.",
           "start": 136.512,
           "end": 136.953,
-          "confidence": 0.994,
+          "confidence": 0.7,
           "parts": [
             {
               "text": "de",
@@ -2510,23 +2510,23 @@
     },
     {
       "id": "l29",
-      "start": 137.013,
-      "end": 140.195,
+      "start": 139.575,
+      "end": 140.635,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "Hai",
-          "start": 137.013,
-          "end": 137.073,
+          "start": 139.575,
+          "end": 139.635,
           "confidence": 0.0,
           "parts": []
         },
         {
           "text": "algún",
           "start": 139.695,
-          "end": 140.195,
-          "confidence": 0.02,
+          "end": 140.635,
+          "confidence": 0.027,
           "parts": [
             {
               "text": "al",
@@ -2536,7 +2536,7 @@
             {
               "text": "gún",
               "start": 139.835,
-              "end": 140.195
+              "end": 140.635
             }
           ]
         }
@@ -2553,7 +2553,7 @@
           "text": "Unha",
           "start": 141.076,
           "end": 141.216,
-          "confidence": 0.978,
+          "confidence": 0.688,
           "parts": [
             {
               "text": "U",
@@ -2571,7 +2571,7 @@
           "text": "cousa.",
           "start": 141.256,
           "end": 141.476,
-          "confidence": 0.994,
+          "confidence": 0.707,
           "parts": [
             {
               "text": "cou",
@@ -2589,44 +2589,44 @@
     },
     {
       "id": "l31",
-      "start": 143.397,
+      "start": 143.417,
       "end": 144.478,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "Que",
-          "start": 143.397,
+          "start": 143.417,
           "end": 143.477,
-          "confidence": 0.992,
+          "confidence": 0.745,
           "parts": []
         },
         {
           "text": "se",
           "start": 143.537,
           "end": 143.577,
-          "confidence": 0.989,
+          "confidence": 0.717,
           "parts": []
         },
         {
           "text": "me",
           "start": 143.617,
           "end": 143.677,
-          "confidence": 0.997,
+          "confidence": 0.718,
           "parts": []
         },
         {
           "text": "pon",
           "start": 143.757,
           "end": 143.857,
-          "confidence": 0.993,
+          "confidence": 0.695,
           "parts": []
         },
         {
           "text": "aquí",
           "start": 143.917,
           "end": 144.018,
-          "confidence": 0.997,
+          "confidence": 0.733,
           "parts": [
             {
               "text": "a",
@@ -2644,14 +2644,14 @@
           "text": "no",
           "start": 144.078,
           "end": 144.138,
-          "confidence": 0.832,
+          "confidence": 0.717,
           "parts": []
         },
         {
           "text": "peito",
           "start": 144.198,
           "end": 144.478,
-          "confidence": 1.0,
+          "confidence": 0.709,
           "parts": [
             {
               "text": "pei",
@@ -2678,7 +2678,7 @@
           "text": "Puiden",
           "start": 154.184,
           "end": 154.445,
-          "confidence": 0.895,
+          "confidence": 0.637,
           "parts": [
             {
               "text": "Pui",
@@ -2696,14 +2696,14 @@
           "text": "ser",
           "start": 154.525,
           "end": 154.665,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": []
         },
         {
           "text": "unha",
           "start": 154.745,
           "end": 154.845,
-          "confidence": 0.988,
+          "confidence": 0.692,
           "parts": [
             {
               "text": "u",
@@ -2721,7 +2721,7 @@
           "text": "vaca",
           "start": 154.885,
           "end": 155.085,
-          "confidence": 0.973,
+          "confidence": 0.696,
           "parts": [
             {
               "text": "va",
@@ -2739,14 +2739,14 @@
           "text": "da",
           "start": 155.125,
           "end": 155.185,
-          "confidence": 0.965,
+          "confidence": 0.71,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 155.245,
           "end": 155.705,
-          "confidence": 0.957,
+          "confidence": 0.676,
           "parts": [
             {
               "text": "mon",
@@ -2778,7 +2778,7 @@
           "text": "Unha",
           "start": 158.067,
           "end": 158.187,
-          "confidence": 0.915,
+          "confidence": 0.641,
           "parts": [
             {
               "text": "U",
@@ -2796,14 +2796,14 @@
           "text": "que",
           "start": 158.247,
           "end": 158.307,
-          "confidence": 0.996,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "nunca",
           "start": 158.347,
           "end": 158.547,
-          "confidence": 0.884,
+          "confidence": 0.627,
           "parts": [
             {
               "text": "nun",
@@ -2820,8 +2820,8 @@
         {
           "text": "saíu",
           "start": 158.587,
-          "end": 158.868,
-          "confidence": 0.318,
+          "end": 158.888,
+          "confidence": 0.361,
           "parts": [
             {
               "text": "sa",
@@ -2831,7 +2831,7 @@
             {
               "text": "íu",
               "start": 158.727,
-              "end": 158.868
+              "end": 158.888
             }
           ]
         },
@@ -2839,14 +2839,14 @@
           "text": "dos",
           "start": 158.928,
           "end": 159.028,
-          "confidence": 0.968,
+          "confidence": 0.679,
           "parts": []
         },
         {
           "text": "prados",
           "start": 159.088,
           "end": 159.328,
-          "confidence": 0.906,
+          "confidence": 0.652,
           "parts": [
             {
               "text": "pra",
@@ -2864,14 +2864,14 @@
           "text": "da",
           "start": 159.388,
           "end": 159.448,
-          "confidence": 0.711,
+          "confidence": 0.537,
           "parts": []
         },
         {
           "text": "montaña.",
           "start": 159.508,
           "end": 159.948,
-          "confidence": 0.992,
+          "confidence": 0.702,
           "parts": [
             {
               "text": "mon",
@@ -2903,21 +2903,21 @@
           "text": "Que",
           "start": 162.03,
           "end": 162.09,
-          "confidence": 0.938,
+          "confidence": 0.657,
           "parts": []
         },
         {
           "text": "na",
           "start": 162.15,
           "end": 162.21,
-          "confidence": 0.996,
+          "confidence": 0.726,
           "parts": []
         },
         {
           "text": "súa",
           "start": 162.27,
           "end": 162.37,
-          "confidence": 0.997,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "sú",
@@ -2935,7 +2935,7 @@
           "text": "vida",
           "start": 162.41,
           "end": 162.53,
-          "confidence": 0.997,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "vi",
@@ -2953,14 +2953,14 @@
           "text": "non",
           "start": 162.59,
           "end": 162.65,
-          "confidence": 0.97,
+          "confidence": 0.684,
           "parts": []
         },
         {
           "text": "comeu",
           "start": 162.71,
           "end": 162.91,
-          "confidence": 0.669,
+          "confidence": 0.488,
           "parts": [
             {
               "text": "co",
@@ -2987,14 +2987,14 @@
           "text": "máis",
           "start": 163.01,
           "end": 163.211,
-          "confidence": 0.992,
+          "confidence": 0.706,
           "parts": []
         },
         {
           "text": "nada",
           "start": 163.311,
           "end": 163.531,
-          "confidence": 0.999,
+          "confidence": 0.7,
           "parts": [
             {
               "text": "na",
@@ -3012,14 +3012,14 @@
           "text": "que",
           "start": 163.611,
           "end": 163.671,
-          "confidence": 0.98,
+          "confidence": 0.686,
           "parts": []
         },
         {
           "text": "herba",
           "start": 163.751,
           "end": 163.911,
-          "confidence": 0.578,
+          "confidence": 0.405,
           "parts": [
             {
               "text": "her",
@@ -3037,14 +3037,14 @@
           "text": "da",
           "start": 163.971,
           "end": 164.011,
-          "confidence": 0.944,
+          "confidence": 0.709,
           "parts": []
         },
         {
           "text": "montaña.",
           "start": 164.091,
           "end": 164.531,
-          "confidence": 0.999,
+          "confidence": 0.707,
           "parts": [
             {
               "text": "mon",
@@ -3076,21 +3076,21 @@
           "text": "Co",
           "start": 166.012,
           "end": 166.072,
-          "confidence": 0.904,
+          "confidence": 0.659,
           "parts": []
         },
         {
           "text": "meu",
           "start": 166.153,
           "end": 166.273,
-          "confidence": 0.996,
+          "confidence": 0.715,
           "parts": []
         },
         {
           "text": "leite",
           "start": 166.333,
           "end": 166.513,
-          "confidence": 0.996,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "lei",
@@ -3108,7 +3108,7 @@
           "text": "faríanse",
           "start": 166.593,
           "end": 167.053,
-          "confidence": 0.967,
+          "confidence": 0.689,
           "parts": [
             {
               "text": "fa",
@@ -3136,7 +3136,7 @@
           "text": "queixos?",
           "start": 167.654,
           "end": 168.074,
-          "confidence": 0.929,
+          "confidence": 0.656,
           "parts": [
             {
               "text": "quei",
@@ -3155,7 +3155,7 @@
     {
       "id": "l37",
       "start": 169.735,
-      "end": 171.376,
+      "end": 171.356,
       "singer": "s1",
       "role": "lead",
       "words": [
@@ -3163,7 +3163,7 @@
           "text": "Queixos",
           "start": 169.735,
           "end": 170.115,
-          "confidence": 0.988,
+          "confidence": 0.7,
           "parts": [
             {
               "text": "Quei",
@@ -3181,21 +3181,21 @@
           "text": "e...",
           "start": 170.275,
           "end": 170.295,
-          "confidence": 0.088,
+          "confidence": 0.062,
           "parts": []
         },
         {
           "text": "e",
           "start": 170.816,
           "end": 170.836,
-          "confidence": 0.816,
+          "confidence": 0.571,
           "parts": []
         },
         {
           "text": "galletas.",
           "start": 170.896,
-          "end": 171.376,
-          "confidence": 0.902,
+          "end": 171.356,
+          "confidence": 0.66,
           "parts": [
             {
               "text": "ga",
@@ -3210,7 +3210,7 @@
             {
               "text": "tas.",
               "start": 171.176,
-              "end": 171.376
+              "end": 171.356
             }
           ]
         }
@@ -3226,22 +3226,22 @@
         {
           "text": "Dás",
           "start": 173.958,
-          "end": 174.118,
-          "confidence": 0.424,
+          "end": 174.098,
+          "confidence": 0.273,
           "parts": []
         },
         {
           "text": "que",
           "start": 174.178,
           "end": 174.238,
-          "confidence": 0.999,
+          "confidence": 0.7,
           "parts": []
         },
         {
           "text": "dicir",
           "start": 174.358,
           "end": 174.558,
-          "confidence": 0.898,
+          "confidence": 0.698,
           "parts": [
             {
               "text": "di",
@@ -3259,14 +3259,14 @@
           "text": "que",
           "start": 174.678,
           "end": 174.758,
-          "confidence": 0.997,
+          "confidence": 0.72,
           "parts": []
         },
         {
           "text": "así",
           "start": 174.858,
           "end": 175.039,
-          "confidence": 0.9,
+          "confidence": 0.645,
           "parts": [
             {
               "text": "a",
@@ -3293,7 +3293,7 @@
           "text": "Así.",
           "start": 175.859,
           "end": 176.059,
-          "confidence": 0.903,
+          "confidence": 0.653,
           "parts": [
             {
               "text": "A",
@@ -3319,8 +3319,8 @@
         {
           "text": "Pasía,",
           "start": 178.501,
-          "end": 178.721,
-          "confidence": 0.026,
+          "end": 178.781,
+          "confidence": 0.052,
           "parts": [
             {
               "text": "Pa",
@@ -3330,12 +3330,12 @@
             {
               "text": "sí",
               "start": 178.601,
-              "end": 178.701
+              "end": 178.761
             },
             {
               "text": "a,",
-              "start": 178.701,
-              "end": 178.721
+              "start": 178.761,
+              "end": 178.781
             }
           ]
         },
@@ -3343,7 +3343,7 @@
           "text": "como",
           "start": 178.841,
           "end": 178.961,
-          "confidence": 0.986,
+          "confidence": 0.71,
           "parts": [
             {
               "text": "co",
@@ -3361,7 +3361,7 @@
           "text": "sabe,",
           "start": 179.061,
           "end": 179.281,
-          "confidence": 0.982,
+          "confidence": 0.704,
           "parts": [
             {
               "text": "sa",
@@ -3379,14 +3379,14 @@
           "text": "a",
           "start": 179.422,
           "end": 179.442,
-          "confidence": 0.889,
+          "confidence": 0.623,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 179.502,
           "end": 179.862,
-          "confidence": 0.991,
+          "confidence": 0.702,
           "parts": [
             {
               "text": "mon",
@@ -3409,7 +3409,7 @@
           "text": "toda.",
           "start": 179.962,
           "end": 180.142,
-          "confidence": 0.948,
+          "confidence": 0.665,
           "parts": [
             {
               "text": "to",
@@ -3436,7 +3436,7 @@
           "text": "Sento",
           "start": 185.406,
           "end": 185.606,
-          "confidence": 0.519,
+          "confidence": 0.366,
           "parts": [
             {
               "text": "Sen",
@@ -3454,14 +3454,14 @@
           "text": "no",
           "start": 185.686,
           "end": 185.746,
-          "confidence": 0.993,
+          "confidence": 0.751,
           "parts": []
         },
         {
           "text": "baño",
           "start": 185.806,
           "end": 186.066,
-          "confidence": 0.997,
+          "confidence": 0.726,
           "parts": [
             {
               "text": "ba",
@@ -3479,21 +3479,21 @@
           "text": "e",
           "start": 186.246,
           "end": 186.286,
-          "confidence": 0.768,
+          "confidence": 0.568,
           "parts": []
         },
         {
           "text": "a",
           "start": 186.606,
           "end": 186.626,
-          "confidence": 0.958,
+          "confidence": 0.671,
           "parts": []
         },
         {
           "text": "pampa.",
           "start": 186.706,
           "end": 186.987,
-          "confidence": 0.408,
+          "confidence": 0.286,
           "parts": [
             {
               "text": "pam",
@@ -3520,7 +3520,7 @@
           "text": "Miro",
           "start": 189.048,
           "end": 189.228,
-          "confidence": 0.96,
+          "confidence": 0.747,
           "parts": [
             {
               "text": "Mi",
@@ -3538,14 +3538,14 @@
           "text": "o",
           "start": 189.368,
           "end": 189.408,
-          "confidence": 0.662,
+          "confidence": 0.463,
           "parts": []
         },
         {
           "text": "monte",
           "start": 189.488,
           "end": 189.688,
-          "confidence": 0.998,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "mon",
@@ -3563,7 +3563,7 @@
           "text": "arredido",
           "start": 189.749,
           "end": 190.149,
-          "confidence": 0.547,
+          "confidence": 0.388,
           "parts": [
             {
               "text": "a",
@@ -3591,7 +3591,7 @@
           "text": "ata",
           "start": 190.409,
           "end": 190.529,
-          "confidence": 0.914,
+          "confidence": 0.677,
           "parts": [
             {
               "text": "a",
@@ -3609,7 +3609,7 @@
           "text": "que",
           "start": 190.609,
           "end": 190.689,
-          "confidence": 0.918,
+          "confidence": 0.724,
           "parts": []
         }
       ]
@@ -3625,21 +3625,21 @@
           "text": "se",
           "start": 190.789,
           "end": 190.849,
-          "confidence": 0.978,
+          "confidence": 0.685,
           "parts": []
         },
         {
           "text": "me",
           "start": 190.889,
           "end": 190.949,
-          "confidence": 0.939,
+          "confidence": 0.695,
           "parts": []
         },
         {
           "text": "dormen",
           "start": 191.009,
           "end": 191.209,
-          "confidence": 0.896,
+          "confidence": 0.628,
           "parts": [
             {
               "text": "dor",
@@ -3657,14 +3657,14 @@
           "text": "as",
           "start": 191.31,
           "end": 191.37,
-          "confidence": 0.958,
+          "confidence": 0.707,
           "parts": []
         },
         {
           "text": "pernas",
           "start": 191.45,
           "end": 191.85,
-          "confidence": 0.972,
+          "confidence": 0.681,
           "parts": [
             {
               "text": "per",
@@ -3691,7 +3691,7 @@
           "text": "Unha",
           "start": 193.391,
           "end": 193.511,
-          "confidence": 0.982,
+          "confidence": 0.688,
           "parts": [
             {
               "text": "U",
@@ -3709,7 +3709,7 @@
           "text": "falda",
           "start": 193.591,
           "end": 193.851,
-          "confidence": 0.998,
+          "confidence": 0.722,
           "parts": [
             {
               "text": "fal",
@@ -3727,7 +3727,7 @@
           "text": "vermella,",
           "start": 193.931,
           "end": 194.392,
-          "confidence": 0.996,
+          "confidence": 0.713,
           "parts": [
             {
               "text": "ver",
@@ -3750,7 +3750,7 @@
           "text": "vella",
           "start": 194.532,
           "end": 194.852,
-          "confidence": 0.993,
+          "confidence": 0.715,
           "parts": [
             {
               "text": "ve",
@@ -3777,14 +3777,14 @@
           "text": "Que",
           "start": 196.293,
           "end": 196.353,
-          "confidence": 0.958,
+          "confidence": 0.794,
           "parts": []
         },
         {
           "text": "loce,",
           "start": 196.433,
           "end": 196.693,
-          "confidence": 0.726,
+          "confidence": 0.539,
           "parts": [
             {
               "text": "lo",
@@ -3802,7 +3802,7 @@
           "text": "tendido",
           "start": 196.893,
           "end": 197.194,
-          "confidence": 0.637,
+          "confidence": 0.452,
           "parts": [
             {
               "text": "ten",
@@ -3825,14 +3825,14 @@
           "text": "o",
           "start": 197.294,
           "end": 197.314,
-          "confidence": 0.989,
+          "confidence": 0.728,
           "parts": []
         },
         {
           "text": "sol.",
           "start": 197.414,
           "end": 197.634,
-          "confidence": 0.999,
+          "confidence": 0.708,
           "parts": []
         }
       ]
@@ -3848,7 +3848,7 @@
           "text": "Onda",
           "start": 200.176,
           "end": 200.416,
-          "confidence": 0.945,
+          "confidence": 0.662,
           "parts": [
             {
               "text": "On",
@@ -3866,14 +3866,14 @@
           "text": "a",
           "start": 200.556,
           "end": 200.576,
-          "confidence": 0.925,
+          "confidence": 0.647,
           "parts": []
         },
         {
           "text": "miña",
           "start": 200.616,
           "end": 200.796,
-          "confidence": 0.998,
+          "confidence": 0.726,
           "parts": [
             {
               "text": "mi",
@@ -3891,7 +3891,7 @@
           "text": "camisa",
           "start": 200.896,
           "end": 201.156,
-          "confidence": 0.984,
+          "confidence": 0.689,
           "parts": [
             {
               "text": "ca",
@@ -3914,14 +3914,14 @@
           "text": "de",
           "start": 201.236,
           "end": 201.276,
-          "confidence": 0.999,
+          "confidence": 0.701,
           "parts": []
         },
         {
           "text": "tigres",
           "start": 201.356,
           "end": 201.737,
-          "confidence": 0.976,
+          "confidence": 0.703,
           "parts": [
             {
               "text": "ti",
@@ -3948,14 +3948,14 @@
           "text": "O",
           "start": 204.058,
           "end": 204.078,
-          "confidence": 0.437,
+          "confidence": 0.306,
           "parts": []
         },
         {
           "text": "novo",
           "start": 204.158,
           "end": 204.318,
-          "confidence": 0.998,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "no",
@@ -3973,7 +3973,7 @@
           "text": "prato",
           "start": 204.398,
           "end": 204.659,
-          "confidence": 0.955,
+          "confidence": 0.694,
           "parts": [
             {
               "text": "pra",
@@ -3991,14 +3991,14 @@
           "text": "da",
           "start": 204.719,
           "end": 204.779,
-          "confidence": 0.814,
+          "confidence": 0.57,
           "parts": []
         },
         {
           "text": "ducha,",
           "start": 204.839,
           "end": 205.099,
-          "confidence": 0.909,
+          "confidence": 0.682,
           "parts": [
             {
               "text": "du",
@@ -4016,21 +4016,21 @@
           "text": "que",
           "start": 205.199,
           "end": 205.259,
-          "confidence": 0.996,
+          "confidence": 0.704,
           "parts": []
         },
         {
           "text": "non",
           "start": 205.339,
           "end": 205.399,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": []
         },
         {
           "text": "pode",
           "start": 205.499,
           "end": 205.679,
-          "confidence": 0.997,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "po",
@@ -4048,7 +4048,7 @@
           "text": "disimular",
           "start": 205.779,
           "end": 206.3,
-          "confidence": 0.934,
+          "confidence": 0.738,
           "parts": [
             {
               "text": "di",
@@ -4077,7 +4077,7 @@
     {
       "id": "l48",
       "start": 207.721,
-      "end": 210.843,
+      "end": 210.823,
       "singer": "s1",
       "role": "lead",
       "words": [
@@ -4085,14 +4085,14 @@
           "text": "Que",
           "start": 207.721,
           "end": 207.781,
-          "confidence": 0.994,
+          "confidence": 0.7,
           "parts": []
         },
         {
           "text": "aí",
           "start": 207.861,
           "end": 207.941,
-          "confidence": 0.971,
+          "confidence": 0.681,
           "parts": [
             {
               "text": "a",
@@ -4110,7 +4110,7 @@
           "text": "estaba",
           "start": 208.041,
           "end": 208.301,
-          "confidence": 0.954,
+          "confidence": 0.689,
           "parts": [
             {
               "text": "es",
@@ -4133,14 +4133,14 @@
           "text": "a",
           "start": 208.381,
           "end": 208.401,
-          "confidence": 0.771,
+          "confidence": 0.541,
           "parts": []
         },
         {
           "text": "bañeira,",
           "start": 208.461,
           "end": 208.881,
-          "confidence": 0.982,
+          "confidence": 0.693,
           "parts": [
             {
               "text": "ba",
@@ -4163,7 +4163,7 @@
           "text": "onde",
           "start": 209.382,
           "end": 209.542,
-          "confidence": 0.961,
+          "confidence": 0.673,
           "parts": [
             {
               "text": "on",
@@ -4181,14 +4181,14 @@
           "text": "nos",
           "start": 209.622,
           "end": 209.742,
-          "confidence": 0.881,
+          "confidence": 0.689,
           "parts": []
         },
         {
           "text": "despiollaron",
           "start": 209.802,
           "end": 210.382,
-          "confidence": 0.961,
+          "confidence": 0.684,
           "parts": [
             {
               "text": "des",
@@ -4215,15 +4215,15 @@
         {
           "text": "a",
           "start": 210.443,
-          "end": 210.483,
-          "confidence": 0.677,
+          "end": 210.463,
+          "confidence": 0.901,
           "parts": []
         },
         {
           "text": "todas",
           "start": 210.543,
-          "end": 210.843,
-          "confidence": 0.926,
+          "end": 210.823,
+          "confidence": 0.694,
           "parts": [
             {
               "text": "to",
@@ -4233,7 +4233,7 @@
             {
               "text": "das",
               "start": 210.663,
-              "end": 210.843
+              "end": 210.823
             }
           ]
         }
@@ -4250,14 +4250,14 @@
           "text": "E",
           "start": 215.686,
           "end": 215.706,
-          "confidence": 0.925,
+          "confidence": 0.647,
           "parts": []
         },
         {
           "text": "invento,",
           "start": 215.806,
           "end": 216.186,
-          "confidence": 0.99,
+          "confidence": 0.723,
           "parts": [
             {
               "text": "in",
@@ -4280,7 +4280,7 @@
           "text": "invento,",
           "start": 216.547,
           "end": 216.867,
-          "confidence": 0.981,
+          "confidence": 0.72,
           "parts": [
             {
               "text": "in",
@@ -4303,28 +4303,28 @@
           "text": "que",
           "start": 216.947,
           "end": 217.007,
-          "confidence": 0.994,
+          "confidence": 0.975,
           "parts": []
         },
         {
           "text": "non",
           "start": 217.107,
           "end": 217.167,
-          "confidence": 0.975,
+          "confidence": 0.717,
           "parts": []
         },
         {
           "text": "me",
           "start": 217.207,
           "end": 217.247,
-          "confidence": 0.978,
+          "confidence": 0.691,
           "parts": []
         },
         {
           "text": "pasará",
           "start": 217.327,
           "end": 217.567,
-          "confidence": 0.812,
+          "confidence": 0.57,
           "parts": [
             {
               "text": "pa",
@@ -4347,7 +4347,7 @@
           "text": "nada",
           "start": 217.687,
           "end": 217.908,
-          "confidence": 0.994,
+          "confidence": 0.75,
           "parts": [
             {
               "text": "na",
@@ -4366,7 +4366,7 @@
     {
       "id": "l50",
       "start": 219.309,
-      "end": 220.629,
+      "end": 220.569,
       "singer": "s1",
       "role": "lead",
       "words": [
@@ -4374,21 +4374,21 @@
           "text": "Se",
           "start": 219.309,
           "end": 219.389,
-          "confidence": 0.996,
+          "confidence": 0.81,
           "parts": []
         },
         {
           "text": "é",
           "start": 219.449,
           "end": 219.469,
-          "confidence": 0.0,
+          "confidence": 0.001,
           "parts": []
         },
         {
           "text": "antes",
           "start": 219.529,
           "end": 219.729,
-          "confidence": 0.998,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "an",
@@ -4406,21 +4406,21 @@
           "text": "de",
           "start": 219.809,
           "end": 219.849,
-          "confidence": 0.924,
+          "confidence": 0.647,
           "parts": []
         },
         {
           "text": "que",
           "start": 219.889,
           "end": 219.949,
-          "confidence": 0.996,
+          "confidence": 0.966,
           "parts": []
         },
         {
           "text": "chegue",
           "start": 219.989,
           "end": 220.169,
-          "confidence": 0.791,
+          "confidence": 0.701,
           "parts": [
             {
               "text": "che",
@@ -4438,14 +4438,14 @@
           "text": "o",
           "start": 220.209,
           "end": 220.229,
-          "confidence": 0.864,
+          "confidence": 0.834,
           "parts": []
         },
         {
           "text": "inverno,",
           "start": 220.309,
-          "end": 220.629,
-          "confidence": 0.99,
+          "end": 220.569,
+          "confidence": 0.554,
           "parts": [
             {
               "text": "in",
@@ -4455,12 +4455,12 @@
             {
               "text": "ver",
               "start": 220.369,
-              "end": 220.549
+              "end": 220.529
             },
             {
               "text": "no,",
-              "start": 220.549,
-              "end": 220.629
+              "start": 220.529,
+              "end": 220.569
             }
           ]
         }
@@ -4468,44 +4468,44 @@
     },
     {
       "id": "l51",
-      "start": 220.669,
+      "start": 220.589,
       "end": 221.73,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "non",
-          "start": 220.669,
-          "end": 220.729,
-          "confidence": 0.008,
+          "start": 220.589,
+          "end": 220.649,
+          "confidence": 0.01,
           "parts": []
         },
         {
           "text": "me",
           "start": 220.75,
           "end": 220.81,
-          "confidence": 0.96,
+          "confidence": 0.795,
           "parts": []
         },
         {
           "text": "sei",
           "start": 220.91,
           "end": 221.11,
-          "confidence": 0.962,
+          "confidence": 0.674,
           "parts": []
         },
         {
           "text": "o",
           "start": 221.33,
           "end": 221.35,
-          "confidence": 0.986,
+          "confidence": 0.69,
           "parts": []
         },
         {
           "text": "nome",
           "start": 221.45,
           "end": 221.73,
-          "confidence": 0.991,
+          "confidence": 0.694,
           "parts": [
             {
               "text": "no",
@@ -4532,14 +4532,14 @@
           "text": "De",
           "start": 223.111,
           "end": 223.191,
-          "confidence": 0.98,
+          "confidence": 0.812,
           "parts": []
         },
         {
           "text": "todas",
           "start": 223.331,
           "end": 223.732,
-          "confidence": 0.995,
+          "confidence": 0.744,
           "parts": [
             {
               "text": "to",
@@ -4557,14 +4557,14 @@
           "text": "as",
           "start": 223.892,
           "end": 223.972,
-          "confidence": 0.921,
+          "confidence": 0.645,
           "parts": []
         },
         {
           "text": "árbores",
           "start": 224.092,
           "end": 224.432,
-          "confidence": 0.941,
+          "confidence": 0.659,
           "parts": [
             {
               "text": "ár",
@@ -4587,14 +4587,14 @@
           "text": "da",
           "start": 224.492,
           "end": 224.552,
-          "confidence": 0.922,
+          "confidence": 0.696,
           "parts": []
         },
         {
           "text": "montaña.",
           "start": 224.632,
           "end": 225.072,
-          "confidence": 0.996,
+          "confidence": 0.712,
           "parts": [
             {
               "text": "mon",
@@ -4626,21 +4626,21 @@
           "text": "Se",
           "start": 227.094,
           "end": 227.154,
-          "confidence": 0.99,
+          "confidence": 0.694,
           "parts": []
         },
         {
           "text": "xa",
           "start": 227.234,
           "end": 227.334,
-          "confidence": 0.987,
+          "confidence": 0.729,
           "parts": []
         },
         {
           "text": "hoxe,",
           "start": 227.474,
           "end": 227.714,
-          "confidence": 0.99,
+          "confidence": 0.722,
           "parts": [
             {
               "text": "ho",
@@ -4658,7 +4658,7 @@
           "text": "durmo",
           "start": 227.994,
           "end": 228.235,
-          "confidence": 0.893,
+          "confidence": 0.667,
           "parts": [
             {
               "text": "dur",
@@ -4676,7 +4676,7 @@
           "text": "sabendo",
           "start": 228.355,
           "end": 228.815,
-          "confidence": 0.984,
+          "confidence": 0.69,
           "parts": [
             {
               "text": "sa",
@@ -4708,14 +4708,14 @@
           "text": "Que",
           "start": 230.696,
           "end": 230.776,
-          "confidence": 0.978,
+          "confidence": 0.762,
           "parts": []
         },
         {
           "text": "paxaro",
           "start": 230.856,
           "end": 231.317,
-          "confidence": 0.859,
+          "confidence": 0.663,
           "parts": [
             {
               "text": "pa",
@@ -4738,7 +4738,7 @@
           "text": "cantou",
           "start": 231.497,
           "end": 231.737,
-          "confidence": 0.817,
+          "confidence": 0.572,
           "parts": [
             {
               "text": "can",
@@ -4756,7 +4756,7 @@
           "text": "antes",
           "start": 231.837,
           "end": 232.057,
-          "confidence": 0.942,
+          "confidence": 0.66,
           "parts": [
             {
               "text": "an",
@@ -4774,14 +4774,14 @@
           "text": "na",
           "start": 232.117,
           "end": 232.177,
-          "confidence": 0.992,
+          "confidence": 0.831,
           "parts": []
         },
         {
           "text": "horta?",
           "start": 232.237,
           "end": 232.557,
-          "confidence": 0.869,
+          "confidence": 0.654,
           "parts": [
             {
               "text": "hor",
@@ -4799,38 +4799,38 @@
     },
     {
       "id": "l55",
-      "start": 233.878,
+      "start": 233.858,
       "end": 235.62,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "Non",
-          "start": 233.878,
+          "start": 233.858,
           "end": 233.978,
-          "confidence": 0.095,
+          "confidence": 0.173,
           "parts": []
         },
         {
           "text": "pasará",
-          "start": 234.059,
-          "end": 234.339,
-          "confidence": 0.033,
+          "start": 234.039,
+          "end": 234.279,
+          "confidence": 0.275,
           "parts": [
             {
               "text": "pa",
-              "start": 234.059,
+              "start": 234.039,
               "end": 234.139
             },
             {
               "text": "sa",
               "start": 234.139,
-              "end": 234.279
+              "end": 234.239
             },
             {
               "text": "rá",
-              "start": 234.279,
-              "end": 234.339
+              "start": 234.239,
+              "end": 234.279
             }
           ]
         },
@@ -4838,14 +4838,14 @@
           "text": "non",
           "start": 234.919,
           "end": 234.999,
-          "confidence": 0.99,
+          "confidence": 0.693,
           "parts": []
         },
         {
           "text": "pasará",
           "start": 235.059,
           "end": 235.319,
-          "confidence": 0.96,
+          "confidence": 0.75,
           "parts": [
             {
               "text": "pa",
@@ -4868,7 +4868,7 @@
           "text": "nada,",
           "start": 235.419,
           "end": 235.62,
-          "confidence": 0.991,
+          "confidence": 0.754,
           "parts": [
             {
               "text": "na",
@@ -4895,7 +4895,7 @@
           "text": "porque",
           "start": 235.7,
           "end": 235.88,
-          "confidence": 0.98,
+          "confidence": 0.791,
           "parts": [
             {
               "text": "por",
@@ -4913,14 +4913,14 @@
           "text": "se",
           "start": 235.96,
           "end": 236.0,
-          "confidence": 0.987,
+          "confidence": 0.819,
           "parts": []
         },
         {
           "text": "pasa",
           "start": 236.1,
           "end": 236.34,
-          "confidence": 0.987,
+          "confidence": 0.691,
           "parts": [
             {
               "text": "pa",
@@ -4938,7 +4938,7 @@
           "text": "virá",
           "start": 236.48,
           "end": 236.64,
-          "confidence": 0.841,
+          "confidence": 0.626,
           "parts": [
             {
               "text": "vi",
@@ -4956,21 +4956,21 @@
           "text": "por",
           "start": 236.76,
           "end": 236.84,
-          "confidence": 0.994,
+          "confidence": 0.696,
           "parts": []
         },
         {
           "text": "min",
           "start": 236.9,
-          "end": 237.001,
-          "confidence": 0.846,
+          "end": 236.98,
+          "confidence": 0.685,
           "parts": []
         },
         {
           "text": "aos",
           "start": 237.061,
           "end": 237.141,
-          "confidence": 0.662,
+          "confidence": 0.465,
           "parts": [
             {
               "text": "a",
@@ -4988,7 +4988,7 @@
           "text": "cazadores.",
           "start": 237.181,
           "end": 237.681,
-          "confidence": 0.982,
+          "confidence": 0.739,
           "parts": [
             {
               "text": "ca",
@@ -5025,23 +5025,23 @@
           "text": "Os",
           "start": 239.022,
           "end": 239.102,
-          "confidence": 0.963,
+          "confidence": 0.675,
           "parts": []
         },
         {
           "text": "canles",
           "start": 239.182,
           "end": 239.482,
-          "confidence": 0.256,
+          "confidence": 0.208,
           "parts": [
             {
               "text": "can",
               "start": 239.182,
-              "end": 239.362
+              "end": 239.382
             },
             {
               "text": "les",
-              "start": 239.362,
+              "start": 239.382,
               "end": 239.482
             }
           ]
@@ -5050,7 +5050,7 @@
           "text": "fameados",
           "start": 239.502,
           "end": 239.922,
-          "confidence": 0.913,
+          "confidence": 0.648,
           "parts": [
             {
               "text": "fa",
@@ -5078,14 +5078,14 @@
           "text": "dos",
           "start": 239.983,
           "end": 240.063,
-          "confidence": 0.042,
+          "confidence": 0.536,
           "parts": []
         },
         {
           "text": "cazadores,",
           "start": 240.123,
           "end": 240.563,
-          "confidence": 0.992,
+          "confidence": 0.717,
           "parts": [
             {
               "text": "ca",
@@ -5113,23 +5113,23 @@
     },
     {
       "id": "l58",
-      "start": 240.663,
+      "start": 240.643,
       "end": 242.484,
       "singer": "s1",
       "role": "lead",
       "words": [
         {
           "text": "os",
-          "start": 240.663,
+          "start": 240.643,
           "end": 240.723,
-          "confidence": 0.985,
+          "confidence": 0.511,
           "parts": []
         },
         {
           "text": "coches",
           "start": 240.783,
           "end": 241.063,
-          "confidence": 0.976,
+          "confidence": 0.759,
           "parts": [
             {
               "text": "co",
@@ -5147,7 +5147,7 @@
           "text": "catro",
           "start": 241.163,
           "end": 241.323,
-          "confidence": 0.985,
+          "confidence": 0.69,
           "parts": [
             {
               "text": "ca",
@@ -5164,15 +5164,15 @@
         {
           "text": "por",
           "start": 241.383,
-          "end": 241.464,
-          "confidence": 0.152,
+          "end": 241.444,
+          "confidence": 0.39,
           "parts": []
         },
         {
           "text": "catro",
           "start": 241.564,
           "end": 241.764,
-          "confidence": 0.878,
+          "confidence": 0.647,
           "parts": [
             {
               "text": "ca",
@@ -5190,14 +5190,14 @@
           "text": "dos",
           "start": 241.844,
           "end": 241.924,
-          "confidence": 0.989,
+          "confidence": 0.768,
           "parts": []
         },
         {
           "text": "cazadores.",
           "start": 241.984,
           "end": 242.484,
-          "confidence": 0.982,
+          "confidence": 0.708,
           "parts": [
             {
               "text": "ca",
@@ -5234,7 +5234,7 @@
           "text": "Puiden",
           "start": 246.307,
           "end": 246.587,
-          "confidence": 0.848,
+          "confidence": 0.608,
           "parts": [
             {
               "text": "Pui",
@@ -5252,14 +5252,14 @@
           "text": "ser",
           "start": 246.687,
           "end": 246.847,
-          "confidence": 0.999,
+          "confidence": 0.766,
           "parts": []
         },
         {
           "text": "unha",
           "start": 247.067,
           "end": 247.167,
-          "confidence": 0.999,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "u",
@@ -5277,7 +5277,7 @@
           "text": "vaca",
           "start": 247.207,
           "end": 247.368,
-          "confidence": 0.812,
+          "confidence": 0.627,
           "parts": [
             {
               "text": "va",
@@ -5295,14 +5295,14 @@
           "text": "da",
           "start": 247.428,
           "end": 247.488,
-          "confidence": 0.765,
+          "confidence": 0.624,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 247.548,
           "end": 247.988,
-          "confidence": 0.997,
+          "confidence": 0.735,
           "parts": [
             {
               "text": "mon",
@@ -5334,7 +5334,7 @@
           "text": "Unha",
           "start": 250.089,
           "end": 250.209,
-          "confidence": 0.904,
+          "confidence": 0.635,
           "parts": [
             {
               "text": "U",
@@ -5352,14 +5352,14 @@
           "text": "que",
           "start": 250.29,
           "end": 250.35,
-          "confidence": 0.993,
+          "confidence": 0.773,
           "parts": []
         },
         {
           "text": "nunca",
           "start": 250.41,
           "end": 250.61,
-          "confidence": 0.894,
+          "confidence": 0.72,
           "parts": [
             {
               "text": "nun",
@@ -5377,7 +5377,7 @@
           "text": "saíu",
           "start": 250.71,
           "end": 250.95,
-          "confidence": 0.658,
+          "confidence": 0.461,
           "parts": [
             {
               "text": "sa",
@@ -5395,14 +5395,14 @@
           "text": "dos",
           "start": 251.01,
           "end": 251.13,
-          "confidence": 0.836,
+          "confidence": 0.651,
           "parts": []
         },
         {
           "text": "prados",
           "start": 251.19,
           "end": 251.43,
-          "confidence": 0.87,
+          "confidence": 0.684,
           "parts": [
             {
               "text": "pra",
@@ -5420,14 +5420,14 @@
           "text": "da",
           "start": 251.49,
           "end": 251.53,
-          "confidence": 0.959,
+          "confidence": 0.92,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 251.59,
           "end": 252.011,
-          "confidence": 0.988,
+          "confidence": 0.725,
           "parts": [
             {
               "text": "mon",
@@ -5459,21 +5459,21 @@
           "text": "Que",
           "start": 253.832,
           "end": 253.892,
-          "confidence": 0.831,
+          "confidence": 0.586,
           "parts": []
         },
         {
           "text": "na",
           "start": 253.952,
           "end": 254.012,
-          "confidence": 0.926,
+          "confidence": 0.664,
           "parts": []
         },
         {
           "text": "súa",
           "start": 254.072,
           "end": 254.172,
-          "confidence": 0.716,
+          "confidence": 0.577,
           "parts": [
             {
               "text": "sú",
@@ -5491,7 +5491,7 @@
           "text": "vida",
           "start": 254.212,
           "end": 254.352,
-          "confidence": 0.897,
+          "confidence": 0.724,
           "parts": [
             {
               "text": "vi",
@@ -5509,14 +5509,14 @@
           "text": "non",
           "start": 254.412,
           "end": 254.472,
-          "confidence": 0.994,
+          "confidence": 0.896,
           "parts": []
         },
         {
           "text": "comeu",
           "start": 254.532,
           "end": 254.753,
-          "confidence": 0.935,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "co",
@@ -5543,14 +5543,14 @@
           "text": "máis",
           "start": 254.833,
           "end": 255.053,
-          "confidence": 0.991,
+          "confidence": 0.738,
           "parts": []
         },
         {
           "text": "nada",
           "start": 255.173,
           "end": 255.353,
-          "confidence": 0.979,
+          "confidence": 0.742,
           "parts": [
             {
               "text": "na",
@@ -5568,14 +5568,14 @@
           "text": "que",
           "start": 255.453,
           "end": 255.513,
-          "confidence": 0.451,
+          "confidence": 0.317,
           "parts": []
         },
         {
           "text": "herba",
           "start": 255.573,
           "end": 255.733,
-          "confidence": 0.293,
+          "confidence": 0.31,
           "parts": [
             {
               "text": "her",
@@ -5593,14 +5593,14 @@
           "text": "da",
           "start": 255.793,
           "end": 255.853,
-          "confidence": 0.97,
+          "confidence": 0.784,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 255.913,
           "end": 256.374,
-          "confidence": 0.983,
+          "confidence": 0.719,
           "parts": [
             {
               "text": "mon",
@@ -5632,21 +5632,21 @@
           "text": "Co",
           "start": 257.815,
           "end": 257.875,
-          "confidence": 0.962,
+          "confidence": 0.674,
           "parts": []
         },
         {
           "text": "meu",
           "start": 257.955,
           "end": 258.075,
-          "confidence": 0.863,
+          "confidence": 0.735,
           "parts": []
         },
         {
           "text": "leite",
           "start": 258.135,
           "end": 258.355,
-          "confidence": 0.996,
+          "confidence": 0.74,
           "parts": [
             {
               "text": "lei",
@@ -5664,7 +5664,7 @@
           "text": "faríanse",
           "start": 258.435,
           "end": 258.895,
-          "confidence": 0.911,
+          "confidence": 0.665,
           "parts": [
             {
               "text": "fa",
@@ -5691,8 +5691,8 @@
         {
           "text": "queixos,",
           "start": 259.196,
-          "end": 259.576,
-          "confidence": 0.867,
+          "end": 259.556,
+          "confidence": 0.675,
           "parts": [
             {
               "text": "quei",
@@ -5702,7 +5702,7 @@
             {
               "text": "xos,",
               "start": 259.376,
-              "end": 259.576
+              "end": 259.556
             }
           ]
         },
@@ -5710,7 +5710,7 @@
           "text": "queixos.",
           "start": 260.116,
           "end": 260.496,
-          "confidence": 0.97,
+          "confidence": 0.755,
           "parts": [
             {
               "text": "quei",
@@ -5737,7 +5737,7 @@
           "text": "Queixos",
           "start": 262.358,
           "end": 262.658,
-          "confidence": 0.987,
+          "confidence": 0.705,
           "parts": [
             {
               "text": "Quei",
@@ -5755,21 +5755,21 @@
           "text": "e...",
           "start": 262.778,
           "end": 262.798,
-          "confidence": 0.939,
+          "confidence": 0.657,
           "parts": []
         },
         {
           "text": "e",
           "start": 263.579,
           "end": 263.599,
-          "confidence": 0.951,
+          "confidence": 0.666,
           "parts": []
         },
         {
           "text": "galletas.",
           "start": 263.659,
           "end": 264.119,
-          "confidence": 0.997,
+          "confidence": 0.72,
           "parts": [
             {
               "text": "ga",
@@ -5801,21 +5801,21 @@
           "text": "Tras",
           "start": 265.54,
           "end": 265.68,
-          "confidence": 0.161,
+          "confidence": 0.127,
           "parts": []
         },
         {
           "text": "que",
           "start": 265.76,
           "end": 265.82,
-          "confidence": 0.995,
+          "confidence": 0.698,
           "parts": []
         },
         {
           "text": "dicir",
           "start": 265.92,
           "end": 266.14,
-          "confidence": 0.996,
+          "confidence": 0.727,
           "parts": [
             {
               "text": "di",
@@ -5833,21 +5833,21 @@
           "text": "que",
           "start": 266.28,
           "end": 266.34,
-          "confidence": 0.99,
+          "confidence": 0.94,
           "parts": []
         },
         {
           "text": "é",
           "start": 266.4,
           "end": 266.42,
-          "confidence": 0.519,
+          "confidence": 0.364,
           "parts": []
         },
         {
           "text": "así,",
           "start": 266.48,
           "end": 266.621,
-          "confidence": 0.958,
+          "confidence": 0.818,
           "parts": [
             {
               "text": "a",
@@ -5865,7 +5865,7 @@
           "text": "así.",
           "start": 267.381,
           "end": 267.581,
-          "confidence": 0.926,
+          "confidence": 0.793,
           "parts": [
             {
               "text": "a",
@@ -5892,7 +5892,7 @@
           "text": "Así,",
           "start": 270.143,
           "end": 270.343,
-          "confidence": 0.561,
+          "confidence": 0.394,
           "parts": [
             {
               "text": "A",
@@ -5910,14 +5910,14 @@
           "text": "e",
           "start": 270.823,
           "end": 270.843,
-          "confidence": 0.98,
+          "confidence": 0.686,
           "parts": []
         },
         {
           "text": "como",
           "start": 270.923,
           "end": 271.044,
-          "confidence": 0.994,
+          "confidence": 0.7,
           "parts": [
             {
               "text": "co",
@@ -5935,7 +5935,7 @@
           "text": "sabe,",
           "start": 271.164,
           "end": 271.384,
-          "confidence": 0.996,
+          "confidence": 0.699,
           "parts": [
             {
               "text": "sa",
@@ -5953,14 +5953,14 @@
           "text": "a",
           "start": 271.724,
           "end": 271.744,
-          "confidence": 0.995,
+          "confidence": 0.697,
           "parts": []
         },
         {
           "text": "montaña",
           "start": 271.804,
           "end": 272.244,
-          "confidence": 0.857,
+          "confidence": 0.631,
           "parts": [
             {
               "text": "mon",
@@ -5983,7 +5983,7 @@
           "text": "toda.",
           "start": 272.344,
           "end": 272.545,
-          "confidence": 0.956,
+          "confidence": 0.669,
           "parts": [
             {
               "text": "to",
@@ -6004,7 +6004,7 @@
     "lyrics_source": "user",
     "separation_model": "vocals_mel_band_roformer.ckpt",
     "asr_model": null,
-    "align_model": "proxectonos/Nos_ASR-wav2vec2-xls-r-300m-gl@05a9b49121aa",
+    "align_model": "proxectonos/Nos_ASR-wav2vec2-xls-r-300m-gl@05a9b49121aa + mrfakename/w2v-bert-2.0-music-lyrics-ctc@1be91455793f",
     "engine_version": "karaoke-engine 3.0.0",
     "language_fallbacks": []
   },

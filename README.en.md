@@ -68,7 +68,7 @@ Measured with the project's benchmark of freely licensed songs on an RTX 3050 La
 | Timing with lyrics, Galician songs | **100 %** within 0.3 s ([report](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
 | Transcription without lyrics (word error rate) | 21.3 % on JamendoLyrics, 25.9 % in Galician, down from 33.7 % and 35.9 % for a Demucs + Whisper baseline |
 | Language switched without asking | never, in the whole benchmark |
-| A 4:47 song with lyrics, from file to karaoke | about 95 s |
+| A 4:47 song with lyrics, from file to karaoke | about 100 s |
 | A 4-minute 1080p MP4 | under a minute |
 
 How the benchmark works and every report: [`docs/benchmark.md`](docs/benchmark.md) and
