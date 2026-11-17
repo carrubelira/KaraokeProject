@@ -1,6 +1,6 @@
-# each language's default CTC model
+# The engine's defaults: what `karaoke make` does (decisions 004, 005, 016 and 019)
 name = "c4-default"
-description = "Mel-Band RoFormer (Kim, 8 s) + Whisper (HiTZ large-v3 for Galician, large-v3-turbo otherwise) + lyrics aligner (each language's default CTC model)"
+description = "Mel-Band RoFormer (Kim, 8 s) + Whisper by stretches of singing (HiTZ large-v3 for Galician, large-v3-turbo otherwise) + lyrics aligner (each language's CTC model with the music model as a second listener)"
 
 [steps.separator]
 target = "karaoke_engine.separation:RoformerSeparator"

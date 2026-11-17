@@ -1,0 +1,19 @@
+# Nós Whisper large-v3-turbo Galician reading each stretch of singing on its own
+name = "rev-asr-nos-voice"
+description = "Mel-Band RoFormer (Kim, 8 s) + Nós Whisper large-v3-turbo Galician reading each stretch of singing on its own + line segmenter + lyrics aligner"
+
+[steps.separator]
+target = "karaoke_engine.separation:RoformerSeparator"
+params = { model = "vocals_mel_band_roformer.ckpt", segment_size = 801 }
+
+[steps.transcriber]
+target = "karaoke_engine.transcribe:WhisperTranscriber"
+params = { model = "nos-turbo-gl", by_voice = true }
+
+[steps.segmenter]
+target = "karaoke_engine.transcribe:LineSegmenter"
+
+[steps.aligner]
+target = "karaoke_engine.align.aligner:LyricsAligner"
+# The single-model aligner, written out so that these runs compare transcribers only.
+params = { second = "", rest_penalty = 0.0 }

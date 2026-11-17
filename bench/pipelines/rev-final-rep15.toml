@@ -1,0 +1,17 @@
+# the music model at 0.3, resting 0.05, singing a stanza's lines again costs 15
+name = "rev-final-rep15"
+description = "Mel-Band RoFormer (Kim, 8 s) + Whisper + lyrics aligner (the music model at 0.3, resting 0.05, singing a stanza's lines again costs 15)"
+
+[steps.separator]
+target = "karaoke_engine.separation:RoformerSeparator"
+params = { model = "vocals_mel_band_roformer.ckpt", segment_size = 801 }
+
+[steps.transcriber]
+target = "karaoke_engine.transcribe:WhisperTranscriber"
+
+[steps.segmenter]
+target = "karaoke_engine.transcribe:LineSegmenter"
+
+[steps.aligner]
+target = "karaoke_engine.align.aligner:LyricsAligner"
+params = { second = "music-w2vbert-ctc", second_weight = 0.3, rest_penalty = 0.05, repeat_penalty = 15.0 }

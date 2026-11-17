@@ -1,0 +1,526 @@
+{
+  "bench_version": "3.0.0",
+  "normalization_version": 1,
+  "created": "2026-11-17T10:43:59+01:00",
+  "git_commit": "a85e232-dirty",
+  "pipeline": {
+    "name": "rev-blend-w03-norest",
+    "description": "Mel-Band RoFormer (Kim, 8 s) + Whisper + lyrics aligner (the music model at 0.3, no cost for resting (to tell the two changes apart on repeats))",
+    "steps": {
+      "separator": {
+        "target": "karaoke_engine.separation:RoformerSeparator",
+        "params": {
+          "model": "vocals_mel_band_roformer.ckpt",
+          "segment_size": 801
+        },
+        "version": "2"
+      },
+      "transcriber": {
+        "target": "karaoke_engine.transcribe:WhisperTranscriber",
+        "params": {},
+        "version": "6"
+      },
+      "segmenter": {
+        "target": "karaoke_engine.transcribe:LineSegmenter",
+        "params": {},
+        "version": "2"
+      },
+      "aligner": {
+        "target": "karaoke_engine.align.aligner:LyricsAligner",
+        "params": {
+          "second": "music-w2vbert-ctc",
+          "second_weight": 0.3,
+          "rest_penalty": 0.0
+        },
+        "version": "15"
+      }
+    }
+  },
+  "set_name": "repeats",
+  "mode": "lyrics",
+  "environment": {
+    "python": "3.12.16",
+    "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.8.5",
+    "demucs": "4.0.1",
+    "numpy": "2.5.4",
+    "jiwer": "4.0.0",
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "driver": "617.42",
+    "gpu_memory_mb": "4096"
+  },
+  "reference_kind": {
+    "en": "manual",
+    "es": "manual",
+    "fr": "manual"
+  },
+  "stages": {
+    "separator": {
+      "load_seconds": 6.875168255999597,
+      "vram_peak_mb": 2866.50390625,
+      "ram_peak_mb": 2388.078125
+    },
+    "aligner": {
+      "load_seconds": 0.09287393499835161,
+      "vram_peak_mb": 2132.50390625,
+      "ram_peak_mb": 3851.109375
+    }
+  },
+  "songs": [
+    {
+      "song_id": "marked-Quentin_Hannappe_-_Keep_On",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 189.84,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 39.10790307800016,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 24.212135433001094,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 144,
+        "coverage": 0.8228571428571428,
+        "start_median": 0.047283599849997415,
+        "start_mean": 0.22216911145069462,
+        "start_within": 0.9305555555555556,
+        "start_within_wide": 0.9305555555555556,
+        "end_median": 0.05983326025000224,
+        "end_mean": 0.265878443370834,
+        "start_bias": 0.16158662176180544
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.21333333333333335,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Guayeteo_-_JhoyKing",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 157.709932,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 32.296208862999265,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.763605448002636,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 245,
+        "coverage": 0.7205882352941176,
+        "start_median": 0.030827664000000254,
+        "start_mean": 1.0377523161877555,
+        "start_within": 0.889795918367347,
+        "start_within_wide": 0.889795918367347,
+        "end_median": 0.10487755100000129,
+        "end_mean": 1.1053426812979588,
+        "start_bias": -0.9803860891102045
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.19798657718120805,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-LUNABLIND_-_Vision__Radio_Edit_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 220.714286,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 45.59484684199924,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.472386847999587,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 263,
+        "coverage": 0.9131944444444444,
+        "start_median": 0.06672365180000384,
+        "start_mean": 0.23428312178250943,
+        "start_within": 0.9049429657794676,
+        "start_within_wide": 0.9049429657794676,
+        "end_median": 0.08254540069999905,
+        "end_mean": 0.28578586905817477,
+        "start_bias": 0.07174890896958144
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1111111111111111,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Libre_by_CybeR_AttaCK_-_CyberAttacK",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 216.93102,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.37402816699978,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.618437276003533,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 334,
+        "coverage": 0.8413098236775819,
+        "start_median": 0.028380952000006232,
+        "start_mean": 0.2437976631706588,
+        "start_within": 0.9580838323353293,
+        "start_within_wide": 0.9670658682634731,
+        "end_median": 0.04807709749999134,
+        "end_mean": 0.24042127987724538,
+        "start_bias": -0.18757572608083814
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.36443148688046645,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Lower_Loveday_-_Is_It_Right_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 180.061497,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 37.002956668999104,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.668773249999504,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 181,
+        "coverage": 0.8537735849056604,
+        "start_median": 0.0672361774000052,
+        "start_mean": 1.2394894047038674,
+        "start_within": 0.9060773480662984,
+        "start_within_wide": 0.9060773480662984,
+        "end_median": 0.09105215399999622,
+        "end_mean": 1.3190776793309398,
+        "start_bias": 1.2255907415149165
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1657754010695187,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Palabras_-_Javier_Gomez_Bello",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 216.224218,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.183217498000886,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.064749099998153,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 190,
+        "coverage": 0.8962264150943396,
+        "start_median": 0.03238435399998707,
+        "start_mean": 0.2503939849473683,
+        "start_within": 0.9631578947368421,
+        "start_within_wide": 0.9631578947368421,
+        "end_median": 0.10794557800000071,
+        "end_mean": 0.4028679436842107,
+        "start_bias": -0.18311905957894684
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.02617801047120419,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Quentin_Hannappe_-_Keep_On",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 189.84,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 39.10790307800016,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.699784274002013,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 136,
+        "coverage": 0.7771428571428571,
+        "start_median": 0.05207611720000216,
+        "start_mean": 1.097632294444118,
+        "start_within": 0.8529411764705882,
+        "start_within_wide": 0.8529411764705882,
+        "end_median": 0.06622648875000436,
+        "end_mean": 1.1379379472058826,
+        "start_bias": -0.6786768777661768
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.19718309859154928,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-de_bonne_humeur_-_Le_Nez_Tordu",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 161.152948,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 33.265312076000555,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.00665052000113,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 229,
+        "coverage": 0.8609022556390977,
+        "start_median": 0.03351020399999882,
+        "start_mean": 1.2312750794541492,
+        "start_within": 0.9039301310043668,
+        "start_within_wide": 0.9082969432314411,
+        "end_median": 0.08972335599999326,
+        "end_mean": 1.2780837913362442,
+        "start_bias": -1.2104782005982537
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1297071129707113,
+      "error": null
+    }
+  ],
+  "summary": {
+    "all": {
+      "songs": 8,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1722,
+        "coverage": 0.8338983050847457,
+        "start_median": 0.0404784579999955,
+        "start_mean": 0.6576358737941349,
+        "start_within": 0.9175377468060395,
+        "start_within_wide": 0.9198606271777003,
+        "end_median": 0.0775124714999933,
+        "end_mean": 0.7127157735770034,
+        "start_bias": -0.25735581194500595
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20575315907919497,
+        "aligner": 0.05479294817005864
+      },
+      "est_seconds_4min": 69.49910793081882,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1757132664511378
+    },
+    "repeats-marked": {
+      "songs": 1,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 144,
+        "coverage": 0.8228571428571428,
+        "start_median": 0.047283599849997415,
+        "start_mean": 0.22216911145069462,
+        "start_within": 0.9305555555555556,
+        "start_within_wide": 0.9305555555555556,
+        "end_median": 0.05983326025000224,
+        "end_mean": 0.265878443370834,
+        "start_bias": 0.16158662176180544
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20600454634429077,
+        "aligner": 0.12753969359987935
+      },
+      "est_seconds_4min": 87.01865977759878,
+      "outside_voice": 0.0,
+      "low_confidence": 0.21333333333333335
+    },
+    "repeats-unmarked": {
+      "songs": 7,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1578,
+        "coverage": 0.834920634920635,
+        "start_median": 0.039765596100004075,
+        "start_mean": 0.6973742855669203,
+        "start_within": 0.9163498098859315,
+        "start_within_wide": 0.9188846641318125,
+        "end_median": 0.0799444445000006,
+        "end_mean": 0.7534918037098859,
+        "start_bias": -0.29558630019201537
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20550177181409918,
+        "aligner": 0.0536970613434337
+      },
+      "est_seconds_4min": 69.17576214880584,
+      "outside_voice": 0.0,
+      "low_confidence": 0.17033897118225272
+    }
+  },
+  "notes": []
+}
