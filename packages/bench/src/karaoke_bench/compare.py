@@ -11,6 +11,7 @@ WER_REGRESSION = 0.05
 _Metric = tuple[str, Callable[[GroupSummary], float | None], str]
 _METRICS: list[_Metric] = [
     ("WER", lambda g: g.wer, "pct"),
+    ("WER tolerante", lambda g: g.wer_lenient, "pct"),
     ("CER", lambda g: g.cer, "pct"),
     ("Inicio mediana (s)", lambda g: g.timing.start_median if g.timing else None, "num"),
     ("Inicio ≤ 0,3 s", lambda g: g.timing.start_within if g.timing else None, "pct"),

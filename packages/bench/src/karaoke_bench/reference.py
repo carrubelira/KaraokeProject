@@ -21,8 +21,9 @@ Seconds = Annotated[float, Field(ge=0)]
 LineStatus = Literal["draft", "ok", "wrong", "unsure"]
 # manual: timed by hand with care (JamendoLyrics); semiautomatic: drafted by an aligner and
 # checked by ear line by line; approximate: timed by hand in a subtitle editor, good to a few
-# tenths of a second.
-Timing = Literal["manual", "semiautomatic", "approximate"]
+# tenths of a second; lines: only the start of each line was timed by hand (synchronised
+# lyrics), so only the first word of each line is scored.
+Timing = Literal["manual", "semiautomatic", "approximate", "lines"]
 
 
 class _Model(BaseModel):
@@ -63,11 +64,20 @@ class Reference(_Model):
         return [line for line in self.lines if line.status == "ok"]
 
     def scored_words(self) -> list[RefWord]:
+        if self.timing == "lines":
+            firsts = (_first_word(line) for line in self.scored_lines())
+            return [word for word in firsts if word is not None]
         return [word for line in self.scored_lines() for word in line.words]
 
     def scored_share(self) -> float:
         total = sum(len(line.words) for line in self.lines)
-        return len(self.scored_words()) / total if total else 0.0
+        scored = sum(len(line.words) for line in self.scored_lines())
+        return scored / total if total else 0.0
+
+
+def _first_word(line: RefLine) -> RefWord | None:
+    """The word that stands for a line timed only at its start (not a lone dash or quote)."""
+    return next((w for w in line.words if any(ch.isalnum() for ch in w.text)), None)
 
 
 def load_reference(path: Path) -> Reference:

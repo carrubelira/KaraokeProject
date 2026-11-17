@@ -1,4 +1,6 @@
-from karaoke_bench.textnorm import fold, lyrics_lines, match_key, normalize, tokens
+import pytest
+
+from karaoke_bench.textnorm import fold, lenient, lyrics_lines, match_key, normalize, tokens
 
 
 def test_normalize_keeps_accents_and_inner_apostrophes() -> None:
@@ -42,3 +44,39 @@ def test_lyrics_lines_cleans_pasted_lyrics() -> None:
 
 def test_lyrics_lines_drops_lines_left_empty() -> None:
     assert lyrics_lines("Ola\n(x2)\n  \nAdeus") == ["Ola", "Adeus"]
+
+
+@pytest.mark.parametrize(
+    ("dialect", "standard"),
+    [
+        ("janarme", "ganarme"),  # gheada written with j
+        ("sijo", "sigo"),
+        ("chejastes", "chegastes"),
+        ("pelijroso", "peligroso"),
+        ("jerra", "guerra"),
+        ("gherra", "guerra"),
+        ("corasón", "corazón"),  # seseo
+        ("naser", "nacer"),
+        ("mosos", "mozos"),
+        ("presioso", "precioso"),
+        ("esta", "está"),  # sites drop accents
+    ],
+)
+def test_lenient_folds_galician_spelling_variants(dialect: str, standard: str) -> None:
+    assert lenient(dialect, "gl") == lenient(standard, "gl")
+
+
+def test_lenient_joins_pronouns_written_apart() -> None:
+    assert lenient("Deixei che janarme", "gl") == lenient("Deixeiche ganarme", "gl")
+    assert lenient("Dixo lle a mamá", "gl") == lenient("Díxolle a mamá", "gl")
+    # Before the verb the pronoun stays a word of its own on both sides, wherever it is glued.
+    assert lenient("Non che dixen nada", "gl") == lenient("non che dixen nada", "gl")
+
+
+def test_lenient_keeps_different_words_different() -> None:
+    assert lenient("Perdín un avión", "gl") != lenient("Perdín un adio", "gl")
+    assert lenient("Fostes máis lista", "gl") != lenient("Fodes máis lista", "gl")
+
+
+def test_lenient_only_knows_galician() -> None:
+    assert lenient("Corazón", "es") is None

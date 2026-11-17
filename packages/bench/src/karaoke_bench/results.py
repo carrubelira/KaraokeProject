@@ -36,6 +36,9 @@ class SongResult(BaseModel):
     cer: float | None = None
     ref_words: int | None = None
     ref_chars: int | None = None
+    # WER without spelling variants that are no mistakes (Galician gheada, seseo, pronouns).
+    wer_lenient: float | None = None
+    ref_words_lenient: int | None = None
     timing: TimingStats | None = None
     scored_share: float | None = None
     # None for manual references; for semiautomatic ones, whether they were validated by ear.
@@ -56,6 +59,7 @@ class GroupSummary(BaseModel):
     failed: int
     wer: float | None
     cer: float | None
+    wer_lenient: float | None = None
     timing: TimingStats | None
     line_start_median: float | None
     language_switches: int
@@ -96,6 +100,7 @@ def summarize(
     """One group (a language or everything): corpus WER/CER, pooled timing, median speed."""
     scored = [s for s in songs if s.wer is not None and s.ref_words]
     with_chars = [s for s in scored if s.cer is not None and s.ref_chars]
+    loose = [s for s in scored if s.wer_lenient is not None and s.ref_words_lenient]
     rtf: dict[str, float] = {}
     for kind in stages:
         ratios = [
@@ -112,6 +117,7 @@ def summarize(
         failed=sum(s.error is not None for s in songs),
         wer=_weighted(scored, "wer", "ref_words"),
         cer=_weighted(with_chars, "cer", "ref_chars"),
+        wer_lenient=_weighted(loose, "wer_lenient", "ref_words_lenient"),
         timing=timing_stats([timing[s.song_id] for s in songs if s.song_id in timing]),
         line_start_median=median(lines) if lines else None,
         language_switches=sum(s.language_switch is True for s in songs),

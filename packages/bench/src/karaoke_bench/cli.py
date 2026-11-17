@@ -16,6 +16,7 @@ from karaoke_bench.drafting import (
     reference_path,
 )
 from karaoke_bench.fetch import FetchError, fetch_jamendo, fetch_manifest_set
+from karaoke_bench.lrc import parse_lrc, reference_from_lrc
 from karaoke_bench.package import PackageError, build_package
 from karaoke_bench.paths import BenchPaths
 from karaoke_bench.pipeline import Mode, PipelineError, load_pipeline
@@ -100,6 +101,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     import_srt.add_argument("song", help="private/song")
     import_srt.add_argument("srt", type=Path, help="subtitle file with one entry per word")
 
+    import_lrc = commands.add_parser(
+        "import-lrc", help="make a private song's reference from line-timed lyrics (LRC)"
+    )
+    import_lrc.add_argument("song", help="private/song")
+    import_lrc.add_argument("lrc", type=Path, help="synchronised lyrics, a time before each line")
+
     args = parser.parse_args(argv)
     paths = BenchPaths(args.bench_dir)
     try:
@@ -128,6 +135,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _triangulate(paths, song, args.pipelines, args.tolerance)
         if args.command == "import-srt":
             return _import_srt(paths, args.song, args.srt)
+        if args.command == "import-lrc":
+            return _import_lrc(paths, args.song, args.lrc)
         if args.command == "review":
             return _review(paths, _one_song(args.song, paths), args.port, args.pipeline)
         return _run(paths, args)
@@ -302,6 +311,24 @@ def _import_srt(paths: BenchPaths, name: str, srt: Path) -> int:
     target = song.audio.parent / "reference.json"
     dump_reference(ref, target)
     print(f"{target}: {len(ref.lines)} lines, {len(ref.scored_words())} words")
+    return 0
+
+
+def _import_lrc(paths: BenchPaths, name: str, lrc: Path) -> int:
+    if not name.startswith("private/"):
+        raise SetError(
+            f"line timings are approximate and the lyrics are someone's: only private songs "
+            f"take them, not {name}"
+        )
+    song = _one_song(name, paths)
+    try:
+        entries = parse_lrc(lrc.read_text(encoding="utf-8"))
+        ref = reference_from_lrc(entries, song.song_id, song.language, duration(song.audio))
+    except ValueError as exc:
+        raise SetError(f"{lrc}: {exc}") from exc
+    target = song.audio.parent / "reference.json"
+    dump_reference(ref, target)
+    print(f"{target}: {len(ref.lines)} lines timed at their start")
     return 0
 
 

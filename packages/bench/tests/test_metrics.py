@@ -25,6 +25,23 @@ def test_text_errors_count_lost_accent_as_error() -> None:
     assert text_errors("o mar é azul", "o mar e azul").wer == pytest.approx(0.25)
 
 
+def test_lenient_wer_forgives_dialect_spelling_in_galician() -> None:
+    sung = "Deixei che janarme na pista e sijo esperándoche"
+    written = "Deixeiche ganarme na pista e sigo esperándote"
+
+    errors = text_errors(sung, written, language="gl")
+
+    assert errors.wer > 0.4
+    # Only "esperándoche" / "esperándote" is a different word.
+    assert errors.wer_lenient == pytest.approx(1 / 7)
+    assert errors.ref_words_lenient == 7
+
+
+def test_lenient_wer_is_only_for_galician() -> None:
+    assert text_errors("corazón", "corasón", language="es").wer_lenient is None
+    assert text_errors("corazón", "corasón").wer_lenient is None
+
+
 def test_text_errors_empty_hypothesis() -> None:
     errors = text_errors("ola mar", "")
 
