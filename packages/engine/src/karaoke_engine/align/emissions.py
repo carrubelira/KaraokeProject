@@ -6,6 +6,9 @@ model with ten thousand symbols costs no more memory than one with forty.
 
 import contextlib
 import json
+import shutil
+import subprocess
+import sys
 import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -20,6 +23,7 @@ from karaoke_engine.align.ctc import ANY, BLANK
 from karaoke_engine.align.models import CtcModelSpec
 
 _DELIMITERS = ("|", " ")
+CACHE = Path.home() / ".cache" / "karaoke" / "models" / "ctc"
 
 
 @dataclass(frozen=True)
@@ -43,12 +47,13 @@ class Vocab:
         """Ids of a word's letters: the letter, its fallback, its base letter, or nothing."""
         ids = []
         for ch in word:
-            token = self._token(ch)
+            token = self.token(ch)
             if token is not None:
                 ids.append(token)
         return tuple(ids)
 
-    def _token(self, ch: str) -> int | None:
+    def token(self, ch: str) -> int | None:
+        """The id of one letter, or None when the model has nothing close to it."""
         for candidate in (ch, self.fallbacks.get(ch.lower(), ""), _base(ch)):
             if not candidate:
                 continue
@@ -75,6 +80,41 @@ def compact(
     out[:, ANY] = others.max(axis=1)
     out[:, 2:] = log_probs[:, list(ids)]
     return out
+
+
+def blend(
+    members: Sequence[Emissions],
+    columns: Sequence[Sequence[int | None]],
+    weights: Sequence[float],
+) -> Emissions:
+    """The weighted mean of several models' probabilities, on the first one's frames.
+
+    Two models trained on different sound (speech of one language, music of many) miss
+    different passages: a letter either of them hears is heard. The mean is of the
+    probabilities, not of their logarithms: a CTC model puts each letter on a frame or two and
+    two models rarely pick the same one, so a mean of logarithms would make every letter
+    unlikely everywhere. `columns[m][k]` is where member m keeps letter k (None when it does not
+    know the letter: the others decide it alone). Members with another frame rate are read at
+    the nearest frame.
+    """
+    first = members[0]
+    frames = first.log_probs.shape[0]
+    width = 2 + len(columns[0])
+    out = np.full((frames, width), -np.inf, dtype=np.float64)
+    shared = np.zeros(width, dtype=np.float64)
+    for member, places, weight in zip(members, columns, weights, strict=True):
+        if weight <= 0 or not len(member.log_probs):
+            continue
+        ratio = first.frame_seconds / member.frame_seconds
+        rows = np.minimum((np.arange(frames) * ratio + 0.5).astype(int), len(member.log_probs) - 1)
+        source = [BLANK, ANY, *(place for place in places if place is not None)]
+        target = [BLANK, ANY, *(2 + k for k, place in enumerate(places) if place is not None)]
+        heard = member.log_probs[rows][:, source].astype(np.float64) + np.log(weight)
+        out[:, target] = np.logaddexp(out[:, target], heard)
+        shared[target] += weight
+    known = shared > 0
+    out[:, known] -= np.log(shared[known])
+    return Emissions(out.astype(np.float32), first.frame_seconds)
 
 
 def compact_tensor(log_probs: Any, blank: int, ids: Sequence[int]) -> npt.NDArray[np.float32]:
@@ -110,26 +150,27 @@ class EmissionModel:
 
     @property
     def vocab(self) -> Vocab:
+        """The model's letters, read from its two small files: the weights are not needed."""
         if self._vocab is None:
-            raise RuntimeError("load() the model first")
+            repo, revision = self.spec.repo, self.spec.revision
+            mapping = _read_json(_hub_file(repo, "vocab.json", revision))
+            blank = _read_json(_hub_file(repo, "config.json", revision))["pad_token_id"]
+            self._vocab = Vocab.from_mapping(mapping, blank, self.spec.fallbacks)
         return self._vocab
 
     def load(self) -> None:
         import torch
-        from huggingface_hub import hf_hub_download
         from transformers import AutoFeatureExtractor, AutoModelForCTC
 
-        repo, revision = self.spec.repo, self.spec.revision
-        dtype = torch.float16 if self.device != "cpu" and self.dtype == "float16" else torch.float32
+        half = self.device != "cpu" and self.dtype == "float16"
+        source, revision = source_of(self.spec, half)
         # Untyped in transformers, missing without the ml extra: Any either way.
         extractor: Any = AutoFeatureExtractor
-        self._features = extractor.from_pretrained(repo, revision=revision)
-        net = AutoModelForCTC.from_pretrained(repo, revision=revision, dtype=dtype)
-        self._net = net.to(self.device).eval()
-        mapping = json.loads(
-            Path(hf_hub_download(repo, "vocab.json", revision=revision)).read_text(encoding="utf-8")
+        self._features = extractor.from_pretrained(source, revision=revision)
+        net = AutoModelForCTC.from_pretrained(
+            source, revision=revision, dtype=torch.float16 if half else torch.float32
         )
-        self._vocab = Vocab.from_mapping(mapping, net.config.pad_token_id, self.spec.fallbacks)
+        self._net = net.to(self.device).eval()
 
     def emissions(self, samples: npt.NDArray[np.float32], ids: Sequence[int]) -> Emissions:
         """Compact emissions computed window by window, with context on both sides."""
@@ -180,6 +221,59 @@ class EmissionModel:
         _give_memory_back()
 
 
+def source_of(spec: CtcModelSpec, half: bool) -> tuple[str, str | None]:
+    """Where a model loads from: its repository at its revision, or its 16-bit copy."""
+    if half and spec.half:
+        return str(half_copy(spec)), None
+    return spec.repo, spec.revision
+
+
+def half_copy(spec: CtcModelSpec) -> Path:
+    """The model stored in 16 bits in the model cache, made once in a process of its own.
+
+    A 600-million-parameter checkpoint published in 32 bits is 2.3 GB to read, for a model that
+    runs in 16 bits: the copy loads in half the memory and half the time. Making it holds both
+    at once, so it runs alone, and it only takes its final name when it is complete.
+    """
+    target = CACHE / f"{spec.repo.replace('/', '--')}-{spec.revision[:12]}-fp16"
+    if (target / "model.safetensors").is_file():
+        return target
+    print(f"First use of {spec.repo}: storing it in 16 bits once.", file=sys.stderr)  # noqa: T201 - a wait the user should know about
+    side = target.with_name(target.name + ".partial")
+    shutil.rmtree(side, ignore_errors=True)
+    command = [sys.executable, "-m", "karaoke_engine.align.emissions", spec.repo, spec.revision]
+    try:
+        subprocess.run([*command, str(side)], check=True)
+    except subprocess.CalledProcessError as exc:
+        shutil.rmtree(side, ignore_errors=True)
+        raise RuntimeError(
+            f"could not store {spec.repo} in 16 bits (exit code {exc.returncode})"
+        ) from exc
+    shutil.rmtree(target, ignore_errors=True)  # a copy left without its weights
+    side.replace(target)
+    return target
+
+
+def _halve(repo: str, revision: str, target: Path) -> None:
+    import torch
+    from transformers import AutoFeatureExtractor, AutoModelForCTC
+
+    extractor: Any = AutoFeatureExtractor
+    net = AutoModelForCTC.from_pretrained(repo, revision=revision, dtype=torch.float16)
+    net.save_pretrained(target)
+    extractor.from_pretrained(repo, revision=revision).save_pretrained(target)
+
+
+def _hub_file(repo: str, name: str, revision: str) -> str:
+    from huggingface_hub import hf_hub_download
+
+    return str(hf_hub_download(repo, name, revision=revision))
+
+
+def _read_json(path: str) -> Any:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
 def _give_memory_back() -> None:
     """Returns freed heap to the system (glibc keeps it otherwise), so models do not pile up."""
     import ctypes
@@ -194,3 +288,7 @@ def _give_memory_back() -> None:
 def _base(ch: str) -> str:
     base = "".join(c for c in unicodedata.normalize("NFD", ch) if not unicodedata.combining(c))
     return base if len(base) == 1 else ""
+
+
+if __name__ == "__main__":
+    _halve(sys.argv[1], sys.argv[2], Path(sys.argv[3]))

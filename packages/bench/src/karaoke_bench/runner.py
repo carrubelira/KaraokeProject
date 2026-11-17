@@ -298,9 +298,11 @@ def _score(
         lyrics = ref.lyrics_text() if ref is not None else song.lyrics_text()
         if lyrics:
             hypothesis = " ".join(segment.text for segment in state.transcript.segments)
-            errors = text_errors(lyrics, hypothesis)
+            errors = text_errors(lyrics, hypothesis, language=song.language)
             result.wer, result.cer = errors.wer, errors.cer
             result.ref_words, result.ref_chars = errors.ref_words, errors.ref_chars
+            result.wer_lenient = errors.wer_lenient
+            result.ref_words_lenient = errors.ref_words_lenient
     # A draft nobody has finished checking by ear is not a reference yet.
     scorable = ref is not None and result.reference_validated is not False
     if state.error or state.aligned is None or (problem := _check_aligned(state)):
@@ -318,7 +320,9 @@ def _score(
     if scorable and ref is not None:
         scored = ref.scored_words()
         everything = [word for line in ref.lines for word in line.words]
-        timing[song.song_id] = timing_errors(pair_scored(everything, scored, words), len(scored))
+        timing[song.song_id] = timing_errors(
+            pair_scored(everything, scored, words), len(scored), ends=ref.timing != "lines"
+        )
         result.timing = timing_stats([timing[song.song_id]])
         # Lines pair by position, which only means something when the aligner kept the lines.
         if mode == "lyrics" and state.lyrics_text is None:

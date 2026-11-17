@@ -16,6 +16,10 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
   captions follow broadcast rules (two lines of 42 characters, reading speed, two-frame gaps,
   cuts between shots) and `--from-srt` brings back a subtitle file reviewed in an editor
   ([`docs/captions.md`](docs/captions.md)).
+- `karaoke-bench import-lrc`: a private song's reference from its synchronised lyrics (an
+  `.lrc` file, as LRCLIB has for many songs), to measure where each line starts in songs nobody
+  will time word by word. The benchmark also reports a lenient WER for Galician, which does not
+  count gheada, seseo, accents or pronouns written apart as mistakes.
 - `karaoke-bench fetch-speech` and `karaoke-bench captions`: Galician dialogues built from
   OpenSLR 77 to measure interview captions (word errors, wrong speakers, timing, rule breaks).
 - **Descargar** in the player: the song's karaoke videos, made right there with their progress
@@ -54,6 +58,23 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ### Changed
 
+- **Lyrics are timed by two models instead of one.** Each language's speech model now works with
+  a model trained on songs in many languages, and their probabilities are averaged: each misses
+  different passages. On the 79 public test songs the words within 0.3 s of where they are sung
+  go from 98.8 % to 99.3 %, the mean error from 0.093 s to 0.062 s and English,
+  the weakest language, from 97.6 % to 98.6 %. Aligning a 4-minute song takes about 9 s more.
+- Songs in a language without a model of its own (Italian, Catalan, Basque…) are timed by the
+  music model, which places 99.4 % of the words of the test songs within 0.3 s without knowing
+  their language (the model used before: 91.4 %). Lyrics in a script it cannot write still go to
+  the multilingual speech model.
+- **Lyrics from LRCLIB are found for songs that come from a video.** The search used the video's
+  title («The Rapants - Viaxei») as the song's name and found nothing, so songs the database has
+  were transcribed blind. It now asks for the song's name without the artist, the kind of video
+  and the guests, then tries a free search, and accepts lyrics timed for an audio up to a minute
+  shorter (a video with a spoken opening or credits).
+- Without lyrics, the song is transcribed in stretches of singing cut where the separated voice
+  rests, instead of whole: passages a speech detector used to drop are transcribed now. Lines
+  the transcriber made up, which the aligner cannot hear where they were placed, are left out.
 - Better MP4 exports: songs keep their video as it came (`master.mp4`, up to 1080p, contract
   1.2.0) and the export draws on it instead of the player's 720p copy (36.9 → 43.3 dB XPSNR on a
   1080p clip, about the same time). Links now download at up to 1080p. Songs made before keep
@@ -62,6 +83,9 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ### Fixed
 
+- A one-letter word that opens a line («A avoa…» in the demo song) no longer lights up in the
+  intro, seconds before its line: resting between two words of a line through a silence now has
+  a small cost.
 - "All" in the song filters clears the saved filter too, and only lights up when nothing is
   filtered (it used to stay lit beside "Saved" and keep showing only the saved songs).
 - The download button of a finished video never showed on the create page with the real server:

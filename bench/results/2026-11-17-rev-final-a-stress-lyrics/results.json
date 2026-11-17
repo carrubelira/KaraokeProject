@@ -1,0 +1,1371 @@
+{
+  "bench_version": "3.0.0",
+  "normalization_version": 1,
+  "created": "2026-11-17T04:52:05+01:00",
+  "git_commit": "a85e232-dirty",
+  "pipeline": {
+    "name": "rev-final-a",
+    "description": "Mel-Band RoFormer (Kim, 8 s) + Whisper + lyrics aligner (each language's CTC model averaged half and half with the music model; resting between words of a line costs 0.05 per silent frame)",
+    "steps": {
+      "separator": {
+        "target": "karaoke_engine.separation:RoformerSeparator",
+        "params": {
+          "model": "vocals_mel_band_roformer.ckpt",
+          "segment_size": 801
+        },
+        "version": "2"
+      },
+      "transcriber": {
+        "target": "karaoke_engine.transcribe:WhisperTranscriber",
+        "params": {},
+        "version": "5"
+      },
+      "segmenter": {
+        "target": "karaoke_engine.transcribe:LineSegmenter",
+        "params": {},
+        "version": "2"
+      },
+      "aligner": {
+        "target": "karaoke_engine.align.aligner:LyricsAligner",
+        "params": {
+          "second": "music-w2vbert-ctc",
+          "second_weight": 0.5,
+          "rest_penalty": 0.05
+        },
+        "version": "14"
+      }
+    }
+  },
+  "set_name": "stress",
+  "mode": "lyrics",
+  "environment": {
+    "python": "3.12.16",
+    "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.8.5",
+    "demucs": "4.0.1",
+    "numpy": "2.5.4",
+    "jiwer": "4.0.0",
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "driver": "617.42",
+    "gpu_memory_mb": "4096"
+  },
+  "reference_kind": {
+    "de": "manual",
+    "en": "manual",
+    "es": "manual",
+    "fr": "manual"
+  },
+  "stages": {
+    "separator": {
+      "load_seconds": 8.475325442999747,
+      "vram_peak_mb": 2866.50390625,
+      "ram_peak_mb": 2345.6484375
+    },
+    "aligner": {
+      "load_seconds": 0.0974033890015562,
+      "vram_peak_mb": 2132.50390625,
+      "ram_peak_mb": 3968.3984375
+    }
+  },
+  "songs": [
+    {
+      "song_id": "adlib-der-musiker",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 270.829705,
+      "mode": "lyrics",
+      "group": "adlib",
+      "steps": {
+        "separator": {
+          "seconds": 55.81239211299908,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 20.37437996600056,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 347,
+        "coverage": 0.980225988700565,
+        "start_median": 0.020253967999991573,
+        "start_mean": 0.036617753740633474,
+        "start_within": 0.9913544668587896,
+        "start_within_wide": 0.9942363112391931,
+        "end_median": 0.062346939000008206,
+        "end_mean": 0.15846869507780983,
+        "start_bias": -0.005969515187319702
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11299435028248588,
+      "error": null
+    },
+    {
+      "song_id": "adlib-pas-que-tes-pas",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 202.413333,
+      "mode": "lyrics",
+      "group": "adlib",
+      "steps": {
+        "separator": {
+          "seconds": 41.566105534999224,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.107072011996934,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 236,
+        "coverage": 0.8805970149253731,
+        "start_median": 0.03051020400000226,
+        "start_mean": 0.03657817363135641,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.10553061200000968,
+        "end_mean": 0.14424392752542486,
+        "start_bias": -0.022515680860170112
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.32323232323232326,
+      "error": null
+    },
+    {
+      "song_id": "adlib-ridgway",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 283.930204,
+      "mode": "lyrics",
+      "group": "adlib",
+      "steps": {
+        "separator": {
+          "seconds": 58.48655947499719,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.115269615002035,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 234,
+        "coverage": 0.7697368421052632,
+        "start_median": 0.04660156175000907,
+        "start_mean": 0.3789725120367524,
+        "start_within": 0.9316239316239316,
+        "start_within_wide": 0.9358974358974359,
+        "end_median": 0.057667134899993755,
+        "end_mean": 0.5050123220252147,
+        "start_bias": -0.27987642045384603
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0002900232018561485,
+      "low_confidence": 0.2823529411764706,
+      "error": null
+    },
+    {
+      "song_id": "adlib-te-recuerdo",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 193.68,
+      "mode": "lyrics",
+      "group": "adlib",
+      "steps": {
+        "separator": {
+          "seconds": 40.10528916999829,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.811885734001407,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 450,
+        "coverage": 0.982532751091703,
+        "start_median": 0.02919501099999877,
+        "start_mean": 0.036546515506666426,
+        "start_within": 0.9955555555555555,
+        "start_within_wide": 0.9977777777777778,
+        "end_median": 0.09336734649999912,
+        "end_mean": 0.1306253464466668,
+        "start_bias": -0.011522852106666402
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.08315565031982942,
+      "error": null
+    },
+    {
+      "song_id": "echo-cafe-jenseitz",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 247.83678,
+      "mode": "lyrics",
+      "group": "echo",
+      "steps": {
+        "separator": {
+          "seconds": 50.34735844500028,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.990374626002449,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 87,
+        "coverage": 0.9456521739130435,
+        "start_median": 0.056238094999997656,
+        "start_mean": 0.07189829801149458,
+        "start_within": 0.9770114942528736,
+        "start_within_wide": 0.9885057471264368,
+        "end_median": 0.12437641699999347,
+        "end_mean": 0.15574306045976982,
+        "start_bias": 0.07142320224138003
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.15053763440860216,
+      "error": null
+    },
+    {
+      "song_id": "echo-cortez",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 240.561633,
+      "mode": "lyrics",
+      "group": "echo",
+      "steps": {
+        "separator": {
+          "seconds": 49.50705693800046,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.454198201998224,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 351,
+        "coverage": 0.9887323943661972,
+        "start_median": 0.07380388380000369,
+        "start_mean": 0.0802011678914525,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.09866780569998923,
+        "end_mean": 0.1829783233279204,
+        "start_bias": 0.07199729222136753
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.08192090395480225,
+      "error": null
+    },
+    {
+      "song_id": "echo-hablame",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 213.508753,
+      "mode": "lyrics",
+      "group": "echo",
+      "steps": {
+        "separator": {
+          "seconds": 43.80085897400204,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.215053031002753,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 105,
+        "coverage": 0.9905660377358491,
+        "start_median": 0.030396825000003957,
+        "start_mean": 0.04464189610476234,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.139648526000002,
+        "end_mean": 0.22002256775238282,
+        "start_bias": 0.013745275857141743
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2641509433962264,
+      "error": null
+    },
+    {
+      "song_id": "echo-mere-nature",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 225.272721,
+      "mode": "lyrics",
+      "group": "echo",
+      "steps": {
+        "separator": {
+          "seconds": 46.39318977899893,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.61108354099997,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 245,
+        "coverage": 0.9645669291338582,
+        "start_median": 0.03593650800000603,
+        "start_mean": 0.04543680874693927,
+        "start_within": 0.9959183673469387,
+        "start_within_wide": 0.9959183673469387,
+        "end_median": 0.14174603200000035,
+        "end_mean": 0.23576602340816316,
+        "start_bias": -0.02157860152244937
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10317460317460317,
+      "error": null
+    },
+    {
+      "song_id": "extra-lines-der-musiker",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 270.829705,
+      "mode": "lyrics",
+      "group": "extra-lines",
+      "steps": {
+        "separator": {
+          "seconds": 55.41792083999826,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.342611912001303,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 347,
+        "coverage": 0.980225988700565,
+        "start_median": 0.020253967999991573,
+        "start_mean": 0.036560116853025536,
+        "start_within": 0.9913544668587896,
+        "start_within_wide": 0.9942363112391931,
+        "end_median": 0.06238775500000315,
+        "end_mean": 0.15887215329106624,
+        "start_bias": -0.005911878299711603
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11299435028248588,
+      "error": null
+    },
+    {
+      "song_id": "extra-lines-esencia",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 261.6,
+      "mode": "lyrics",
+      "group": "extra-lines",
+      "steps": {
+        "separator": {
+          "seconds": 53.88711274600064,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.445290783998644,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 328,
+        "coverage": 0.9820359281437125,
+        "start_median": 0.02343537400000173,
+        "start_mean": 0.03291570571951257,
+        "start_within": 0.9969512195121951,
+        "start_within_wide": 1.0,
+        "end_median": 0.101472789000006,
+        "end_mean": 0.1416066381981705,
+        "start_bias": 0.0013927534390241517
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1317365269461078,
+      "error": null
+    },
+    {
+      "song_id": "extra-lines-kinematic",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 183.373333,
+      "mode": "lyrics",
+      "group": "extra-lines",
+      "steps": {
+        "separator": {
+          "seconds": 37.563462757003435,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.971676279998064,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 138,
+        "coverage": 0.9387755102040817,
+        "start_median": 0.05313889024999696,
+        "start_mean": 0.06147954347173926,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0988437370499966,
+        "end_mean": 0.17635913488333246,
+        "start_bias": 0.04748391059347816
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0027839643652561247,
+      "low_confidence": 0.20279720279720279,
+      "error": null
+    },
+    {
+      "song_id": "extra-lines-mere-nature",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 225.272721,
+      "mode": "lyrics",
+      "group": "extra-lines",
+      "steps": {
+        "separator": {
+          "seconds": 46.48121518300104,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.840509195000777,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 245,
+        "coverage": 0.9645669291338582,
+        "start_median": 0.03593650800000603,
+        "start_mean": 0.042111888575510806,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.13503174599999568,
+        "end_mean": 0.2355538433020408,
+        "start_bias": -0.02443982601224544
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.06349206349206349,
+      "error": null
+    },
+    {
+      "song_id": "gap-capotes",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 217.963,
+      "mode": "lyrics",
+      "group": "gap",
+      "steps": {
+        "separator": {
+          "seconds": 45.44828437600154,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.415203576998465,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 239,
+        "coverage": 0.9755102040816327,
+        "start_median": 0.02499546499999994,
+        "start_mean": 0.03719166214644283,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08299999999999841,
+        "end_mean": 0.11431733697071195,
+        "start_bias": 0.005335458606694473
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10887096774193548,
+      "error": null
+    },
+    {
+      "song_id": "gap-esencia",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 291.6,
+      "mode": "lyrics",
+      "group": "gap",
+      "steps": {
+        "separator": {
+          "seconds": 60.41824324300251,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.818324668998685,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 328,
+        "coverage": 0.9820359281437125,
+        "start_median": 0.023251700500011907,
+        "start_mean": 0.033175840649389894,
+        "start_within": 0.9969512195121951,
+        "start_within_wide": 1.0,
+        "end_median": 0.10123469400000573,
+        "end_mean": 0.14075870388414502,
+        "start_bias": 0.0009229508932931816
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.12574850299401197,
+      "error": null
+    },
+    {
+      "song_id": "gap-keine-lust",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 258.551,
+      "mode": "lyrics",
+      "group": "gap",
+      "steps": {
+        "separator": {
+          "seconds": 53.42604442299853,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.156767453001521,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 506,
+        "coverage": 0.9583333333333334,
+        "start_median": 0.015999999999991132,
+        "start_mean": 0.019445896393279833,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06677550999998516,
+        "end_mean": 0.10122214604545468,
+        "start_bias": 0.002475249381423141
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.017110266159695818,
+      "error": null
+    },
+    {
+      "song_id": "gap-kinematic",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 213.373,
+      "mode": "lyrics",
+      "group": "gap",
+      "steps": {
+        "separator": {
+          "seconds": 43.98483927900088,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.974298896999244,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 138,
+        "coverage": 0.9387755102040817,
+        "start_median": 0.052500000000009095,
+        "start_mean": 0.061638266518841106,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.09669387749999814,
+        "end_mean": 0.1725038002057972,
+        "start_bias": 0.047910251636232234
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0027397260273972603,
+      "low_confidence": 0.22377622377622378,
+      "error": null
+    },
+    {
+      "song_id": "missing-line-baila",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 210.481451,
+      "mode": "lyrics",
+      "group": "missing-line",
+      "steps": {
+        "separator": {
+          "seconds": 43.279661055999895,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.57589899499726,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 271,
+        "coverage": 0.9609929078014184,
+        "start_median": 0.019482992999996895,
+        "start_mean": 0.025757143719556955,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08111564600000065,
+        "end_mean": 0.10576085048339608,
+        "start_bias": 0.0018330028191880004
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.24100719424460432,
+      "error": null
+    },
+    {
+      "song_id": "missing-line-le-musee",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 184.203129,
+      "mode": "lyrics",
+      "group": "missing-line",
+      "steps": {
+        "separator": {
+          "seconds": 38.037150506002945,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.169893957001477,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 234,
+        "coverage": 0.9140625,
+        "start_median": 0.01983900249999948,
+        "start_mean": 0.027731515418803733,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08595011350000448,
+        "end_mean": 0.1028122565384614,
+        "start_bias": -0.003295559820513075
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.08571428571428572,
+      "error": null
+    },
+    {
+      "song_id": "missing-line-sehnsucht",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 233.44,
+      "mode": "lyrics",
+      "group": "missing-line",
+      "steps": {
+        "separator": {
+          "seconds": 47.902944074001425,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.911805823001487,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 141,
+        "coverage": 0.9337748344370861,
+        "start_median": 0.028551019999980554,
+        "start_mean": 0.03879434231205655,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0950816330000066,
+        "end_mean": 0.1576368505035456,
+        "start_bias": 0.019796481234042443
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.15753424657534246,
+      "error": null
+    },
+    {
+      "song_id": "missing-line-the-rinn",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 231.224308,
+      "mode": "lyrics",
+      "group": "missing-line",
+      "steps": {
+        "separator": {
+          "seconds": 47.16871299600098,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.720986546999484,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 186,
+        "coverage": 0.916256157635468,
+        "start_median": 0.06768028694999373,
+        "start_mean": 0.07854954931774132,
+        "start_within": 0.989247311827957,
+        "start_within_wide": 1.0,
+        "end_median": 0.11995694930001832,
+        "end_mean": 0.2023642533510755,
+        "start_bias": 0.06923946097795615
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.3386243386243386,
+      "error": null
+    },
+    {
+      "song_id": "web-1-freak",
+      "set_name": "stress",
+      "language": "de",
+      "duration": 188.4,
+      "mode": "lyrics",
+      "group": "web",
+      "steps": {
+        "separator": {
+          "seconds": 38.80012161400009,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.342882016997464,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 359,
+        "coverage": 0.9782016348773842,
+        "start_median": 0.04757142899998712,
+        "start_mean": 0.05369734478551493,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.045886620999993966,
+        "end_mean": 0.08956813147910844,
+        "start_bias": 0.05030304782729753
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11748633879781421,
+      "error": null
+    },
+    {
+      "song_id": "web-10-disparan",
+      "set_name": "stress",
+      "language": "es",
+      "duration": 160.0,
+      "mode": "lyrics",
+      "group": "web",
+      "steps": {
+        "separator": {
+          "seconds": 32.27093368399801,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 8.889934934999474,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 194,
+        "coverage": 1.0,
+        "start_median": 0.024026076999987822,
+        "start_mean": 0.034657269108247075,
+        "start_within": 0.9948453608247423,
+        "start_within_wide": 1.0,
+        "end_median": 0.09054761899999875,
+        "end_mean": 0.12257671179896909,
+        "start_bias": 0.00818142926288829
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.18041237113402062,
+      "error": null
+    },
+    {
+      "song_id": "web-confession",
+      "set_name": "stress",
+      "language": "fr",
+      "duration": 147.795011,
+      "mode": "lyrics",
+      "group": "web",
+      "steps": {
+        "separator": {
+          "seconds": 29.770967730000848,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.519828602999041,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 293,
+        "coverage": 0.8720238095238095,
+        "start_median": 0.029918366999993395,
+        "start_mean": 0.04054711987372034,
+        "start_within": 0.9931740614334471,
+        "start_within_wide": 0.9931740614334471,
+        "end_median": 0.07061224499999952,
+        "end_mean": 0.11023989846757692,
+        "start_bias": -0.02439967340955605
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0017618040873854828,
+      "low_confidence": 0.20064724919093851,
+      "error": null
+    },
+    {
+      "song_id": "web-wordsmith",
+      "set_name": "stress",
+      "language": "en",
+      "duration": 171.2,
+      "mode": "lyrics",
+      "group": "web",
+      "steps": {
+        "separator": {
+          "seconds": 34.70336822099853,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.91550891800216,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 526,
+        "coverage": 0.9053356282271945,
+        "start_median": 0.04720080029999352,
+        "start_mean": 0.05069670751406839,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.03678291339999795,
+        "end_mean": 0.052738874617680016,
+        "start_bias": 0.047079453101520646
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.23752151462994836,
+      "error": null
+    }
+  ],
+  "summary": {
+    "all": {
+      "songs": 24,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 6528,
+        "coverage": 0.9455388180764774,
+        "start_median": 0.030338962699996586,
+        "start_mean": 0.05440980204208014,
+        "start_within": 0.9947916666666666,
+        "start_within_wide": 0.9963235294117647,
+        "end_median": 0.07976530599999876,
+        "end_mean": 0.15093821339866734,
+        "start_bias": 0.0016311886275275525
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20587007099142013,
+        "aligner": 0.054566676180391196
+      },
+      "est_seconds_4min": 71.07754815323602,
+      "outside_voice": 0.000315646570078959,
+      "low_confidence": 0.1644580413769318
+    },
+    "adlib": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1267,
+        "coverage": 0.9154624277456648,
+        "start_median": 0.029421769000002485,
+        "start_mean": 0.09981397736353582,
+        "start_within": 0.9834254143646409,
+        "start_within_wide": 0.9857932123125493,
+        "end_median": 0.0775102039999922,
+        "end_mean": 0.20993251250426248,
+        "start_bias": -0.06161127725903704
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20603424963958294,
+        "aligner": 0.06040010733754869
+      },
+      "est_seconds_4min": 72.5169745065129,
+      "outside_voice": 0.00007250580046403712,
+      "low_confidence": 0.20043381625277729
+    },
+    "echo": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 788,
+        "coverage": 0.976456009913259,
+        "start_median": 0.04759596979999969,
+        "start_mean": 0.06373753691738582,
+        "start_within": 0.9961928934010152,
+        "start_within_wide": 0.9974619289340102,
+        "end_median": 0.1232585030000024,
+        "end_mean": 0.20131990240748757,
+        "start_bias": 0.035077874056725696
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.2054728231397891,
+        "aligner": 0.0542278241028058
+      },
+      "est_seconds_4min": 70.90088417022407,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1499460212335585
+    },
+    "extra-lines": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1058,
+        "coverage": 0.9715335169880625,
+        "start_median": 0.026830050900009894,
+        "start_mean": 0.039966258718431145,
+        "start_within": 0.996219281663516,
+        "start_within_wide": 0.998109640831758,
+        "end_median": 0.09132766449999963,
+        "end_mean": 0.17355753000368598,
+        "start_bias": -0.0009731345492439985
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20541870684259006,
+        "aligner": 0.05275941125468004
+      },
+      "est_seconds_4min": 70.53547717534613,
+      "outside_voice": 0.0006959910913140312,
+      "low_confidence": 0.127755035879465
+    },
+    "gap": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1211,
+        "coverage": 0.9657097288676236,
+        "start_median": 0.021000000000015007,
+        "start_mean": 0.031474968902229054,
+        "start_within": 0.9991742361684558,
+        "start_within_wide": 1.0,
+        "end_median": 0.0800000000000125,
+        "end_mean": 0.1226380088665564,
+        "start_bias": 0.007796856657968869
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.2069160041336252,
+        "aligner": 0.05190233543882977
+      },
+      "est_seconds_4min": 70.68913032939051,
+      "outside_voice": 0.0006849315068493151,
+      "low_confidence": 0.11887649016796677
+    },
+    "missing-line": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 832,
+        "coverage": 0.9327354260089686,
+        "start_median": 0.027534013500002175,
+        "start_mean": 0.040324013215264264,
+        "start_within": 0.9975961538461539,
+        "start_within_wide": 1.0,
+        "end_median": 0.09334467149998904,
+        "end_mean": 0.13531947783088977,
+        "start_bias": 0.018504118223437158
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20541336683289818,
+        "aligner": 0.053012255098444996
+      },
+      "est_seconds_4min": 70.59487809552365,
+      "outside_voice": 0.0,
+      "low_confidence": 0.20572001628964276
+    },
+    "web": {
+      "songs": 4,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 1372,
+        "coverage": 0.9282814614343707,
+        "start_median": 0.038561224500000435,
+        "start_mean": 0.04704637846967918,
+        "start_within": 0.9978134110787172,
+        "start_within_wide": 0.9985422740524781,
+        "end_median": 0.05153174600000554,
+        "end_mean": 0.08453045159613679,
+        "start_bias": 0.027157929642419882
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20219996280045677,
+        "aligner": 0.06702381964485692
+      },
+      "est_seconds_4min": 73.18643661887658,
+      "outside_voice": 0.0004404510218463707,
+      "low_confidence": 0.18401686843818044
+    }
+  },
+  "notes": []
+}

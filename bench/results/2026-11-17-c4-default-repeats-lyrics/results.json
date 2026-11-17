@@ -1,0 +1,4203 @@
+{
+  "bench_version": "3.0.0",
+  "normalization_version": 1,
+  "created": "2026-11-17T11:16:22+01:00",
+  "git_commit": "a85e232-dirty",
+  "pipeline": {
+    "name": "c4-default",
+    "description": "Mel-Band RoFormer (Kim, 8 s) + Whisper by stretches of singing (HiTZ large-v3 for Galician, large-v3-turbo otherwise) + lyrics aligner (each language's CTC model with the music model as a second listener)",
+    "steps": {
+      "separator": {
+        "target": "karaoke_engine.separation:RoformerSeparator",
+        "params": {
+          "model": "vocals_mel_band_roformer.ckpt",
+          "segment_size": 801
+        },
+        "version": "2"
+      },
+      "transcriber": {
+        "target": "karaoke_engine.transcribe:WhisperTranscriber",
+        "params": {},
+        "version": "6"
+      },
+      "segmenter": {
+        "target": "karaoke_engine.transcribe:LineSegmenter",
+        "params": {},
+        "version": "2"
+      },
+      "aligner": {
+        "target": "karaoke_engine.align.aligner:LyricsAligner",
+        "params": {},
+        "version": "16"
+      }
+    }
+  },
+  "set_name": "repeats",
+  "mode": "lyrics",
+  "environment": {
+    "python": "3.12.16",
+    "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "torch": "2.14.1+cu130",
+    "transformers": "5.22.1",
+    "faster-whisper": "1.2.1",
+    "ctranslate2": "4.8.5",
+    "demucs": "4.0.1",
+    "numpy": "2.5.4",
+    "jiwer": "4.0.0",
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "driver": "617.42",
+    "gpu_memory_mb": "4096"
+  },
+  "reference_kind": {
+    "de": "manual",
+    "en": "manual",
+    "es": "manual",
+    "fr": "manual"
+  },
+  "stages": {
+    "separator": {
+      "load_seconds": 7.165013368000018,
+      "vram_peak_mb": 2866.50390625,
+      "ram_peak_mb": 2388.078125
+    },
+    "aligner": {
+      "load_seconds": 0.07503657400229713,
+      "vram_peak_mb": 2132.50390625,
+      "ram_peak_mb": 4158.30859375
+    }
+  },
+  "songs": [
+    {
+      "song_id": "marked-10._Disparan_-_criatura",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 160.0,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 32.06555318699975,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.018882601005316,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 194,
+        "coverage": 1.0,
+        "start_median": 0.023557822999990208,
+        "start_mean": 0.03368355660309254,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08482539699999592,
+        "end_mean": 0.10790771911855705,
+        "start_bias": 0.009423697304125291
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2268041237113402,
+      "error": null
+    },
+    {
+      "song_id": "marked-1_Freak_-_Automatisch_Gekommen",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 188.4,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 38.683686228999704,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 21.090838190000795,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 355,
+        "coverage": 0.9673024523160763,
+        "start_median": 0.043936508000001595,
+        "start_mean": 0.0513682662845069,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.040430839000009655,
+        "end_mean": 0.07495973696901408,
+        "start_bias": 0.047932644943661555
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.212707182320442,
+      "error": null
+    },
+    {
+      "song_id": "marked-Besando_Sapos_-_Dream_Tabu",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 250.530612,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 51.548178011000346,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.741243811004097,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 228,
+        "coverage": 1.0,
+        "start_median": 0.03122222200000202,
+        "start_mean": 0.03774940329824514,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.16366326499999673,
+        "end_mean": 0.24253055255263106,
+        "start_bias": -0.009372966140351206
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.19298245614035087,
+      "error": null
+    },
+    {
+      "song_id": "marked-Bitte_beweg_dich_nicht_-_Bukto",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 273.356327,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 56.052248006999434,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 29.337254481004493,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 349,
+        "coverage": 0.9886685552407932,
+        "start_median": 0.036471654999999714,
+        "start_mean": 0.04323667883954186,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0915238099999982,
+        "end_mean": 0.1222101501518619,
+        "start_bias": 0.03205895690830962
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.21813031161473087,
+      "error": null
+    },
+    {
+      "song_id": "marked-Burn_Out_Man_-_Abendblau",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 259.860816,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 52.69645597300041,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 18.637986229005037,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 286,
+        "coverage": 0.8666666666666667,
+        "start_median": 0.03891043050000631,
+        "start_mean": 0.048371977206294416,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06467913799998826,
+        "end_mean": 0.10002785801748264,
+        "start_bias": 0.043934938052447706
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00017310022503029253,
+      "low_confidence": 0.0641025641025641,
+      "error": null
+    },
+    {
+      "song_id": "marked-CHRISTMAS_AVEC_TOI_-_imfreshyourepretty",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 233.63322,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 48.18506098600119,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 26.32352015699871,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 225,
+        "coverage": 0.6428571428571429,
+        "start_median": 0.03459863900000215,
+        "start_mean": 0.052228269071110674,
+        "start_within": 0.9955555555555555,
+        "start_within_wide": 0.9955555555555555,
+        "end_median": 0.11279138300000113,
+        "end_mean": 0.17201462333777806,
+        "start_bias": 0.012286601195555625
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.41015625,
+      "error": null
+    },
+    {
+      "song_id": "marked-CLUB_DESTINO__-_Pensando_en_ti_-_CLUB_DESTINO",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 218.97381,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 44.46447702899968,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.72322476500267,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 204,
+        "coverage": 1.0,
+        "start_median": 0.03666326500000139,
+        "start_mean": 0.04505752298039148,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.1049795919999923,
+        "end_mean": 0.19824230803431336,
+        "start_bias": 0.027599606490196268
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10679611650485436,
+      "error": null
+    },
+    {
+      "song_id": "marked-Confession_-_Quesabe",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 147.795011,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 29.79633102600019,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.7198565600047,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 293,
+        "coverage": 0.8720238095238095,
+        "start_median": 0.029469387999995433,
+        "start_mean": 0.03988305355972708,
+        "start_within": 0.9931740614334471,
+        "start_within_wide": 0.9931740614334471,
+        "end_median": 0.06263265300000143,
+        "end_mean": 0.09606859218088787,
+        "start_bias": -0.023717079552900894
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0016072002571520412,
+      "low_confidence": 0.284789644012945,
+      "error": null
+    },
+    {
+      "song_id": "marked-Cortez_-_Feel__Stripped_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 240.561633,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 49.200680592000026,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 21.109876269998495,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 351,
+        "coverage": 0.9887323943661972,
+        "start_median": 0.06678670140001941,
+        "start_mean": 0.0778357550082616,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08031933679999881,
+        "end_mean": 0.15096071163504304,
+        "start_bias": 0.06926224948632488
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.12429378531073447,
+      "error": null
+    },
+    {
+      "song_id": "marked-Culture_&_Co._-_cool.cavemen",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 212.036689,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 43.826988830998744,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.225631427994813,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 124,
+        "coverage": 0.9393939393939394,
+        "start_median": 0.0317664399999984,
+        "start_mean": 0.06307537854032415,
+        "start_within": 0.9838709677419355,
+        "start_within_wide": 0.9919354838709677,
+        "end_median": 0.11446485249999938,
+        "end_mean": 0.21753207520967666,
+        "start_bias": 0.014551568959677758
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.6230769230769231,
+      "error": null
+    },
+    {
+      "song_id": "marked-DON_VALDES_-_Tu_sais_Man",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 209.132041,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 42.78754169499916,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.891460564998852,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 403,
+        "coverage": 0.7980198019801981,
+        "start_median": 0.026863946000005967,
+        "start_mean": 0.060860884652605106,
+        "start_within": 0.9727047146401985,
+        "start_within_wide": 0.9751861042183623,
+        "end_median": 0.11773242600000344,
+        "end_mean": 0.22371553484367218,
+        "start_bias": 0.022299550444168804
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00043001505052676843,
+      "low_confidence": 0.41964285714285715,
+      "error": null
+    },
+    {
+      "song_id": "marked-Der_Baum_-_Dienstag_is_Damensauna_(2)",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 209.247007,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 42.72359971900005,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.350156770000467,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 212,
+        "coverage": 0.954954954954955,
+        "start_median": 0.027456916499990436,
+        "start_mean": 0.0486638536084901,
+        "start_within": 0.9952830188679245,
+        "start_within_wide": 0.9952830188679245,
+        "end_median": 0.08521882100000244,
+        "end_mean": 0.09246366531132233,
+        "start_bias": 0.005039436542451803
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10599078341013825,
+      "error": null
+    },
+    {
+      "song_id": "marked-Die_Revolution_gehört_Dir!_-_partysahnen",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 167.476644,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 33.7979775040003,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.032682969002053,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 146,
+        "coverage": 0.9358974358974359,
+        "start_median": 0.029948979500002082,
+        "start_mean": 0.1877154040273975,
+        "start_within": 0.9383561643835616,
+        "start_within_wide": 0.9383561643835616,
+        "end_median": 0.09032993200000305,
+        "end_mean": 0.36129989439725985,
+        "start_bias": -0.1217307178356163
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.423841059602649,
+      "error": null
+    },
+    {
+      "song_id": "marked-Drei_Nüsse_-_patrouille",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 259.130272,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 52.48814508800024,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 23.659046419001243,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 511,
+        "coverage": 0.9845857418111753,
+        "start_median": 0.02623129299999505,
+        "start_mean": 0.031218312749510976,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08634920599999774,
+        "end_mean": 0.09282804603522524,
+        "start_bias": 0.0024619282876713793
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.04633204633204633,
+      "error": null
+    },
+    {
+      "song_id": "marked-Esencia_-_NandoMalo_",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 261.6,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 53.370051714000056,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 34.23379233200103,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 328,
+        "coverage": 0.9820359281437125,
+        "start_median": 0.023010204000001977,
+        "start_mean": 0.031430507164634594,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.09561224500000165,
+        "end_mean": 0.1316483256067072,
+        "start_bias": 0.002670192463414354
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.17964071856287425,
+      "error": null
+    },
+    {
+      "song_id": "marked-Explosive_Ear_Candy_-_Like_The_Sun",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 192.921655,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 39.45272312199995,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 18.066796270999475,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 264,
+        "coverage": 0.9962264150943396,
+        "start_median": 0.04907176914999667,
+        "start_mean": 0.05540966104696961,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06918863144999676,
+        "end_mean": 0.0992532267075765,
+        "start_bias": 0.044321926132575455
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0039001560062402497,
+      "low_confidence": 0.25,
+      "error": null
+    },
+    {
+      "song_id": "marked-Fantasma_-_Los_Rombos",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 166.013583,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 33.76548528299827,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.191173129998788,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 78,
+        "coverage": 0.8863636363636364,
+        "start_median": 0.050384353500000145,
+        "start_mean": 0.08883969998718062,
+        "start_within": 0.9358974358974359,
+        "start_within_wide": 0.9743589743589743,
+        "end_median": 0.19800793649999449,
+        "end_mean": 0.22855479974358944,
+        "start_bias": 0.05331623929487268
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.003898635477582846,
+      "low_confidence": 0.25806451612903225,
+      "error": null
+    },
+    {
+      "song_id": "marked-Fußabdrücke_-_Andreas_Jachmann",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 241.487528,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 49.83980973600046,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 16.395249842993508,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 154,
+        "coverage": 1.0,
+        "start_median": 0.022570295000001295,
+        "start_mean": 0.03186182527922067,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.11246485299999165,
+        "end_mean": 0.14833264127921966,
+        "start_bias": 0.010009600409090314
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0002452182442373713,
+      "low_confidence": 0.012987012987012988,
+      "error": null
+    },
+    {
+      "song_id": "marked-Guayeteo_-_JhoyKing",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 157.709932,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 32.296208862999265,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.27583761200367,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 288,
+        "coverage": 0.8470588235294118,
+        "start_median": 0.026645124500007,
+        "start_mean": 0.0310547367361114,
+        "start_within": 0.9965277777777778,
+        "start_within_wide": 1.0,
+        "end_median": 0.09627550999999812,
+        "end_mean": 0.10894857804861073,
+        "start_bias": -0.013578498979166999
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.21676300578034682,
+      "error": null
+    },
+    {
+      "song_id": "marked-Intentando_Destacar_-_Sundayers_",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 220.023424,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 45.48732661400027,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.881686526001431,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 181,
+        "coverage": 0.8080357142857143,
+        "start_median": 0.023410431000002063,
+        "start_mean": 0.03232220844198947,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0678117909999969,
+        "end_mean": 0.09541185903867463,
+        "start_bias": 0.00698784780110436
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.18781725888324874,
+      "error": null
+    },
+    {
+      "song_id": "marked-Keine_Lust_-_Jonny_M",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 228.551088,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 46.78962749399989,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 26.818832532997476,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 506,
+        "coverage": 0.9583333333333334,
+        "start_median": 0.01564966000000112,
+        "start_mean": 0.018790572079050695,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06099659849999739,
+        "end_mean": 0.0906595323399209,
+        "start_bias": 0.0010974832450592422
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.043726235741444866,
+      "error": null
+    },
+    {
+      "song_id": "marked-LUNABLIND_-_Vision__Radio_Edit_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 220.714286,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 45.59484684199924,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 23.534333620002144,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 287,
+        "coverage": 0.9965277777777778,
+        "start_median": 0.06383267779997936,
+        "start_mean": 0.07389027691358872,
+        "start_within": 0.9930313588850174,
+        "start_within_wide": 0.9930313588850174,
+        "end_median": 0.07592063499999568,
+        "end_mean": 0.12596507967073153,
+        "start_bias": 0.05084890089059202
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1152542372881356,
+      "error": null
+    },
+    {
+      "song_id": "marked-La_rumba_del_coronavirus_-_Rich_Don_Jeri",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 187.2,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 38.39402013199833,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 19.92576201400516,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 224,
+        "coverage": 1.0,
+        "start_median": 0.027988662499994987,
+        "start_mean": 0.03738068917410616,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.09520408150000037,
+        "end_mean": 0.18451045719196477,
+        "start_bias": 0.021078737415178496
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.04888888888888889,
+      "error": null
+    },
+    {
+      "song_id": "marked-Les_files_d'attente_-_Law'",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 195.595238,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 39.92689059500117,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.475750322999374,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 212,
+        "coverage": 0.664576802507837,
+        "start_median": 0.030469388000000208,
+        "start_mean": 0.0417820027405663,
+        "start_within": 0.9952830188679245,
+        "start_within_wide": 0.9952830188679245,
+        "end_median": 0.07985714249998921,
+        "end_mean": 0.1860704980141504,
+        "start_bias": -0.008110907882076007
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.288,
+      "error": null
+    },
+    {
+      "song_id": "marked-Libre_by_CybeR_AttaCK_-_CyberAttacK",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 216.93102,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 44.37402816699978,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 22.88089289599884,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 383,
+        "coverage": 0.964735516372796,
+        "start_median": 0.028682539999991263,
+        "start_mean": 0.046619112736292406,
+        "start_within": 0.9895561357702349,
+        "start_within_wide": 0.9973890339425587,
+        "end_median": 0.05030612200000206,
+        "end_mean": 0.06641783153263683,
+        "start_bias": 0.009045381086161972
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.3486005089058524,
+      "error": null
+    },
+    {
+      "song_id": "marked-Lower_Loveday_-_Is_It_Right_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 180.061497,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 37.002956668999104,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.907439085000078,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 205,
+        "coverage": 0.9669811320754716,
+        "start_median": 0.057036585299997,
+        "start_mean": 0.06715217373268288,
+        "start_within": 0.9951219512195122,
+        "start_within_wide": 0.9951219512195122,
+        "end_median": 0.0828245308999982,
+        "end_mean": 0.13703559037317023,
+        "start_bias": 0.05313360196292639
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.16981132075471697,
+      "error": null
+    },
+    {
+      "song_id": "marked-Mes_Larmes_-_kobzx2z",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 158.815011,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 32.065499002999786,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 21.324404387996765,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 247,
+        "coverage": 0.6365979381443299,
+        "start_median": 0.02302040800000782,
+        "start_mean": 0.07637524212145773,
+        "start_within": 0.979757085020243,
+        "start_within_wide": 0.9838056680161943,
+        "end_median": 0.061469387999999014,
+        "end_mean": 0.16850119805263206,
+        "start_bias": -0.015975910477733415
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.3900709219858156,
+      "error": null
+    },
+    {
+      "song_id": "marked-Moon_I_Mean_-_Wrong_Concept",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 219.995669,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 44.647524661000716,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 16.696784865001973,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 259,
+        "coverage": 0.9522058823529411,
+        "start_median": 0.051522549299988896,
+        "start_mean": 0.0698030123324319,
+        "start_within": 0.9961389961389961,
+        "start_within_wide": 0.9961389961389961,
+        "end_median": 0.11527996790002248,
+        "end_mean": 0.2033707499343631,
+        "start_bias": 0.06070302297721939
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.5451127819548872,
+      "error": null
+    },
+    {
+      "song_id": "marked-Mère_nature_-_Law'",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 225.272721,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 46.193031981999866,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.78555884299567,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 245,
+        "coverage": 0.9645669291338582,
+        "start_median": 0.037142856999999196,
+        "start_mean": 0.043512841889796705,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.12463492099999485,
+        "end_mean": 0.2144624647061225,
+        "start_bias": -0.027133703563266064
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1388888888888889,
+      "error": null
+    },
+    {
+      "song_id": "marked-Palabras_-_Javier_Gomez_Bello",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 216.224218,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 44.183217498000886,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 18.64323445300397,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 211,
+        "coverage": 0.9952830188679245,
+        "start_median": 0.030619047999998372,
+        "start_mean": 0.04275652059715618,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.10648299300000019,
+        "end_mean": 0.18797177893838862,
+        "start_bias": 0.027898475023696856
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00020977554017201594,
+      "low_confidence": 0.04245283018867924,
+      "error": null
+    },
+    {
+      "song_id": "marked-Pluie_d'entre_deux_saisons_-_Midnight_Prefou",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 205.026667,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 41.82930338699953,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 17.053801422000106,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 122,
+        "coverage": 0.9104477611940298,
+        "start_median": 0.044166666499990015,
+        "start_mean": 0.0956506077704936,
+        "start_within": 0.9590163934426229,
+        "start_within_wide": 0.9590163934426229,
+        "end_median": 0.20281746000000211,
+        "end_mean": 0.4099187948524612,
+        "start_bias": -0.03594067134426187
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0003624501631025734,
+      "low_confidence": 0.2846153846153846,
+      "error": null
+    },
+    {
+      "song_id": "marked-Pure_Mids_-_The_Leader",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 262.4,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 53.63023414899908,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.882440440997016,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 82,
+        "coverage": 0.7192982456140351,
+        "start_median": 0.07660431234998555,
+        "start_mean": 0.0836326967341459,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.16576316060000096,
+        "end_mean": 0.3169547279548768,
+        "start_bias": 0.07988385441707306
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.006058158319870759,
+      "low_confidence": 0.7837837837837838,
+      "error": null
+    },
+    {
+      "song_id": "marked-Quentin_Hannappe_-_Keep_On",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 189.84,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 39.10790307800016,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.960054451999895,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 168,
+        "coverage": 0.96,
+        "start_median": 0.044257627900002205,
+        "start_mean": 0.04950262239226192,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.05137723610000222,
+        "end_mean": 0.08239344264166719,
+        "start_bias": 0.045288943718452344
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.23563218390804597,
+      "error": null
+    },
+    {
+      "song_id": "marked-Ridgway_-_Fire_Inside",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 283.930204,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 57.31632783000009,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 26.249990934004018,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 228,
+        "coverage": 0.75,
+        "start_median": 0.04684782205000104,
+        "start_mean": 0.47801939184078934,
+        "start_within": 0.9166666666666666,
+        "start_within_wide": 0.9210526315789473,
+        "end_median": 0.04832120694999631,
+        "end_mean": 0.551284496909212,
+        "start_bias": -0.3803776420390344
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.340080971659919,
+      "error": null
+    },
+    {
+      "song_id": "marked-Rxbyn_-_Bad_Side",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 216.555238,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 44.67283436800062,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.372073247999651,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 419,
+        "coverage": 0.9522727272727273,
+        "start_median": 0.053436373200000276,
+        "start_mean": 0.07909233108233858,
+        "start_within": 0.9928400954653938,
+        "start_within_wide": 0.9928400954653938,
+        "end_median": 0.047889059100000964,
+        "end_mean": 0.12440604690763778,
+        "start_bias": 0.05780982300453434
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.22300469483568075,
+      "error": null
+    },
+    {
+      "song_id": "marked-Schnodderdodder_-_Abendblau",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 196.960703,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 40.66666653500033,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 17.37372117099585,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 279,
+        "coverage": 0.9587628865979382,
+        "start_median": 0.021637187999999696,
+        "start_mean": 0.032854143799282746,
+        "start_within": 0.992831541218638,
+        "start_within_wide": 1.0,
+        "end_median": 0.07096598600000448,
+        "end_mean": 0.1293945497096771,
+        "start_bias": -0.002482326745518783
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1404109589041096,
+      "error": null
+    },
+    {
+      "song_id": "marked-Slingshot_Miracle_-_Whistler",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 229.224762,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 47.267207511999004,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.085895623000397,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 160,
+        "coverage": 0.9876543209876543,
+        "start_median": 0.06711522755000487,
+        "start_mean": 0.08403817040624954,
+        "start_within": 0.99375,
+        "start_within_wide": 1.0,
+        "end_median": 0.12577031760000068,
+        "end_mean": 0.36251141859437536,
+        "start_bias": 0.07922438435375015
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.25153374233128833,
+      "error": null
+    },
+    {
+      "song_id": "marked-Séculaire_feat._Nÿme_-_saru",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 158.92,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 32.116263323001476,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.034908442001324,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 304,
+        "coverage": 0.881159420289855,
+        "start_median": 0.023833333499999387,
+        "start_mean": 0.13611376655921031,
+        "start_within": 0.9736842105263158,
+        "start_within_wide": 0.9736842105263158,
+        "end_median": 0.04534920650000629,
+        "end_mean": 0.15258084941118408,
+        "start_bias": -0.10364888409868384
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0008491367110104727,
+      "low_confidence": 0.229607250755287,
+      "error": null
+    },
+    {
+      "song_id": "marked-Vente_-_Fafarulo_Calabaza",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 336.0,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 68.7717083080006,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 24.158196522999788,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 494,
+        "coverage": 0.9782178217821782,
+        "start_median": 0.03280158750000339,
+        "start_mean": 0.04063105105263137,
+        "start_within": 0.9959514170040485,
+        "start_within_wide": 0.9959514170040485,
+        "end_median": 0.09929478449998896,
+        "end_mean": 0.16822146480162015,
+        "start_bias": 0.006845726975708101
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.000453035336756267,
+      "low_confidence": 0.09233791748526522,
+      "error": null
+    },
+    {
+      "song_id": "marked-Wordsmith_-_The_Statement",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 171.2,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 34.20609783900022,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 36.036880659004964,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 468,
+        "coverage": 0.8055077452667814,
+        "start_median": 0.06049312699999909,
+        "start_mean": 0.5214923406549145,
+        "start_within": 0.8504273504273504,
+        "start_within_wide": 0.8504273504273504,
+        "end_median": 0.04047439045000267,
+        "end_mean": 0.5124196346309825,
+        "start_bias": 0.5179798788886751
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.29366602687140114,
+      "error": null
+    },
+    {
+      "song_id": "marked-Yuanan_-_Miedo_-_Yuanan",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 169.221497,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 34.675366383002256,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.988058191003802,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 244,
+        "coverage": 0.9104477611940298,
+        "start_median": 0.026527211000001216,
+        "start_mean": 0.03305092746311426,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0959297050000032,
+        "end_mean": 0.16654263782377093,
+        "start_bias": 0.003980799954917765
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11372549019607843,
+      "error": null
+    },
+    {
+      "song_id": "marked-de_bonne_humeur_-_Le_Nez_Tordu",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 161.152948,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 33.265312076000555,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.937355624999327,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 258,
+        "coverage": 0.9699248120300752,
+        "start_median": 0.02965306099999765,
+        "start_mean": 0.03962908470155096,
+        "start_within": 0.9961240310077519,
+        "start_within_wide": 1.0,
+        "end_median": 0.07844784599999777,
+        "end_mean": 0.10736278546124035,
+        "start_bias": -0.013547979399225531
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.14925373134328357,
+      "error": null
+    },
+    {
+      "song_id": "marked-dich_gehen_zu_sehn._-_Wingenbach_Frank",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 192.87195,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 39.69244447500023,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.05477455000073,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 177,
+        "coverage": 0.9779005524861878,
+        "start_median": 0.02955102000001375,
+        "start_mean": 0.04205902097175143,
+        "start_within": 0.9887005649717514,
+        "start_within_wide": 1.0,
+        "end_median": 0.09557142900001736,
+        "end_mean": 0.1583257106610175,
+        "start_bias": 0.007484697084744935
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11538461538461539,
+      "error": null
+    },
+    {
+      "song_id": "marked-¡Óyeme_tiburón!_-_Corrientes",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 180.131111,
+      "mode": "lyrics",
+      "group": "repeats-marked",
+      "steps": {
+        "separator": {
+          "seconds": 36.845657955000206,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 22.39248609599599,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 206,
+        "coverage": 0.9809523809523809,
+        "start_median": 0.02821428550000249,
+        "start_mean": 0.03488785416504903,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.20889909299999232,
+        "end_mean": 0.31129441033980587,
+        "start_bias": -0.014830834601942523
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00028498147620404675,
+      "low_confidence": 0.06190476190476191,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-10._Disparan_-_criatura",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 160.0,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 32.06555318699975,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.189100171999598,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 194,
+        "coverage": 1.0,
+        "start_median": 0.023557822999990208,
+        "start_mean": 0.03368355660309254,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08482539699999592,
+        "end_mean": 0.10790771911855705,
+        "start_bias": 0.009423697304125291
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2268041237113402,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-1_Freak_-_Automatisch_Gekommen",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 188.4,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 38.683686228999704,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.32298031499522,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 355,
+        "coverage": 0.9673024523160763,
+        "start_median": 0.043936508000001595,
+        "start_mean": 0.0513682662845069,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.040430839000009655,
+        "end_mean": 0.07495973696901408,
+        "start_bias": 0.047932644943661555
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.212707182320442,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Besando_Sapos_-_Dream_Tabu",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 250.530612,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 51.548178011000346,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.18180630599818,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 224,
+        "coverage": 0.9824561403508771,
+        "start_median": 0.031500000000001194,
+        "start_mean": 0.038047042058035406,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.1650476189999992,
+        "end_mean": 0.24485314421874935,
+        "start_bias": -0.00991679826339301
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1875,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Bitte_beweg_dich_nicht_-_Bukto",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 273.356327,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 56.052248006999434,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.255731133001973,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 341,
+        "coverage": 0.9660056657223796,
+        "start_median": 0.037528345000026775,
+        "start_mean": 0.05945515060997098,
+        "start_within": 0.9970674486803519,
+        "start_within_wide": 0.9970674486803519,
+        "end_median": 0.09105668899999841,
+        "end_mean": 0.13635819684457431,
+        "start_bias": 0.04805002626392974
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2028985507246377,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Burn_Out_Man_-_Abendblau",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 259.860816,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 52.69645597300041,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.354012481999234,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 286,
+        "coverage": 0.8666666666666667,
+        "start_median": 0.03891043050000631,
+        "start_mean": 0.048371977206294416,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06467913799998826,
+        "end_mean": 0.10002785801748264,
+        "start_bias": 0.043934938052447706
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00017593244194229416,
+      "low_confidence": 0.06109324758842444,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-CHRISTMAS_AVEC_TOI_-_imfreshyourepretty",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 233.63322,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 48.18506098600119,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.996719169001153,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 217,
+        "coverage": 0.62,
+        "start_median": 0.03459863900000215,
+        "start_mean": 0.39240775570967695,
+        "start_within": 0.9400921658986175,
+        "start_within_wide": 0.9400921658986175,
+        "end_median": 0.1226326529999966,
+        "end_mean": 0.5040550069539171,
+        "start_bias": -0.3349182628064514
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.3884297520661157,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-CLUB_DESTINO__-_Pensando_en_ti_-_CLUB_DESTINO",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 218.97381,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.46447702899968,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.660794481002085,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 204,
+        "coverage": 1.0,
+        "start_median": 0.03666326500000139,
+        "start_mean": 0.04505752298039148,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.1049795919999923,
+        "end_mean": 0.19824230803431336,
+        "start_bias": 0.027599606490196268
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10679611650485436,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Confession_-_Quesabe",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 147.795011,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 29.79633102600019,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.017976866998652,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 293,
+        "coverage": 0.8720238095238095,
+        "start_median": 0.029469387999995433,
+        "start_mean": 0.03988305355972708,
+        "start_within": 0.9931740614334471,
+        "start_within_wide": 0.9931740614334471,
+        "end_median": 0.06263265300000143,
+        "end_mean": 0.09606859218088787,
+        "start_bias": -0.023717079552900894
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0015979546180888463,
+      "low_confidence": 0.2824675324675325,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Cortez_-_Feel__Stripped_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 240.561633,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 49.200680592000026,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.250535990999197,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 351,
+        "coverage": 0.9887323943661972,
+        "start_median": 0.06678670140001941,
+        "start_mean": 0.0778357550082616,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08031933679999881,
+        "end_mean": 0.15096071163504304,
+        "start_bias": 0.06926224948632488
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.12429378531073447,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Culture_&_Co._-_cool.cavemen",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 212.036689,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 43.826988830998744,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.151428741999553,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 124,
+        "coverage": 0.9393939393939394,
+        "start_median": 0.0317664399999984,
+        "start_mean": 0.06307537854032415,
+        "start_within": 0.9838709677419355,
+        "start_within_wide": 0.9919354838709677,
+        "end_median": 0.11446485249999938,
+        "end_mean": 0.21753207520967666,
+        "start_bias": 0.014551568959677758
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.6230769230769231,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-DON_VALDES_-_Tu_sais_Man",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 209.132041,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 42.78754169499916,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.857052516999829,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 400,
+        "coverage": 0.7920792079207921,
+        "start_median": 0.026631519499993317,
+        "start_mean": 0.06104140591249965,
+        "start_within": 0.9725,
+        "start_within_wide": 0.975,
+        "end_median": 0.11766213150000482,
+        "end_mean": 0.21836680271749973,
+        "start_bias": 0.022595725642500068
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.000419903422212891,
+      "low_confidence": 0.4202247191011236,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Der_Baum_-_Dienstag_is_Damensauna_(2)",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 209.247007,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 42.72359971900005,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.445294764998835,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 212,
+        "coverage": 0.954954954954955,
+        "start_median": 0.027456916499990436,
+        "start_mean": 0.0486638536084901,
+        "start_within": 0.9952830188679245,
+        "start_within_wide": 0.9952830188679245,
+        "end_median": 0.08521882100000244,
+        "end_mean": 0.09246366531132233,
+        "start_bias": 0.005039436542451803
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.10599078341013825,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Die_Revolution_gehört_Dir!_-_partysahnen",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 167.476644,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 33.7979775040003,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.50281235100556,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 144,
+        "coverage": 0.9230769230769231,
+        "start_median": 0.02787074849999982,
+        "start_mean": 0.07793156342361159,
+        "start_within": 0.9722222222222222,
+        "start_within_wide": 0.9791666666666666,
+        "end_median": 0.08362585049999893,
+        "end_mean": 0.24028579302777728,
+        "start_bias": -0.005140715520833419
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.4161073825503356,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Drei_Nüsse_-_patrouille",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 259.130272,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 52.48814508800024,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 15.344333858003665,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 511,
+        "coverage": 0.9845857418111753,
+        "start_median": 0.02623129299999505,
+        "start_mean": 0.031218312749510976,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.08634920599999774,
+        "end_mean": 0.09282804603522524,
+        "start_bias": 0.0024619282876713793
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.04633204633204633,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Esencia_-_NandoMalo_",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 261.6,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 53.370051714000056,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.124320655995689,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 328,
+        "coverage": 0.9820359281437125,
+        "start_median": 0.023010204000001977,
+        "start_mean": 0.031430507164634594,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.09561224500000165,
+        "end_mean": 0.1316483256067072,
+        "start_bias": 0.002670192463414354
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.17964071856287425,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Explosive_Ear_Candy_-_Like_The_Sun",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 192.921655,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 39.45272312199995,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.20389319199603,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 264,
+        "coverage": 0.9962264150943396,
+        "start_median": 0.04907176914999667,
+        "start_mean": 0.05540966104696961,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06918863144999676,
+        "end_mean": 0.09727974185909165,
+        "start_bias": 0.044321926132575455
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0028885037550548816,
+      "low_confidence": 0.2119205298013245,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Fantasma_-_Los_Rombos",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 166.013583,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 33.76548528299827,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.18459028199868,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 75,
+        "coverage": 0.8522727272727273,
+        "start_median": 0.04740816300000006,
+        "start_mean": 0.15538031745333447,
+        "start_within": 0.9333333333333333,
+        "start_within_wide": 0.9466666666666667,
+        "end_median": 0.19357142900000213,
+        "end_mean": 0.2538460166799996,
+        "start_bias": 0.12157260769333438
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.004014452027298274,
+      "low_confidence": 0.17857142857142858,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Fußabdrücke_-_Andreas_Jachmann",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 241.487528,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 49.83980973600046,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.72933298299904,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 154,
+        "coverage": 1.0,
+        "start_median": 0.022570295000001295,
+        "start_mean": 0.03186182527922067,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.11246485299999165,
+        "end_mean": 0.14833264127921966,
+        "start_bias": 0.010009600409090314
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0002452182442373713,
+      "low_confidence": 0.012987012987012988,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Guayeteo_-_JhoyKing",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 157.709932,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 32.296208862999265,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.457898744003614,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 265,
+        "coverage": 0.7794117647058824,
+        "start_median": 0.03061451199999965,
+        "start_mean": 0.9429350960792456,
+        "start_within": 0.8981132075471698,
+        "start_within_wide": 0.9018867924528302,
+        "end_median": 0.10198412700000858,
+        "end_mean": 1.003996175086792,
+        "start_bias": -0.9263538441622645
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.19937694704049844,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Intentando_Destacar_-_Sundayers_",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 220.023424,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 45.48732661400027,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.980334147003305,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 180,
+        "coverage": 0.8035714285714286,
+        "start_median": 0.023411564500008808,
+        "start_mean": 0.03238600403333392,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06757256199999873,
+        "end_mean": 0.09274780801666722,
+        "start_bias": 0.006910896944443894
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1836734693877551,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Keine_Lust_-_Jonny_M",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 228.551088,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 46.78962749399989,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.164071453997167,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 506,
+        "coverage": 0.9583333333333334,
+        "start_median": 0.01564966000000112,
+        "start_mean": 0.018790572079050695,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.06099659849999739,
+        "end_mean": 0.0906595323399209,
+        "start_bias": 0.0010974832450592422
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.043726235741444866,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-LUNABLIND_-_Vision__Radio_Edit_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 220.714286,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 45.59484684199924,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.178710192005383,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 281,
+        "coverage": 0.9756944444444444,
+        "start_median": 0.06383267779997936,
+        "start_mean": 0.07387998516761535,
+        "start_within": 0.9928825622775801,
+        "start_within_wide": 0.9928825622775801,
+        "end_median": 0.07506348239999738,
+        "end_mean": 0.12564448681067603,
+        "start_bias": 0.05034662246797101
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11418685121107267,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-La_rumba_del_coronavirus_-_Rich_Don_Jeri",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 187.2,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 38.39402013199833,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.743848235004407,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 208,
+        "coverage": 0.9285714285714286,
+        "start_median": 0.02901700650000194,
+        "start_mean": 0.08629637624038353,
+        "start_within": 0.9759615384615384,
+        "start_within_wide": 0.9759615384615384,
+        "end_median": 0.08954761900000108,
+        "end_mean": 0.2108207526923081,
+        "start_bias": 0.040775488365384645
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.028708133971291867,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Les_files_d'attente_-_Law'",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 195.595238,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 39.92689059500117,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.227012621995527,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 208,
+        "coverage": 0.6520376175548589,
+        "start_median": 0.030551020500000803,
+        "start_mean": 0.18578899572596166,
+        "start_within": 0.9807692307692307,
+        "start_within_wide": 0.9807692307692307,
+        "end_median": 0.07832653050000005,
+        "end_mean": 0.29290692046153793,
+        "start_bias": 0.13522114294711468
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2625,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Libre_by_CybeR_AttaCK_-_CyberAttacK",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 216.93102,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.37402816699978,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.810089118000178,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 383,
+        "coverage": 0.964735516372796,
+        "start_median": 0.028682539999991263,
+        "start_mean": 0.046619112736292406,
+        "start_within": 0.9895561357702349,
+        "start_within_wide": 0.9973890339425587,
+        "end_median": 0.05030612200000206,
+        "end_mean": 0.06641783153263683,
+        "start_bias": 0.009045381086161972
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.3486005089058524,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Lower_Loveday_-_Is_It_Right_",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 180.061497,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 37.002956668999104,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.076861285997438,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 205,
+        "coverage": 0.9669811320754716,
+        "start_median": 0.057036585299997,
+        "start_mean": 0.06715217373268288,
+        "start_within": 0.9951219512195122,
+        "start_within_wide": 0.9951219512195122,
+        "end_median": 0.0828245308999982,
+        "end_mean": 0.13703559037317023,
+        "start_bias": 0.05313360196292639
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.16981132075471697,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Mes_Larmes_-_kobzx2z",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 158.815011,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 32.065499002999786,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.585310584006947,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 231,
+        "coverage": 0.595360824742268,
+        "start_median": 0.025081632999999215,
+        "start_mean": 0.8514703202857142,
+        "start_within": 0.8571428571428571,
+        "start_within_wide": 0.8658008658008658,
+        "end_median": 0.07310204099999851,
+        "end_mean": 0.9004564792813856,
+        "start_bias": 0.6483527893073587
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.37969924812030076,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Moon_I_Mean_-_Wrong_Concept",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 219.995669,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.647524661000716,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.17986636000569,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 257,
+        "coverage": 0.9448529411764706,
+        "start_median": 0.051522549299988896,
+        "start_mean": 0.07586631808599159,
+        "start_within": 0.9922178988326849,
+        "start_within_wide": 0.9922178988326849,
+        "end_median": 0.11527996790002248,
+        "end_mean": 0.20840387710933875,
+        "start_bias": 0.05463146752957122
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.5492424242424242,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Mère_nature_-_Law'",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 225.272721,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 46.193031981999866,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.223365089004801,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 245,
+        "coverage": 0.9645669291338582,
+        "start_median": 0.037142856999999196,
+        "start_mean": 0.043512841889796705,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.12463492099999485,
+        "end_mean": 0.2144624647061225,
+        "start_bias": -0.027133703563266064
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1388888888888889,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Palabras_-_Javier_Gomez_Bello",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 216.224218,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.183217498000886,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.769661787999212,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 211,
+        "coverage": 0.9952830188679245,
+        "start_median": 0.030619047999998372,
+        "start_mean": 0.04275652059715618,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.10648299300000019,
+        "end_mean": 0.18797177893838862,
+        "start_bias": 0.027898475023696856
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00020977554017201594,
+      "low_confidence": 0.04245283018867924,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Pluie_d'entre_deux_saisons_-_Midnight_Prefou",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 205.026667,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 41.82930338699953,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.80614643500303,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 111,
+        "coverage": 0.8283582089552238,
+        "start_median": 0.04411111099997811,
+        "start_mean": 0.6049517272432446,
+        "start_within": 0.918918918918919,
+        "start_within_wide": 0.918918918918919,
+        "end_median": 0.17985714299999245,
+        "end_mean": 0.7772515985495512,
+        "start_bias": -0.08464337805405323
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0023094688221709007,
+      "low_confidence": 0.21551724137931033,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Pure_Mids_-_The_Leader",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 262.4,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 53.63023414899908,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 13.120864562995848,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 82,
+        "coverage": 0.7192982456140351,
+        "start_median": 0.07660431234998555,
+        "start_mean": 0.0836326967341459,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.16576316060000096,
+        "end_mean": 0.3169547279548768,
+        "start_bias": 0.07988385441707306
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.005226480836236934,
+      "low_confidence": 0.7525773195876289,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Quentin_Hannappe_-_Keep_On",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 189.84,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 39.10790307800016,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.366590239995276,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 160,
+        "coverage": 0.9142857142857143,
+        "start_median": 0.04611530590000967,
+        "start_mean": 0.06779696648375011,
+        "start_within": 0.9875,
+        "start_within_wide": 0.9875,
+        "end_median": 0.05289054549999861,
+        "end_mean": 0.10301398989624991,
+        "start_bias": 0.06385725264000013
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.21084337349397592,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Ridgway_-_Fire_Inside",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 283.930204,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 57.31632783000009,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 14.87339532400074,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 216,
+        "coverage": 0.7105263157894737,
+        "start_median": 0.04913827850000985,
+        "start_mean": 0.7309252985587964,
+        "start_within": 0.9259259259259259,
+        "start_within_wide": 0.9305555555555556,
+        "end_median": 0.04501338974999669,
+        "end_mean": 0.8003891207393532,
+        "start_bias": -0.10872981208749967
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.30638297872340425,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Rxbyn_-_Bad_Side",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 216.555238,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 44.67283436800062,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.773987173000933,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 410,
+        "coverage": 0.9318181818181818,
+        "start_median": 0.05311725250000876,
+        "start_mean": 0.07253345702999965,
+        "start_within": 0.9951219512195122,
+        "start_within_wide": 0.9951219512195122,
+        "end_median": 0.04796057960000155,
+        "end_mean": 0.1199797365663419,
+        "start_bias": 0.050783771945609464
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.23404255319148937,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Schnodderdodder_-_Abendblau",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 196.960703,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 40.66666653500033,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 11.380827182001667,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 278,
+        "coverage": 0.9553264604810997,
+        "start_median": 0.02149092949999698,
+        "start_mean": 0.03241026769424419,
+        "start_within": 0.9928057553956835,
+        "start_within_wide": 1.0,
+        "end_median": 0.07075170050001134,
+        "end_mean": 0.12942269043165436,
+        "start_bias": -0.003053312456833607
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.1404109589041096,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Slingshot_Miracle_-_Whistler",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 229.224762,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 47.267207511999004,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 12.123556193997501,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 158,
+        "coverage": 0.9753086419753086,
+        "start_median": 0.07165203650000151,
+        "start_mean": 0.4042209695810126,
+        "start_within": 0.9556962025316456,
+        "start_within_wide": 0.9620253164556962,
+        "end_median": 0.12702354025000062,
+        "end_mean": 0.6642858189088612,
+        "start_bias": -0.2442668235949368
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2375,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Séculaire_feat._Nÿme_-_saru",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 158.92,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 32.116263323001476,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.864231943996856,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 304,
+        "coverage": 0.881159420289855,
+        "start_median": 0.023833333499999387,
+        "start_mean": 0.13965896139144715,
+        "start_within": 0.9736842105263158,
+        "start_within_wide": 0.9736842105263158,
+        "end_median": 0.04534920650000629,
+        "end_mean": 0.15879358362828933,
+        "start_bias": -0.10719407893092066
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0008049369466058492,
+      "low_confidence": 0.229607250755287,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Vente_-_Fafarulo_Calabaza",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 336.0,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 68.7717083080006,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 19.185306314997433,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 494,
+        "coverage": 0.9782178217821782,
+        "start_median": 0.03280158750000339,
+        "start_mean": 0.04063105105263137,
+        "start_within": 0.9959514170040485,
+        "start_within_wide": 0.9959514170040485,
+        "end_median": 0.09929478449998896,
+        "end_mean": 0.16822146480162015,
+        "start_bias": 0.006845726975708101
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.000453035336756267,
+      "low_confidence": 0.09233791748526522,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Wordsmith_-_The_Statement",
+      "set_name": "repeats",
+      "language": "en",
+      "duration": 171.2,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 34.20609783900022,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.63114520200179,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 440,
+        "coverage": 0.7573149741824441,
+        "start_median": 0.06562994734999883,
+        "start_mean": 1.009302456033636,
+        "start_within": 0.7681818181818182,
+        "start_within_wide": 0.7704545454545455,
+        "end_median": 0.047768707500001284,
+        "end_mean": 1.006117211605909,
+        "start_bias": 1.0058522960672727
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.2764227642276423,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-Yuanan_-_Miedo_-_Yuanan",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 169.221497,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 34.675366383002256,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.939343589998316,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 244,
+        "coverage": 0.9104477611940298,
+        "start_median": 0.026527211000001216,
+        "start_mean": 0.03305092746311426,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.0959297050000032,
+        "end_mean": 0.16654263782377093,
+        "start_bias": 0.003980799954917765
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11023622047244094,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-de_bonne_humeur_-_Le_Nez_Tordu",
+      "set_name": "repeats",
+      "language": "fr",
+      "duration": 161.152948,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 33.265312076000555,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 9.591739390001749,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 258,
+        "coverage": 0.9699248120300752,
+        "start_median": 0.02965306099999765,
+        "start_mean": 0.03962908470155096,
+        "start_within": 0.9961240310077519,
+        "start_within_wide": 1.0,
+        "end_median": 0.07844784599999777,
+        "end_mean": 0.10736278546124035,
+        "start_bias": -0.013547979399225531
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.14925373134328357,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-dich_gehen_zu_sehn._-_Wingenbach_Frank",
+      "set_name": "repeats",
+      "language": "de",
+      "duration": 192.87195,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 39.69244447500023,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.778220141997735,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 177,
+        "coverage": 0.9779005524861878,
+        "start_median": 0.02955102000001375,
+        "start_mean": 0.04205902097175143,
+        "start_within": 0.9887005649717514,
+        "start_within_wide": 1.0,
+        "end_median": 0.09557142900001736,
+        "end_mean": 0.1583257106610175,
+        "start_bias": 0.007484697084744935
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.0,
+      "low_confidence": 0.11538461538461539,
+      "error": null
+    },
+    {
+      "song_id": "unmarked-¡Óyeme_tiburón!_-_Corrientes",
+      "set_name": "repeats",
+      "language": "es",
+      "duration": 180.131111,
+      "mode": "lyrics",
+      "group": "repeats-unmarked",
+      "steps": {
+        "separator": {
+          "seconds": 36.845657955000206,
+          "cached": true,
+          "error": null
+        },
+        "aligner": {
+          "seconds": 10.182072493000305,
+          "cached": false,
+          "error": null
+        }
+      },
+      "wer": null,
+      "cer": null,
+      "ref_words": null,
+      "ref_chars": null,
+      "wer_lenient": null,
+      "ref_words_lenient": null,
+      "timing": {
+        "words": 206,
+        "coverage": 0.9809523809523809,
+        "start_median": 0.02821428550000249,
+        "start_mean": 0.03488785416504903,
+        "start_within": 1.0,
+        "start_within_wide": 1.0,
+        "end_median": 0.20889909299999232,
+        "end_mean": 0.31129441033980587,
+        "start_bias": -0.014830834601942523
+      },
+      "scored_share": 1.0,
+      "reference_validated": null,
+      "reference_timing": "manual",
+      "line_start_median": null,
+      "language_reported": null,
+      "language_switch": null,
+      "outside_voice": 0.00028498147620404675,
+      "low_confidence": 0.06190476190476191,
+      "error": null
+    }
+  ],
+  "summary": {
+    "all": {
+      "songs": 88,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 22957,
+        "coverage": 0.901972340091152,
+        "start_median": 0.03385714300000586,
+        "start_mean": 0.11904772817208253,
+        "start_within": 0.981312889314806,
+        "start_within_wide": 0.982837478764647,
+        "end_median": 0.08167346900000183,
+        "end_mean": 0.21178120742465054,
+        "start_bias": 0.02963856373902938
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20457472697091975,
+        "aligner": 0.061247472704577616
+      },
+      "est_seconds_4min": 71.03737786412168,
+      "outside_voice": 0.0004216193894871168,
+      "low_confidence": 0.22263405823403107
+    },
+    "repeats-marked": {
+      "songs": 44,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 11562,
+        "coverage": 0.9085337105139085,
+        "start_median": 0.03368877255000058,
+        "start_mean": 0.08009409644314128,
+        "start_within": 0.9862480539699015,
+        "start_within_wide": 0.9877183878221761,
+        "end_median": 0.08118480699999253,
+        "end_mean": 0.1750891663125585,
+        "start_bias": 0.025082438300138277
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20457472697091975,
+        "aligner": 0.0814706088361085
+      },
+      "est_seconds_4min": 75.8909305356891,
+      "outside_voice": 0.0004198150638155842,
+      "low_confidence": 0.2275151532773024
+    },
+    "repeats-unmarked": {
+      "songs": 44,
+      "failed": 0,
+      "wer": null,
+      "cer": null,
+      "wer_lenient": null,
+      "timing": {
+        "words": 11395,
+        "coverage": 0.8954109696683954,
+        "start_median": 0.03407936499999664,
+        "start_mean": 0.15857224682500215,
+        "start_within": 0.976305397103993,
+        "start_within_wide": 0.9778850372970601,
+        "end_median": 0.08210430800000168,
+        "end_mean": 0.249010990604818,
+        "start_bias": 0.034261461705195145
+      },
+      "line_start_median": null,
+      "language_switches": 0,
+      "rtf_median": {
+        "separator": 0.20457472697091975,
+        "aligner": 0.055923109818642736
+      },
+      "est_seconds_4min": 69.75953077149731,
+      "outside_voice": 0.00042342371515864934,
+      "low_confidence": 0.21775296319075974
+    }
+  },
+  "notes": []
+}

@@ -28,8 +28,9 @@ from karaoke_contracts import (
     validate_doc,
     validate_package,
 )
-from karaoke_engine.align.aligner import LyricsAligner
+from karaoke_engine.align.aligner import LyricsAligner, heard
 from karaoke_engine.align.clitics import join_clitics
+from karaoke_engine.align.emissions import half_copy
 from karaoke_engine.align.lyrics import parse_lyrics, singer_id
 from karaoke_engine.align.models import DEFAULT_BY_LANGUAGE, FALLBACK_MODEL, MODELS
 from karaoke_engine.align.pasted import strip_page_text
@@ -46,6 +47,10 @@ from karaoke_engine.video.media import (
 )
 
 _LANGUAGE = re.compile(r"^[a-z]{2,3}$")
+# A transcribed line the aligner hears with less confidence than this was made up by the
+# transcriber, and is left out (aligner.heard). Measured in decision 019: in Galician it takes
+# 3.5 points off the WER of the lyrics left; in the other languages it changes nothing.
+ASR_MIN_CONFIDENCE = 0.05
 
 
 logger = logging.getLogger(__name__)
@@ -74,8 +79,12 @@ def prepare_models(language: str, note: Callable[[str], None] | None = None) -> 
         load()
         _unload(separator)
     say("aligner")
-    spec = MODELS[DEFAULT_BY_LANGUAGE.get(language, FALLBACK_MODEL)]
-    _download(spec.repo, spec.revision)
+    for name in LyricsAligner().model_names(language):
+        spec = MODELS[name]
+        _download(spec.repo, spec.revision)
+        if spec.half:
+            # Stored in 16 bits once, alone: it holds the model twice while it does.
+            half_copy(spec)
     say("transcriber")
     WhisperTranscriber().prepare_for(language)
 
@@ -120,6 +129,9 @@ def make_package(
     separator = separator or default_separator()
     if aligner is None:
         aligner = default_aligner(overlap_backing=True) if overlap_backing else default_aligner()
+    ready = getattr(aligner, "prepare_for", None)
+    if callable(ready):
+        ready(language)  # the same for a model stored in 16 bits on first use
     out_dir.mkdir(parents=True, exist_ok=True)
     # An old document next to new audio would look like a finished package.
     (out_dir / "karaoke.json").unlink(missing_ok=True)
@@ -174,6 +186,8 @@ def _make(
         step("align")
         lines = aligner.align_text(stems.vocals, lyrics, language)
         _unload(aligner)
+        if source_kind == "asr":
+            lines = heard(lines, ASR_MIN_CONFIDENCE)
         if not lines:
             raise ValueError(
                 "no line of the lyrics could be placed in the song (is it in another language?)"
@@ -202,7 +216,7 @@ def _make(
             asr_model=asr_model,
             align_model=_model_name(aligner, language),
             engine_version=f"karaoke-engine {metadata.version('karaoke-engine')}",
-            language_fallbacks=_fallbacks(language),
+            language_fallbacks=_fallbacks(language, aligner),
         ),
     )
     issues = validate_doc(doc)
@@ -279,14 +293,17 @@ def _model_name(step: Any, language: str) -> str:
     return str(getattr(step, "model_name", step.name))
 
 
-def _fallbacks(language: str) -> list[LanguageFallback]:
+def _fallbacks(language: str, aligner: Any = None) -> list[LanguageFallback]:
     if language in DEFAULT_BY_LANGUAGE:
         return []
+    # The aligner knows which model stood in: it depends on the letters of the lyrics.
+    stand_in = getattr(aligner, "fallback_for", None)
+    used = (stand_in(language) if callable(stand_in) else None) or FALLBACK_MODEL
     return [
         LanguageFallback(
             step="align",
             requested=language,
-            used=FALLBACK_MODEL,
+            used=used,
             reason="no alignment model for this language; a multilingual one aligns it",
         )
     ]

@@ -13,7 +13,7 @@ import jiwer
 from pydantic import BaseModel
 
 from karaoke_bench.reference import RefLine, RefWord
-from karaoke_bench.textnorm import match_key, normalize
+from karaoke_bench.textnorm import lenient, match_key, normalize
 from karaoke_contracts import Line, Word
 
 
@@ -22,16 +22,25 @@ class TextErrors(BaseModel):
     cer: float
     ref_words: int
     ref_chars: int
+    # The WER without spelling variants that are no mistakes (textnorm.lenient); Galician only.
+    wer_lenient: float | None = None
+    ref_words_lenient: int | None = None
 
 
-def text_errors(reference: str, hypothesis: str) -> TextErrors:
+def text_errors(reference: str, hypothesis: str, language: str | None = None) -> TextErrors:
     ref, hyp = normalize(reference), normalize(hypothesis)
-    return TextErrors(
+    errors = TextErrors(
         wer=float(jiwer.wer(ref, hyp)),
         cer=float(jiwer.cer(ref, hyp)),
         ref_words=len(ref.split()),
         ref_chars=len(ref),
     )
+    loose_ref = lenient(reference, language) if language else None
+    loose_hyp = lenient(hypothesis, language) if language else None
+    if loose_ref and loose_hyp is not None:
+        errors.wer_lenient = float(jiwer.wer(loose_ref, loose_hyp))
+        errors.ref_words_lenient = len(loose_ref.split())
+    return errors
 
 
 @dataclass(frozen=True)
@@ -83,10 +92,11 @@ class TimingErrors(BaseModel):
     ref_words: int
 
 
-def timing_errors(pairs: Sequence[WordPair], ref_words: int) -> TimingErrors:
+def timing_errors(pairs: Sequence[WordPair], ref_words: int, ends: bool = True) -> TimingErrors:
+    """`ends` is False for references that only time where words start (line-timed lyrics)."""
     return TimingErrors(
         start=[p.hyp_start - p.ref.start for p in pairs],
-        end=[p.hyp_end - p.ref.end for p in pairs],
+        end=[p.hyp_end - p.ref.end for p in pairs] if ends else [],
         ref_words=ref_words,
     )
 
@@ -99,8 +109,9 @@ class TimingStats(BaseModel):
     start_within: float
     # Share within WIDE_TOLERANCE: what an approximate reference can still vouch for.
     start_within_wide: float | None = None
-    end_median: float
-    end_mean: float
+    # None when no reference of the group times word ends.
+    end_median: float | None
+    end_mean: float | None
     start_bias: float
 
 
@@ -123,8 +134,8 @@ def timing_stats(errors: Sequence[TimingErrors], tolerance: float = 0.3) -> Timi
         start_mean=mean(abs_starts),
         start_within=sum(e <= tolerance for e in abs_starts) / len(starts),
         start_within_wide=sum(e <= WIDE_TOLERANCE for e in abs_starts) / len(starts),
-        end_median=median(abs_ends),
-        end_mean=mean(abs_ends),
+        end_median=median(abs_ends) if abs_ends else None,
+        end_mean=mean(abs_ends) if abs_ends else None,
         start_bias=mean(starts),
     )
 

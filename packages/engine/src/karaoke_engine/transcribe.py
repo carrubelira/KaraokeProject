@@ -20,7 +20,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
-from karaoke_engine.align.activity import vocal_activity
+from karaoke_engine.align.activity import vocal_activity, voiced_stretches
 from karaoke_engine.align.audio import SAMPLE_RATE, load_mono16k
 from karaoke_engine.steps import Transcript, TranscriptSegment
 
@@ -30,6 +30,11 @@ _NOTE_WORD = re.compile(r"\(\s*[^()\s]+\s*\)")
 # What the lyrics parser reads as a repeat mark after a word (lowercase: "BMW X6" is a name).
 _REPEAT_MARK = re.compile(r"^(?:[x\u00d7][2-9]|[2-9][x\u00d7])$")
 _HOP = 0.02
+# Longest stretch of singing given to Whisper at once: its window is 30 s.
+_LONG_STRETCH = 28.0
+# What a turbo model reads best (decision 019): with its short decoder it loses the thread in a
+# long stretch, where a large model uses the context.
+_SHORT_STRETCH = 12.0
 # A segment needs at least this share of voiced time; Whisper fills silences with stock phrases.
 MIN_VOICE_SHARE = 0.3
 # Repeats and loops only count as made up where the voice sounds less than this: a chorus sung
@@ -49,6 +54,7 @@ class WhisperSpec:
     revision: str
     licence: str
     converted: bool  # already in CTranslate2 format
+    stretch: float = _LONG_STRETCH  # the longest stretch of singing it reads at once, in seconds
 
 
 MODELS: dict[str, WhisperSpec] = {
@@ -57,15 +63,20 @@ MODELS: dict[str, WhisperSpec] = {
         "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf",
         "MIT",
         True,
+        _SHORT_STRETCH,
     ),
     "nos-turbo-gl": WhisperSpec(
         "proxectonos/whisper-large-v3-turbo-gl-v1.0",
         "9395c7fcc24760ffdf10d665fff3b2a119d0758a",
         "Apache-2.0",
         False,
+        _SHORT_STRETCH,
     ),
     "hitz-large-v3-gl": WhisperSpec(
         "HiTZ/whisper-large-v3-gl", "323307be9018a24572e3fdb06219234038b0e490", "Apache-2.0", False
+    ),
+    "buzz-large-v3-gl": WhisperSpec(
+        "BuzzASR/galician", "15022ab69ecffcb4f988499736c2a23ec178d8c9", "MIT", False
     ),
     "bsc-los": WhisperSpec(
         "BSC-LT/whisper-large-v3-LoS",
@@ -81,12 +92,14 @@ DEFAULT_BY_LANGUAGE: dict[str, str] = {"gl": "hitz-large-v3-gl"}
 class WhisperTranscriber:
     name = "whisper"
     # Bumped when a default changes too: defaults are not part of the bench cache key.
-    version = "5"
+    version = "6"  # stretches of singing, each model with its own length
 
     def __init__(
         self,
         model: str = "auto",
         vad: bool = True,
+        by_voice: bool = True,
+        stretch_seconds: float | None = None,
         seed: int = 0,
         beam_size: int = 1,
         temperatures: tuple[float, ...] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
@@ -98,6 +111,10 @@ class WhisperTranscriber:
             raise ValueError(f"unknown Whisper model '{model}' (use auto, {', '.join(MODELS)})")
         self.model = model
         self.vad = vad
+        # Each stretch of singing goes to Whisper on its own (see _stretches).
+        self.by_voice = by_voice
+        # None: what the model reads best (WhisperSpec.stretch).
+        self.stretch_seconds = stretch_seconds
         self.seed = seed
         self.beam_size = beam_size
         self.temperatures = temperatures
@@ -131,32 +148,49 @@ class WhisperTranscriber:
             import ctranslate2
 
             ctranslate2.set_random_seed(self.seed)
-        segments, _ = whisper.transcribe(
-            samples,
-            language=language,
-            beam_size=self.beam_size,
-            temperature=list(self.temperatures),
-            vad_filter=self.vad,
-            condition_on_previous_text=False,
-            compression_ratio_threshold=2.4,
-            no_speech_threshold=0.6,
-            log_prob_threshold=-1.0,
-        )
         active = vocal_activity(samples, SAMPLE_RATE, _HOP)
         kept: list[TranscriptSegment] = []
-        for segment in segments:
-            text = " ".join(segment.text.split())
-            share = _voice_share(active, segment.start, segment.end)
-            if not text or share < MIN_VOICE_SHARE:
-                continue
-            looping = is_loop(text) or _repeats(kept, text) >= _MAX_SAME_IN_A_ROW
-            if looping and share < _SURE_VOICE_SHARE:
-                continue
-            if is_loop(text):
-                # A chant may be real, but Whisper runs on with it: keep one line of it.
-                text = " ".join(text.split()[:_CHANT_WORDS])
-            kept.append(TranscriptSegment(segment.start, segment.end, text))
+        for first, last in self._stretches(active, len(samples) / SAMPLE_RATE, language):
+            segments, _ = whisper.transcribe(
+                samples[round(first * SAMPLE_RATE) : round(last * SAMPLE_RATE)],
+                language=language,
+                beam_size=self.beam_size,
+                temperature=list(self.temperatures),
+                vad_filter=self.vad and not self.by_voice,
+                condition_on_previous_text=False,
+                compression_ratio_threshold=2.4,
+                no_speech_threshold=0.6,
+                log_prob_threshold=-1.0,
+            )
+            for segment in segments:
+                text = " ".join(segment.text.split())
+                start, end = segment.start + first, min(segment.end + first, last)
+                share = _voice_share(active, start, end)
+                if not text or share < MIN_VOICE_SHARE:
+                    continue
+                looping = is_loop(text) or _repeats(kept, text) >= _MAX_SAME_IN_A_ROW
+                if looping and share < _SURE_VOICE_SHARE:
+                    continue
+                if is_loop(text):
+                    # A chant may be real, but Whisper runs on with it: keep one line of it.
+                    text = " ".join(text.split()[:_CHANT_WORDS])
+                kept.append(TranscriptSegment(round(start, 3), round(end, 3), text))
         return Transcript(language=language, segments=tuple(kept))
+
+    def _stretches(
+        self, active: npt.NDArray[np.bool_], seconds: float, language: str
+    ) -> list[tuple[float, float]]:
+        """What goes to Whisper in each call: the whole song, or each stretch of singing.
+
+        Whisper reads 30 s at a time. Given the whole song, its speech detector (trained on
+        talk) drops sung passages and its windows cut through phrases, where it loses lines or
+        makes them up. The separated voice says where the singing is: stretches cut in the
+        silences, no longer than the model reads well, each one read whole.
+        """
+        if not self.by_voice:
+            return [(0.0, seconds)]
+        limit = self.stretch_seconds or MODELS[self._name_for(language)].stretch
+        return voiced_stretches(active, _HOP, limit=limit)
 
     def whisper_for_language(self, language: str) -> Any:
         """The faster-whisper model this transcriber uses for a language, loaded."""

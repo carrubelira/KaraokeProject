@@ -537,3 +537,95 @@ def test_a_failed_alignment_leaves_no_half_made_files(tmp_path: Path) -> None:
     assert list(out.glob(".make-*")) == []
     # The audio made in the background meanwhile goes too: nothing of a failed run stays.
     assert list(out.glob("*.m4a")) == []
+
+
+class HalfDeafAligner(EvenAligner):
+    """Hears every line but the ones that say "inventada": those get next to no confidence."""
+
+    def align_text(self, vocals: Path, lyrics: str, language: str) -> list[Line]:
+        lines = super().align_text(vocals, lyrics, language)
+        return [
+            line.model_copy(
+                update={"words": [w.model_copy(update={"confidence": 0.02}) for w in line.words]}
+            )
+            if any("inventada" in w.text for w in line.words)
+            else line
+            for line in lines
+        ]
+
+
+class InventingTranscriber(FakeTranscriber):
+    def transcribe(self, vocals: Path, language: str) -> Transcript:
+        segments = (
+            TranscriptSegment(0.5, 1.5, "Ola mar."),
+            TranscriptSegment(2.0, 3.0, "Unha frase inventada."),
+            TranscriptSegment(3.5, 4.5, "Vai"),
+        )
+        return Transcript(language=language, segments=segments)
+
+
+def test_a_transcribed_line_the_aligner_cannot_hear_is_left_out(tmp_path: Path) -> None:
+    doc = make_package(_song(tmp_path), tmp_path / "pkg", "gl", None, separator=CopySeparator(),
+                       aligner=HalfDeafAligner(), transcriber=InventingTranscriber())  # fmt: skip
+
+    assert [" ".join(w.text for w in line.words) for line in doc.lines] == ["Ola mar.", "Vai"]
+    assert [line.id for line in doc.lines] == ["l1", "l2"]
+
+
+def test_lyrics_someone_wrote_are_kept_however_faint(tmp_path: Path) -> None:
+    doc = make_package(_song(tmp_path), tmp_path / "pkg", "gl", "Ola mar\nUnha frase inventada\n",
+                       separator=CopySeparator(), aligner=HalfDeafAligner())  # fmt: skip
+
+    assert len(doc.lines) == 2
+
+
+def test_heard_keeps_lines_without_a_rating() -> None:
+    from karaoke_engine.align.aligner import heard
+
+    def line(confidences: list[float | None]) -> Line:
+        words = [
+            Word(text="a", start=float(i), end=i + 0.5, confidence=c)
+            for i, c in enumerate(confidences)
+        ]
+        return Line(id="l", start=0.0, end=float(len(words)), words=words)
+
+    clear, faint, mixed, unrated = (
+        line([0.9, 0.8]),
+        line([0.02, 0.03]),
+        line([0.9, 0.001]),
+        line([None, 0.0]),
+    )
+
+    kept = heard([clear, faint, mixed, unrated], 0.08)
+
+    # The mean is geometric: one word nobody heard does not sink a line that is otherwise clear
+    # unless the rest is faint too (0.9 and 0.001 make 0.03).
+    assert kept == [clear, unrated]
+
+
+class PreparedAligner(EvenAligner):
+    def __init__(self, order: list[str]) -> None:
+        super().__init__()
+        self.order = order
+
+    def prepare_for(self, language: str) -> None:
+        self.order.append(f"prepare {language}")
+
+
+class OrderedSeparator(CopySeparator):
+    def __init__(self, order: list[str]) -> None:
+        super().__init__()
+        self.order = order
+
+    def separate(self, audio: Path, work_dir: Path) -> Stems:
+        self.order.append("separate")
+        return super().separate(audio, work_dir)
+
+
+def test_the_aligner_s_models_are_made_ready_before_anything_loads(tmp_path: Path) -> None:
+    order: list[str] = []
+
+    make_package(_song(tmp_path), tmp_path / "pkg", "gl", "Ola mar\n",
+                 separator=OrderedSeparator(order), aligner=PreparedAligner(order))  # fmt: skip
+
+    assert order == ["prepare gl", "separate"]

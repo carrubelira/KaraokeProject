@@ -196,6 +196,25 @@ def test_approximate_reference_scores_and_says_so(paths: BenchPaths) -> None:
     assert "≤ 0,5 s" in report
 
 
+def test_line_timed_reference_scores_line_starts_only(paths: BenchPaths) -> None:
+    from karaoke_bench.reference import dump_reference, load_reference
+
+    path = paths.data / "private" / "demo" / "reference.json"
+    ref = load_reference(path).model_copy(update={"timing": "lines"})
+    dump_reference(ref, path)
+
+    out = run(RunOptions(load_pipeline(SMOKE), "private", "lyrics"), paths)
+
+    [song] = load_results(out / "results.json").songs
+    report = (out / "report.md").read_text(encoding="utf-8")
+    assert song.timing is not None
+    assert song.timing.words == len(ref.lines)
+    assert song.timing.end_median is None
+    assert song.reference_timing == "lines"
+    assert "| por líneas |" in report
+    assert "primera palabra de cada línea" in report
+
+
 def _web_lyrics(paths: BenchPaths) -> str:
     """Gives the demo song pasted-from-the-web lyrics: a section label and a repeat mark."""
     from karaoke_bench.reference import load_reference

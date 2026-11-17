@@ -1,0 +1,18 @@
+# Whisper reading each stretch of singing on its own (28 s for HiTZ)
+name = "rev-asr-final"
+description = "Mel-Band RoFormer (Kim, 8 s) + Whisper reading each stretch of singing on its own (28 s for HiTZ) + line segmenter + lyrics aligner (language model with the music model at 0.3, resting 0.05)"
+
+[steps.separator]
+target = "karaoke_engine.separation:RoformerSeparator"
+params = { model = "vocals_mel_band_roformer.ckpt", segment_size = 801 }
+
+[steps.transcriber]
+target = "karaoke_engine.transcribe:WhisperTranscriber"
+params = { by_voice = true }
+
+[steps.segmenter]
+target = "karaoke_engine.transcribe:LineSegmenter"
+
+[steps.aligner]
+target = "karaoke_engine.align.aligner:LyricsAligner"
+params = { second = "music-w2vbert-ctc", second_weight = 0.3, rest_penalty = 0.05 }

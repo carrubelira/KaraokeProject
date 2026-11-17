@@ -9,8 +9,9 @@ with a **permissive licence** and **pinned to a revision**.
 
 | Piece | Languages | Where |
 |---|---|---|
-| Alignment with a dedicated model | Galician, Spanish, Portuguese, English, French, German | `align/models.py` (`DEFAULT_BY_LANGUAGE`) |
-| Alignment with a multilingual model (Omnilingual, about 1,600 languages) | every other language | `align/models.py` (`FALLBACK_MODEL`) |
+| Alignment with a dedicated model, averaged with a model trained on songs | Galician, Spanish, Portuguese, English, French, German | `align/models.py` (`DEFAULT_BY_LANGUAGE`, `DEFAULT_SECOND`) |
+| Alignment with the model trained on songs alone | every other language written in Latin, Cyrillic, Greek, Arabic, Hebrew, Thai, Japanese or Korean letters | `align/models.py` (`FALLBACK_MODEL`) |
+| Alignment with a multilingual speech model (Omnilingual, about 1,600 languages) | lyrics in any other script | `align/models.py` (`WIDE_FALLBACK_MODEL`) |
 | Transcription without lyrics | Whisper's (about 100); for Galician, a model of its own | `transcribe.py` (`DEFAULT_BY_LANGUAGE`) |
 | Numbers and symbols spoken as words | Galician, Spanish, Portuguese, English | `align/numbers.py`, `align/spoken.py` |
 | Timed syllables | Galician, Spanish, Portuguese | `align/syllables.py` |
@@ -19,8 +20,9 @@ with a **permissive licence** and **pinned to a revision**.
 | The app's interface | Galician (default), Spanish, English | `web/src/lib/i18n/` |
 
 The engine's paths are under `packages/engine/src/karaoke_engine/`. A language without a dedicated
-model works all the same, with the multilingual one: if the benchmark says it does worse than a
-dedicated model, it gets one.
+model works all the same, with the model trained on songs: on the benchmark's four languages it
+aligns as well alone as their dedicated models do (decision 019). If a set in a new language
+says a dedicated model does better, it gets one.
 
 ## Adding a language to the list
 
@@ -29,7 +31,7 @@ dedicated model, it gets one.
 2. If it is often written with three letters (ISO 639-2), add the mapping to `TWO_LETTERS` in
    `languages.py`, so that "glg" does not lose everything Galician.
 
-With that it is aligned with Omnilingual and transcribed with Whisper large-v3-turbo.
+With that it is aligned with the music model and transcribed with Whisper large-v3-turbo.
 
 ## Giving it its own aligner
 
@@ -40,10 +42,10 @@ With that it is aligned with Omnilingual and transcribed with Whisper large-v3-t
    the model never saw to the closest one (in Galician, `ç` → `z`).
 3. **Measure it**: you need a set with reference timings in that language
    ([`benchmark.md`](benchmark.md), "Adding songs"). Create a pipeline in `bench/pipelines/` that
-   uses the model and compare it with the multilingual one:
+   uses the model and compare it with the music model alone (`model = "music-w2vbert-ctc"`):
    ```bash
    uv run karaoke-bench run --pipeline bench/pipelines/<new>.toml --set <set>
-   uv run karaoke-bench compare bench/results/<multilingual> bench/results/<new>
+   uv run karaoke-bench compare bench/results/<music-model> bench/results/<new>
    ```
 4. **If it wins**, put it in `DEFAULT_BY_LANGUAGE`, bump `version` in `LyricsAligner` (the
    benchmark's cache depends on it), add it to [`NOTICE.md`](../NOTICE.md) and leave the report in

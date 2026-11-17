@@ -67,11 +67,11 @@ Laptop (4 GB):
 
 | | Resultado |
 |---|---|
-| Sincronía con letra, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 canciones en inglés, castellano, francés y alemán) | **98,8 %** de las palabras empiezan a ≤ 0,3 s de la referencia; error medio de 0,093 s ([informe](bench/results/2026-10-29-c4-default-jamendo-lyrics/report.md)) |
-| Sincronía con letra, canciones en gallego | **99,8 %** a ≤ 0,3 s ([informe](bench/results/2026-11-06-c9-despois-gl-lyrics/report.md)) |
-| Transcripción sin letra (tasa de error de palabras) | 23,2 % en JamendoLyrics y 26,5 % en gallego, frente al 33,7 % y al 35,9 % de una base con Demucs y Whisper |
+| Sincronía con letra, [JamendoLyrics MultiLang](https://github.com/f90/jamendolyrics) (79 canciones en inglés, castellano, francés y alemán) | **99,3 %** de las palabras empiezan a ≤ 0,3 s de la referencia; error medio de 0,062 s ([informe](bench/results/2026-11-17-rev-final-b-jamendo-lyrics/report.md)) |
+| Sincronía con letra, canciones en gallego | **100 %** a ≤ 0,3 s ([informe](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
+| Transcripción sin letra (tasa de error de palabras) | 21,3 % en JamendoLyrics y 25,9 % en gallego, frente al 33,7 % y al 35,9 % de una base con Demucs y Whisper |
 | Cambios de idioma sin pedirlo | ninguno, en todo el banco |
-| Una canción de 4:47 con letra, del archivo al karaoke | unos 85 s |
+| Una canción de 4:47 con letra, del archivo al karaoke | unos 95 s |
 | Un MP4 1080p de 4 minutos | menos de un minuto |
 
 Cómo funciona el banco y todos los informes: [`docs/benchmark.md`](docs/benchmark.md) (en inglés)
@@ -91,10 +91,10 @@ flowchart LR
 ```
 
 El **motor** separa la voz, la transcribe cuando no hay letra y alinea la letra con la voz con un
-modelo para cada idioma (el de Proxecto Nós para el gallego; el Omnilingual de Meta para
-cualquiera de los casi 1600 que no tienen uno propio). El resultado es un único documento,
-`karaoke.json`, que el **reproductor web** y la **exportación de vídeo** dibujan igual. Un
-**servidor en casa** pone los trabajos en cola en la GPU, guarda la biblioteca y sirve la
+modelo para cada idioma (el de Proxecto Nós para el gallego) y otro entrenado con canciones, que
+escuchan juntos; el segundo, solo, sirve a los idiomas que no tienen uno propio. El resultado es un
+único documento, `karaoke.json`, que el **reproductor web** y la **exportación de vídeo** dibujan
+igual. Un **servidor en casa** pone los trabajos en cola en la GPU, guarda la biblioteca y sirve la
 aplicación a todos los aparatos de la casa. Cada modelo se eligió con el banco, y cada paso cabe en
 4 GB de memoria de vídeo.
 

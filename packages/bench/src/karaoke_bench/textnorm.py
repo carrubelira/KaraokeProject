@@ -22,6 +22,15 @@ _REPEAT = re.compile(
 _DASHES = re.compile(r"[-\u2010-\u2015]")
 _LOOSE_APOSTROPHE = re.compile(r"(?<!\w)'|'(?!\w)")
 _SPACES = re.compile(r"\s+")
+# Galician spellings of one same word: gheada written "j" or "gh" ("janarme", "gherra") and
+# seseo ("corasón", "naser"), against "g"/"gu" and "z"/"c".
+_GHEADA = re.compile(r"gh|j|gu(?=[ei])")
+_SESEO = re.compile(r"z|c(?=[ei])")
+# Pronouns that follow their verb in Galician; lyrics sites often write them apart.
+_ENCLITICS = frozenset(
+    {"che", "lle", "lles", "cho", "cha", "chos", "chas", "llo", "lla", "llos", "llas", "me",
+     "te", "vos"}
+)  # fmt: skip
 
 
 def normalize(text: str) -> str:
@@ -44,6 +53,27 @@ def fold(token: str) -> str:
     return unicodedata.normalize(
         "NFC", "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     )
+
+
+def lenient(text: str, language: str) -> str | None:
+    """The words with the spelling choices that are not mistakes folded away; Galician only.
+
+    Lyrics sites write songs the way they sound: gheada ("janarme"), seseo ("corasón"), few
+    accents, and pronouns apart from their verb ("deixei che"). A transcriber that writes the
+    standard form of the same word heard it right, and a strict WER counts it wrong. Here both
+    spellings give the same word, and a pronoun is glued to the word before it on both sides.
+    None for a language without such rules.
+    """
+    if language != "gl":
+        return None
+    words: list[str] = []
+    for token in tokens(text):
+        word = _SESEO.sub("s", _GHEADA.sub("g", fold(token)))
+        if word in _ENCLITICS and words:
+            words[-1] += word
+        else:
+            words.append(word)
+    return " ".join(words)
 
 
 def match_key(word: str) -> str:

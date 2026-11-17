@@ -31,7 +31,7 @@ class FakeWhisper:
         self.calls: list[dict[str, object]] = []
 
     def transcribe(self, audio: np.ndarray, **options: object) -> tuple[object, FakeInfo]:
-        self.calls.append(options)
+        self.calls.append({**options, "seconds": len(audio) / RATE})
         return iter(self.segments), FakeInfo(self.language)
 
 
@@ -252,3 +252,81 @@ def test_a_transcriber_killed_for_memory_is_an_error_not_a_hang(
     # A MemoryError: the server reports it as "out of memory" and tries once more.
     with pytest.raises(MemoryError, match="out of memory"):
         transcribe_in_child(tmp_path / "vocals.wav", "gl", work=child_crash.die)
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_each_stretch_of_singing_is_transcribed_on_its_own(tmp_path: Path) -> None:
+    whisper = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+    vocals = _vocals(tmp_path, [(0, 2), (10, 12)], seconds=14.0)
+
+    transcript = WhisperTranscriber(whisper=whisper, by_voice=True).transcribe(vocals, "gl")
+
+    # Two stretches with their margin of a quarter of a second, not the 14 s of the song.
+    assert [call["seconds"] for call in whisper.calls] == pytest.approx([2.25, 2.5], abs=0.05)
+    # The voice is already found: Whisper's own speech detector would drop sung passages.
+    assert all(call["vad_filter"] is False for call in whisper.calls)
+    assert [(s.start, s.text) for s in transcript.segments] == [
+        (pytest.approx(0.3, abs=0.03), "Ola mar"),
+        (pytest.approx(10.05, abs=0.03), "Ola mar"),
+    ]
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_a_segment_never_runs_past_its_stretch(tmp_path: Path) -> None:
+    whisper = FakeWhisper([FakeSegment(0.3, 29.0, "Ola mar")])
+    vocals = _vocals(tmp_path, [(0, 2)], seconds=14.0)
+
+    transcript = WhisperTranscriber(whisper=whisper, by_voice=True).transcribe(vocals, "gl")
+
+    [segment] = transcript.segments
+    assert segment.end == pytest.approx(2.25, abs=0.05)
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_without_stretches_the_whole_song_goes_to_whisper_at_once(tmp_path: Path) -> None:
+    whisper = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+    vocals = _vocals(tmp_path, [(0, 2), (10, 12)], seconds=14.0)
+
+    WhisperTranscriber(whisper=whisper, by_voice=False).transcribe(vocals, "gl")
+
+    assert [call["seconds"] for call in whisper.calls] == pytest.approx([14.0])
+    assert whisper.calls[0]["vad_filter"] is True
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_stretches_can_be_made_shorter(tmp_path: Path) -> None:
+    # Two phrases of 8 s, a second apart: one stretch of 17 s, or two when 10 s is the most.
+    vocals = _vocals(tmp_path, [(0, 8), (9, 17)], seconds=18.0)
+    long = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+    short = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+
+    WhisperTranscriber(whisper=long, by_voice=True).transcribe(vocals, "gl")
+    WhisperTranscriber(whisper=short, by_voice=True, stretch_seconds=10.0).transcribe(vocals, "gl")
+
+    assert len(long.calls) == 1
+    assert len(short.calls) == 2
+
+
+@pytest.mark.usefixtures("ffmpeg")
+def test_each_model_reads_stretches_of_its_own_length(tmp_path: Path) -> None:
+    # Two phrases of 8 s a second apart. A turbo model loses the thread in long stretches and
+    # reads them one by one; a large one uses the context and reads both together.
+    vocals = _vocals(tmp_path, [(0, 8), (9, 17)], seconds=18.0)
+    turbo = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+    large = FakeWhisper([FakeSegment(0.3, 1.5, "Ola mar")])
+
+    WhisperTranscriber(model="large-v3-turbo", whisper=turbo, by_voice=True).transcribe(
+        vocals, "en"
+    )
+    WhisperTranscriber(model="hitz-large-v3-gl", whisper=large, by_voice=True).transcribe(
+        vocals, "gl"
+    )
+
+    assert len(turbo.calls) == 2
+    assert len(large.calls) == 1
+
+
+def test_every_model_says_how_long_a_stretch_it_reads() -> None:
+    assert MODELS["large-v3-turbo"].stretch == MODELS["nos-turbo-gl"].stretch == 12.0
+    assert MODELS["hitz-large-v3-gl"].stretch == 28.0
+    assert all(0 < spec.stretch <= 28.0 for spec in MODELS.values())

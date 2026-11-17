@@ -312,3 +312,78 @@ def test_the_score_says_which_lyrics_fit_the_audio_better() -> None:
 
     assert right.score > wrong.score
     assert [_starts(path.spans) for path in right.paths] == [[10, 12], [20, 22]]
+
+
+def _intro_then_line() -> tuple[np.ndarray, np.ndarray, Segment]:
+    """A line "a bc" sung at frame 198, after an intro where something like an "a" sounds."""
+    lp = _emissions(220, 5)
+    _peak(lp, 10, 2)  # the intro: an "a" nobody wrote
+    lp[198, 2] = -4.0  # the real "a", weak: it runs into the next word
+    _peak(lp, 200, 3)
+    _peak(lp, 202, 4)
+    silent = np.zeros(220, dtype=np.float32)
+    silent[14:195] = 4.0
+    line = Segment(tokens=(2, 3, 4), owner=(0, 1, 1), skip_penalty=math.inf)
+    return _finish(lp), silent, line
+
+
+def test_a_short_word_wanders_into_the_intro_when_resting_is_free() -> None:
+    lp, silent, line = _intro_then_line()
+
+    [path] = align_segments(lp, [line], filler_penalty=3.0, token_penalty=silent)
+
+    assert _starts(path.spans) == [10, 200, 202]
+
+
+def test_resting_through_silence_at_a_cost_keeps_a_short_word_with_its_line() -> None:
+    lp, silent, line = _intro_then_line()
+
+    [path] = align_segments(lp, [line], filler_penalty=3.0, token_penalty=silent, rest_penalty=0.1)
+
+    assert _starts(path.spans) == [198, 200, 202]
+
+
+def test_a_real_pause_between_two_words_is_still_followed() -> None:
+    # "ab cd" with two seconds of silence between the words: both are clearly sung.
+    lp = _emissions(220, 6)
+    _sung(lp, 10, [2, 3])
+    _sung(lp, 120, [4, 5])
+    silent = np.zeros(220, dtype=np.float32)
+    silent[16:116] = 4.0
+    line = Segment(tokens=(2, 3, 4, 5), owner=(0, 0, 1, 1), skip_penalty=math.inf)
+
+    [path] = align_segments(
+        _finish(lp), [line], filler_penalty=3.0, token_penalty=silent, rest_penalty=0.1
+    )
+
+    assert _starts(path.spans) == [10, 12, 120, 122]
+
+
+def test_resting_costs_nothing_while_the_voice_sounds() -> None:
+    # The same wandering "a", but the voice never stops between it and the line (ad-libs):
+    # only silence is charged, so the path may still take the clearer one.
+    lp, _, line = _intro_then_line()
+
+    [path] = align_segments(
+        lp, [line], filler_penalty=3.0, token_penalty=np.zeros(220, np.float32), rest_penalty=0.1
+    )
+
+    assert _starts(path.spans)[0] == 10
+
+
+def test_the_word_delimiter_rests_at_the_same_cost() -> None:
+    lp = _emissions(220, 6)
+    _peak(lp, 10, 2)
+    lp[198, 2] = -4.0
+    lp[199, 5] = -1.0  # the delimiter between the words
+    _peak(lp, 200, 3)
+    _peak(lp, 202, 4)
+    silent = np.zeros(220, dtype=np.float32)
+    silent[14:195] = 4.0
+    line = Segment(tokens=(2, 5, 3, 4), owner=(0, -1, 1, 1), skip_penalty=math.inf)
+
+    [path] = align_segments(
+        _finish(lp), [line], filler_penalty=3.0, token_penalty=silent, rest_penalty=0.1
+    )
+
+    assert _starts(path.spans)[0] == 198
