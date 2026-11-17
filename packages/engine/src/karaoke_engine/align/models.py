@@ -1,7 +1,8 @@
 """The CTC models the aligner can use, pinned to a revision, and the default per language.
 
-Defaults are chosen with the bench (decision 005). Omnilingual covers some 1600 languages and is
-the fallback for any language without a model of its own.
+Defaults are chosen with the bench (decisions 005 and 019). A language without a model of its
+own gets the model trained on songs when it can write the lyrics, and otherwise Omnilingual,
+which knows the letters of some 1600 languages.
 """
 
 from dataclasses import dataclass, field
@@ -14,6 +15,9 @@ class CtcModelSpec:
     licence: str
     # Letters the model never saw, written as the closest letter it knows.
     fallbacks: dict[str, str] = field(default_factory=dict)
+    # A big checkpoint published in 32 bits: it is stored once in 16 bits in the model cache
+    # and loaded from there, at half the memory (emissions.half_copy).
+    half: bool = False
 
 
 _GL_FALLBACKS = {"ç": "z", "ï": "i", "ü": "u"}
@@ -30,6 +34,14 @@ MODELS: dict[str, CtcModelSpec] = {
         "3d09a7bb744413285c423ac41efa06b4d79e1fdd",
         "Apache-2.0",
         _GL_FALLBACKS,
+    ),
+    # w2v-BERT 2.0 pretrained further on music and trained on whole-song lyrics: sung letters in
+    # any language its 921 characters write.
+    "music-w2vbert-ctc": CtcModelSpec(
+        "mrfakename/w2v-bert-2.0-music-lyrics-ctc",
+        "1be91455793f86de803ac0707303a0998e423ce1",
+        "MIT",
+        half=True,
     ),
     # Omnilingual ASR CTC (Meta, Apache-2.0), converted to Wav2Vec2ForCTC.
     "omni-ctc-300m": CtcModelSpec(
@@ -88,4 +100,11 @@ DEFAULT_BY_LANGUAGE: dict[str, str] = {
     "de": "xlsr-de",
     "pt": "xlsr-pt",
 }
-FALLBACK_MODEL = "omni-ctc-300m"
+# A second model whose emissions are averaged with the language's own (emissions.blend): trained
+# on songs, it hears what a speech model misses (decision 019). None for none.
+DEFAULT_SECOND: str | None = "music-w2vbert-ctc"
+# For songs in any other language: trained on music in many languages, it aligns as well as a
+# language's own speech model (99.4 % against Omnilingual's 91.4 % on the quick set).
+FALLBACK_MODEL = "music-w2vbert-ctc"
+# For lyrics in letters the music model does not have, and for speech (interview captions).
+WIDE_FALLBACK_MODEL = "omni-ctc-300m"

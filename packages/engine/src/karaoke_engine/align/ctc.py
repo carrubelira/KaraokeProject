@@ -8,7 +8,9 @@ and a line that is never sung is squeezed in somewhere anyway. Here the path may
 - jump over a whole line for a cost (lines a lyrics site has but the singer does not sing);
 - pay extra for letters where the voice is silent (the caller marks those frames). The blank
   between two letters of one word pays it too: otherwise it can wait through a whole break for
-  free (the two e of "Meer" were found 57 s apart). Between words the path rests for free;
+  free (the two e of "Meer" were found 57 s apart). Between words the path rests for free, or,
+  if asked, for a small cost per silent frame: a word of one letter finds something like itself
+  anywhere, and with free rests the "A" that opens a line was found in the intro, 28 s early;
 - if asked, sing again lines of the same stanza right after them, for a cost each time: lyrics
   sites write a couplet sung four times, or a stanza sung twice, only once. From the filler after
   a line the path may go back to the filler before an earlier line of its stanza: up to
@@ -67,9 +69,12 @@ def align_segments(
     filler_penalty: float,
     token_penalty: npt.NDArray[np.float32] | None = None,
     repeat_penalty: float = math.inf,
+    rest_penalty: float = 0.0,
 ) -> list[SegmentPath]:
     """Best path through the lines; each line gets its tokens' frames or None if skipped."""
-    return best_path(log_probs, segments, filler_penalty, token_penalty, repeat_penalty).paths
+    return best_path(
+        log_probs, segments, filler_penalty, token_penalty, repeat_penalty, rest_penalty
+    ).paths
 
 
 def best_path(
@@ -78,8 +83,13 @@ def best_path(
     filler_penalty: float,
     token_penalty: npt.NDArray[np.float32] | None = None,
     repeat_penalty: float = math.inf,
+    rest_penalty: float = 0.0,
 ) -> BestPath:
-    """align_segments with the score of its path, to compare readings of the same lyrics."""
+    """align_segments with the score of its path, to compare readings of the same lyrics.
+
+    `token_penalty` is the cost of a letter per frame (zero where the voice sounds), and
+    `rest_penalty` what a rest between two words of a line costs in each of those silent frames.
+    """
     for segment in segments:
         if any(token in (BLANK, ANY) for token in segment.tokens) or not segment.tokens:
             raise ValueError("a segment needs tokens and they cannot use the blank or any column")
@@ -91,6 +101,7 @@ def best_path(
     penalty = (
         np.zeros(frames) if token_penalty is None else np.asarray(token_penalty, dtype=np.float64)
     )
+    rest = np.where(penalty > 0, rest_penalty, 0.0)
 
     size = layout.size
     edges = np.array([s.edge_skip_penalty for s in segments], dtype=np.float64)
@@ -98,7 +109,7 @@ def best_path(
     trailing = np.concatenate([np.cumsum(edges[::-1])[::-1], [0.0]])  # end at k: drop k+1..
     back = np.zeros((frames, size), dtype=np.int8)
     score = np.full(size, -np.inf)
-    first_emit = _emit(lp, penalty, layout, filler_penalty, 0)
+    first_emit = _emit(lp, penalty, rest, layout, filler_penalty, 0)
     score[layout.fillers] = first_emit[layout.fillers] - leading
     candidates = np.full((5, size), -np.inf)
     columns = np.arange(size)
@@ -116,7 +127,7 @@ def best_path(
             candidates[_BACK, layout.fillers[:-1]] = best - repeat_penalty
             came_from[t] = source
         choice = candidates.argmax(axis=0)
-        score = candidates[choice, columns] + _emit(lp, penalty, layout, filler_penalty, t)
+        score = candidates[choice, columns] + _emit(lp, penalty, rest, layout, filler_penalty, t)
         back[t] = choice
 
     path = np.empty(frames, dtype=np.int64)
@@ -183,6 +194,9 @@ class _Layout:
         can_skip = [False]
         # States that pay the silence cost: letters, and blanks inside a word.
         silenced = [False]
+        # States where the path rests between two words of a line: the blank before a word
+        # that is not the line's first, and the word delimiter.
+        resting = [False]
         for segment in segments:
             states = []
             for i, token in enumerate(segment.tokens):
@@ -192,8 +206,10 @@ class _Layout:
                     i > 0 and segment.owner[i] >= 0 and segment.owner[i] == segment.owner[i - 1]
                 )
                 silenced.append(inside)
+                resting.append(i > 0 and not inside)
                 states.append(len(columns))
                 silenced.append(segment.owner[i] >= 0)
+                resting.append(segment.owner[i] < 0)
                 columns.append(token)
                 # From the previous token over a blank, unless both are the same letter; the
                 # first token may skip its leading blank and come straight from the filler.
@@ -201,15 +217,18 @@ class _Layout:
             columns.append(BLANK)
             can_skip.append(False)
             silenced.append(False)
+            resting.append(False)
             fillers.append(len(columns))
             columns.append(-1)
             can_skip.append(True)  # the filler may follow the last token directly
             silenced.append(False)
+            resting.append(False)
             token_states.append(states)
         self.size = len(columns)
         self.columns = np.array(columns)
         self.is_filler = self.columns < 0
         self.silenced = np.array(silenced)
+        self.resting = np.array(resting)
         self.gather = np.where(self.is_filler, BLANK, self.columns)
         self.fillers = np.array(fillers)
         self.can_skip = np.array(can_skip)
@@ -245,6 +264,7 @@ def _runs(mask: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
 def _emit(
     lp: npt.NDArray[np.float64],
     penalty: npt.NDArray[np.float64],
+    rest: npt.NDArray[np.float64],
     layout: _Layout,
     filler_penalty: float,
     t: int,
@@ -252,5 +272,6 @@ def _emit(
     row = lp[t]
     emit: npt.NDArray[np.float64] = row[layout.gather].copy()
     emit[layout.silenced] -= penalty[t]
+    emit[layout.resting] -= rest[t]
     emit[layout.is_filler] = max(row[BLANK], row[ANY] - filler_penalty - penalty[t])
     return emit

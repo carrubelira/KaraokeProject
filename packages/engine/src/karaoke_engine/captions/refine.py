@@ -18,7 +18,7 @@ from typing import Any
 from karaoke_engine.align.audio import load_mono16k
 from karaoke_engine.align.ctc import Segment, align_segments
 from karaoke_engine.align.emissions import EmissionModel, Vocab
-from karaoke_engine.align.models import DEFAULT_BY_LANGUAGE, FALLBACK_MODEL, MODELS
+from karaoke_engine.align.models import DEFAULT_BY_LANGUAGE, MODELS, WIDE_FALLBACK_MODEL
 from karaoke_engine.align.spoken import spoken
 from karaoke_engine.captions.rules import TimedWord
 from karaoke_engine.captions.speech import SpeechTranscript
@@ -38,7 +38,7 @@ def refine_words(
     words = list(transcript.words)
     if not words:
         return transcript
-    net = model or EmissionModel(MODELS[DEFAULT_BY_LANGUAGE.get(language, FALLBACK_MODEL)])
+    net = model or EmissionModel(MODELS[DEFAULT_BY_LANGUAGE.get(language, WIDE_FALLBACK_MODEL)])
     net.load()
     try:
         vocab: Vocab = net.vocab
