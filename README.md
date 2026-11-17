@@ -70,7 +70,7 @@ Medido co banco de probas do proxecto, con cancións de licenza libre, nunha RTX
 | Sincronía coa letra, cancións en galego | **100 %** a ≤ 0,3 s ([informe](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
 | Transcrición sen letra (taxa de erro de palabras) | 21,3 % en JamendoLyrics e 25,9 % en galego, fronte ao 33,7 % e ao 35,9 % dunha base con Demucs e Whisper |
 | Cambios de lingua sen pedilo | ningún, en todo o banco |
-| Unha canción de 4:47 con letra, do ficheiro ao karaoke | uns 95 s |
+| Unha canción de 4:47 con letra, do ficheiro ao karaoke | uns 100 s |
 | Un MP4 1080p de 4 minutos | menos dun minuto |
 
 Como funciona o banco e todos os informes: [`docs/benchmark.md`](docs/benchmark.md) (en inglés) e

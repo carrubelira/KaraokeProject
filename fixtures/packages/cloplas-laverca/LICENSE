@@ -4,7 +4,7 @@ Source: https://archive.org/details/bafi_20220513
 
 Lyrics: transcribed by ear for the Galician benchmark (bench/sets/gl/cloplas-laverca) and shared
 under the same licence.
-Timings: made by Proxecto Karaoke en Galego 3.0.0 (`karaoke make`, with the lyrics), not corrected by hand. This is
+Timings: made by Proxecto Karaoke en Galego (`karaoke make`, with the lyrics, aligner version 16), not corrected by hand. This is
 the demo song of the project; the screenshots and the animation in docs/assets/ show it and are
 shared under CC BY-SA 4.0 too.
 

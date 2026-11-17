@@ -36,8 +36,9 @@ Tablero de las áreas de trabajo. Cada área actualiza **su fila** tras cada hit
   21,3 %; gallego (texto final, WER tolerante) urbanas 39,8 → 36,8 %, públicas 32,4 → 30,8 %.
   LRCLIB encuentra las canciones que vienen de un vídeo (`lyrics_lookup.song_names`). El banco gana
   `import-lrc` (referencias por línea, `Timing = "lines"`), el WER tolerante del gallego y
-  `karaoke_bench.baseline.qwen`. `make ci` pasa y el dueño dio el OK. Pendiente: rehacer el paquete «laverca» (`fixtures/packages/cloplas-laverca`) con el motor
-  nuevo cuando la GPU esté libre.
+  `karaoke_bench.baseline.qwen`. `make ci` pasa y el dueño dio el OK (PR #23). El paquete «laverca»
+  (`fixtures/packages/cloplas-laverca`) se rehízo con el motor nuevo: la «A» en 31,88 s y «Hai» en
+  139,58 s (referencia: 31,88 y 139,65; antes, 3,98 y 137,01).
 
 - Mantenimiento → C4, C2 (13/11, PR #22, `decisiones/018`): subtítulos
   profesionales para entrevistas largas, sin tocar el vídeo. `karaoke captions <vídeos|carpeta>`

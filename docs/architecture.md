@@ -154,7 +154,7 @@ offline). The API client uses types generated from the server's OpenAPI.
 | Timing with lyrics, Galician (5 songs) | 100 % within 0.3 s | [report](../bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md) |
 | Transcription without lyrics (WER) | 21.3 % on JamendoLyrics; 25.9 % in Galician | [decision 019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) |
 | Silent language switches | none in the whole benchmark | [decision 005](plan-v3/decisiones/005-sincronia.md) |
-| Making a 4:47 karaoke with lyrics | about 95 s | [report](../bench/results/2026-11-06-c9-calidad/), [decision 019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) |
+| Making a 4:47 karaoke with lyrics | about 100 s | [decision 019](plan-v3/decisiones/019-revision-transcripcion-y-sincronia.md) |
 | Exporting a 4-minute 1080p MP4 | under a minute with NVENC | [report](../bench/results/2026-10-30-c6-render/report.md) |
 | Lyrics animation | 60 fps with the CPU slowed down ×6 | [`quality.md`](quality.md) |
 

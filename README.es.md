@@ -71,7 +71,7 @@ Laptop (4 GB):
 | Sincronía con letra, canciones en gallego | **100 %** a ≤ 0,3 s ([informe](bench/results/2026-11-17-rev-final-b-gl-lyrics/report.md)) |
 | Transcripción sin letra (tasa de error de palabras) | 21,3 % en JamendoLyrics y 25,9 % en gallego, frente al 33,7 % y al 35,9 % de una base con Demucs y Whisper |
 | Cambios de idioma sin pedirlo | ninguno, en todo el banco |
-| Una canción de 4:47 con letra, del archivo al karaoke | unos 95 s |
+| Una canción de 4:47 con letra, del archivo al karaoke | unos 100 s |
 | Un MP4 1080p de 4 minutos | menos de un minuto |
 
 Cómo funciona el banco y todos los informes: [`docs/benchmark.md`](docs/benchmark.md) (en inglés)
