@@ -24,6 +24,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kp-proto"
+version = "4.0.0-dev"
+dependencies = [
+ "kp-clock",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "kp-syncbench"
 version = "4.0.0-dev"
 dependencies = [

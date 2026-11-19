@@ -1,0 +1,19 @@
+{
+  "task": {
+    "id": "t1",
+    "kind": "make",
+    "job_id": "j1",
+    "params": {
+      "language": "gl"
+    },
+    "inputs": [
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    ],
+    "vram_mb": 3000,
+    "needs_internet": false,
+    "priority": 0
+  },
+  "lease_id": "l1",
+  "expires_at": "2026-11-19T12:00:30Z",
+  "heartbeat_seconds": 5.0
+}

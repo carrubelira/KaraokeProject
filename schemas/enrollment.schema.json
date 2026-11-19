@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/enrollment.schema.json",
+  "$defs": {
+    "Capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "os": {
+          "enum": [
+            "windows",
+            "linux",
+            "macos"
+          ],
+          "type": "string"
+        },
+        "cpus": {
+          "default": 1,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "ram_mb": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gpus": {
+          "items": {
+            "$ref": "#/$defs/Gpu"
+          },
+          "type": "array"
+        },
+        "internet": {
+          "default": false,
+          "type": "boolean"
+        },
+        "tasks": {
+          "description": "Task kinds it can run.",
+          "items": {
+            "enum": [
+              "fetch",
+              "make",
+              "package",
+              "render"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "models": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Model name to version.",
+          "type": "object"
+        },
+        "decoders": {
+          "description": "Video codecs a player decodes in hardware.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "same_host_as_server": {
+          "default": false,
+          "description": "It shares the server's disk: blobs go by path, not HTTP.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "os",
+        "cpus",
+        "ram_mb",
+        "gpus",
+        "internet",
+        "tasks",
+        "models",
+        "decoders",
+        "same_host_as_server"
+      ],
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "Gpu": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "vram_total_mb": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "vram_total_mb"
+      ],
+      "title": "Gpu",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Sent once with a one-time token; the answer carries the node's own credential.",
+  "properties": {
+    "token": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "worker",
+        "player"
+      ],
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "capabilities": {
+      "$ref": "#/$defs/Capabilities"
+    }
+  },
+  "required": [
+    "token",
+    "kind",
+    "name",
+    "capabilities"
+  ],
+  "title": "Enrollment",
+  "type": "object"
+}

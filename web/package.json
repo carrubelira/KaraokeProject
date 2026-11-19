@@ -14,7 +14,7 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"gen:contracts": "json2ts -i ../schemas/karaoke.schema.json -o src/lib/contracts/generated/karaoke.ts --additionalProperties=false --unknownAny --ignoreMinAndMaxItems --style.useTabs --style.singleQuote --bannerComment '/* Generated from schemas/ by `pnpm gen:contracts`. Do not edit by hand. */' && json2ts -i ../schemas/theme.schema.json -o src/lib/contracts/generated/theme.ts --additionalProperties=false --unknownAny --ignoreMinAndMaxItems --style.useTabs --style.singleQuote --bannerComment '/* Generated from schemas/ by `pnpm gen:contracts`. Do not edit by hand. */'",
+		"gen:contracts": "node scripts/gen-contracts.mjs",
 		"test:e2e": "playwright test",
 		"test:e2e:server": "playwright test -c playwright.server.config.ts",
 		"perf": "node scripts/perf-budget.mjs",

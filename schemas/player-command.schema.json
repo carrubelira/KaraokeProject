@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/player-command.schema.json",
+  "$defs": {
+    "Anchor": {
+      "additionalProperties": false,
+      "description": "A song position that holds at an instant (µs on the server's clock) and moves at a rate.",
+      "properties": {
+        "position": {
+          "type": "number"
+        },
+        "instant": {
+          "type": "integer"
+        },
+        "rate": {
+          "default": 1.0,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "position",
+        "instant",
+        "rate"
+      ],
+      "title": "Anchor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "command": {
+      "enum": [
+        "load",
+        "play",
+        "pause",
+        "seek",
+        "next",
+        "previous",
+        "stop",
+        "volume",
+        "pitch",
+        "reload"
+      ],
+      "type": "string"
+    },
+    "item_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Anchor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where and when, for play/seek."
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Volume (0 to 2) or semitones."
+    },
+    "issued_at": {
+      "description": "µs on the server's clock.",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "command",
+    "item_id",
+    "anchor",
+    "value",
+    "issued_at"
+  ],
+  "title": "PlayerCommand",
+  "type": "object"
+}

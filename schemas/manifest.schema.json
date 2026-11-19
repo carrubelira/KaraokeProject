@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/manifest.schema.json",
+  "$defs": {
+    "AudioInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "codec": {
+          "const": "opus",
+          "default": "opus",
+          "type": "string"
+        },
+        "container": {
+          "const": "ogg",
+          "default": "ogg",
+          "type": "string"
+        },
+        "sample_rate": {
+          "const": 48000,
+          "default": 48000,
+          "type": "integer"
+        },
+        "channels": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "preskip": {
+          "description": "Opus pre-skip, in 48 kHz samples.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gain_db": {
+          "default": 0.0,
+          "description": "Gain the player applies to bring the song to -14 LUFS without clipping; the same for every audio track, so guide vocals and music keep their balance.",
+          "type": "number"
+        },
+        "loudness_lufs": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Integrated loudness of the mix once `gain_db` is applied."
+        }
+      },
+      "required": [
+        "codec",
+        "container",
+        "sample_rate",
+        "channels",
+        "preskip",
+        "gain_db",
+        "loudness_lufs"
+      ],
+      "title": "AudioInfo",
+      "type": "object"
+    },
+    "Blob": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "size",
+        "media_type"
+      ],
+      "title": "Blob",
+      "type": "object"
+    },
+    "Track": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "vocals",
+            "instrumental",
+            "video",
+            "lyrics",
+            "cover"
+          ],
+          "type": "string"
+        },
+        "blob": {
+          "$ref": "#/$defs/Blob"
+        },
+        "offset": {
+          "default": 0.0,
+          "description": "Song time of the track's first sample.",
+          "type": "number"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AudioInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "video": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VideoInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "blob",
+        "offset",
+        "duration",
+        "audio",
+        "video"
+      ],
+      "title": "Track",
+      "type": "object"
+    },
+    "VideoInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "codec": {
+          "enum": [
+            "h264",
+            "hevc",
+            "av1"
+          ],
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "fps": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "codec",
+        "width",
+        "height",
+        "fps"
+      ],
+      "title": "VideoInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "2.0.0",
+      "pattern": "^2\\.\\d+\\.\\d+$",
+      "type": "string"
+    },
+    "content_id": {
+      "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+      "type": "string"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "parent": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Hash of the previous version."
+    },
+    "created_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "artist": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "language": {
+      "pattern": "^[a-z]{2,3}$",
+      "type": "string"
+    },
+    "duration": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    },
+    "tracks": {
+      "items": {
+        "$ref": "#/$defs/Track"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "content_id",
+    "version",
+    "parent",
+    "created_at",
+    "title",
+    "artist",
+    "language",
+    "duration",
+    "tracks"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

@@ -17,4 +17,22 @@ export type {
 	ThemeFont,
 	ThemeLayout
 } from './generated/theme';
+export type {
+	Manifest,
+	Track as ManifestTrack,
+	Blob,
+	AudioInfo,
+	VideoInfo
+} from './generated/manifest';
+export type { Lyrics } from './generated/lyrics';
+export type { Playlist, PlaylistItem } from './generated/playlist';
+export type { PlayerCommand, Anchor } from './generated/player-command';
+export type { PlayerConfig, Routing, Route, Screen, Calibration } from './generated/player-config';
+export type {
+	PlayerStatus,
+	PlayerOutputs,
+	Display,
+	AudioDevice,
+	ContentCache
+} from './generated/player-status';
 export type { PlaybackClock } from './clock';

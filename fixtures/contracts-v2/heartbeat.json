@@ -1,0 +1,14 @@
+{
+  "telemetry": {
+    "gpu_util": 87.0,
+    "vram_used_mb": 2900,
+    "vram_free_mb": 1100,
+    "gpu_temp_c": 71.0,
+    "cpu_util": null,
+    "ram_used_mb": null
+  },
+  "running": [
+    "t1"
+  ],
+  "busy_playing": false
+}

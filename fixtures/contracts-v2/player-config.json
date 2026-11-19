@@ -1,0 +1,49 @@
+{
+  "routing": {
+    "master": "wasapi:hdmi-1",
+    "routes": [
+      {
+        "track": "instrumental",
+        "output": "wasapi:hdmi-1",
+        "gain_db": 0.0,
+        "delay_ms": 0.0
+      },
+      {
+        "track": "vocals",
+        "output": "wasapi:hdmi-1",
+        "gain_db": -6.0,
+        "delay_ms": 0.0
+      },
+      {
+        "track": "vocals",
+        "output": "wasapi:usb-2",
+        "gain_db": 0.0,
+        "delay_ms": 12.5
+      }
+    ],
+    "screens": [
+      {
+        "display": "tv",
+        "layout": "video-lyrics",
+        "theme": "clasico"
+      },
+      {
+        "display": "monitor",
+        "layout": "lyrics",
+        "theme": "moderno"
+      }
+    ],
+    "policies": {
+      "wasapi:usb-2": "continue"
+    }
+  },
+  "calibration": {
+    "audio_ms": {
+      "wasapi:hdmi-1": 38.0
+    },
+    "display_ms": {
+      "tv": 35.0
+    }
+  },
+  "playlist_id": "noite"
+}

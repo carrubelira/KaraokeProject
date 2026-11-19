@@ -19,6 +19,10 @@ export interface AudioRefs {
 	instrumental: string;
 	vocals: string | null;
 	loudness_lufs: number | null;
+	/**
+	 * Gain a player applies to both stems to reach loudness_lufs; None when the stems were levelled when encoded (packages before 1.3.0).
+	 */
+	gain_db: number | null;
 }
 export interface VideoRefs {
 	/**

@@ -545,6 +545,11 @@ export interface components {
             vocals?: string | null;
             /** Loudness Lufs */
             loudness_lufs?: number | null;
+            /**
+             * Gain Db
+             * @description Gain a player applies to both stems to reach loudness_lufs; None when the stems were levelled when encoded (packages before 1.3.0).
+             */
+            gain_db?: number | null;
         } & {
             [key: string]: unknown;
         };
@@ -683,7 +688,7 @@ export interface components {
         KaraokeDoc: {
             /**
              * Schema Version
-             * @default 1.2.0
+             * @default 1.3.0
              */
             schema_version: string;
             /** Id */

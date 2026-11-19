@@ -87,7 +87,7 @@ def test_make_builds_a_valid_package(tmp_path: Path) -> None:
     assert doc.id == "unha-cancion"
     assert doc.artist == "Alguén"
     assert [len(line.words) for line in doc.lines] == [2, 3]
-    assert {p.name for p in out.iterdir()} >= {"karaoke.json", "instrumental.m4a", "vocals.m4a"}
+    assert {p.name for p in out.iterdir()} >= {"karaoke.json", "instrumental.opus", "vocals.opus"}
     assert separator.unloaded
     assert not any(p.suffix == ".wav" for p in out.rglob("*"))
 
@@ -536,7 +536,7 @@ def test_a_failed_alignment_leaves_no_half_made_files(tmp_path: Path) -> None:
     assert not (out / "karaoke.json").exists()
     assert list(out.glob(".make-*")) == []
     # The audio made in the background meanwhile goes too: nothing of a failed run stays.
-    assert list(out.glob("*.m4a")) == []
+    assert list(out.glob("*.opus")) == []
 
 
 class HalfDeafAligner(EvenAligner):

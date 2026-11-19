@@ -140,7 +140,7 @@ def make_package(
                      lyrics_source, title, artist, step)  # fmt: skip
     except BaseException:
         # Nothing of a failed run stays: its audio was made in the background meanwhile.
-        for name in ("instrumental.m4a", "vocals.m4a"):
+        for name in ("instrumental.opus", "vocals.opus"):
             (out_dir / name).unlink(missing_ok=True)
         raise
 
@@ -158,7 +158,7 @@ def _make(
     artist: str | None,
     step: Callable[[str], None],
 ) -> KaraokeDoc:
-    # The package audio (loudness and m4a, on the CPU) is made while the GPU transcribes and
+    # The package audio (loudness and Opus, on the CPU) is made while the GPU transcribes and
     # aligns; leaving the `with` waits for it, so nothing is deleted under a running ffmpeg.
     with (
         tempfile.TemporaryDirectory(dir=out_dir, prefix=".make-") as tmp,

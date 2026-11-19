@@ -6,7 +6,7 @@ Tablero por fases (`00-vision.md` §9). Cada fase actualiza **su fila** tras cad
 |---|---|---|---|---|
 | 0a | Motor del reproductor | hecho | `claude/trusting-johnson-3p992a` | pipeline propio (`decisiones/001`); `kp-clock`, `kp-mix` |
 | 0b | Banco de sincronía por software | hecho | `claude/trusting-johnson-3p992a` | `kp-syncbench`: audio↔audio 1,4 ms máx en el peor caso (`decisiones/002`) |
-| 1 | Contratos v2 y migrador v3 → manifiesto | pendiente | — | — |
+| 1 | Contratos v2 y migrador v3 → manifiesto | hecho | `claude/trusting-johnson-3p992a` | manifiesto, letra, nodos, órdenes y enrutado; Opus con `gain_db`; `karaoke package`; `kp-proto` (`decisiones/003`) |
 | 2 | Servidor: CAS, cola con lease, enrolado y TLS, API/WS | pendiente | — | — |
 | 3 | Worker en Windows y Linux, tarea `make` gruesa | pendiente | — | — |
 | 3.5 | Corte vertical: reproductor mínimo | pendiente | — | — |

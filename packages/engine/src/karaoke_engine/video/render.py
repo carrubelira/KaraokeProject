@@ -244,18 +244,20 @@ def render(
 
         instrumental = resolve_media(package, doc.audio.instrumental)
         inputs += ["-i", str(instrumental)]
-        audio_map = f"{index}:a"
-        audio_codec = (
-            ["-c:a", "copy"] if instrumental.suffix == ".m4a" else ["-c:a", "aac", "-b:a", "192k"]
-        )
+        # Stems from 1.3.0 on carry their gain instead of being levelled when encoded.
+        gain = doc.audio.gain_db or 0.0
+        level = f"volume={gain:.2f}dB" if gain else "anull"
+        graph += f";[{index}:a]{level}[ins]"
+        audio_map = "[ins]"
+        audio_codec = ["-c:a", "aac", "-b:a", "192k"]
         if vocals > 0 and doc.audio.vocals:
             inputs += ["-i", str(resolve_media(package, doc.audio.vocals))]
+            voice = ass_number(vocals * 10 ** (gain / 20))
             graph += (
-                f";[{index + 1}:a]volume={ass_number(vocals)}[voc];"
-                f"[{index}:a][voc]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0[a]"
+                f";[{index + 1}:a]volume={voice}[voc];"
+                f"[ins][voc]amix=inputs=2:normalize=0,alimiter=limit=0.95:level=0[a]"
             )
             audio_map = "[a]"
-            audio_codec = ["-c:a", "aac", "-b:a", "192k"]
 
         head = [
             "ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", graph,

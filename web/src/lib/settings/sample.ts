@@ -28,7 +28,7 @@ export const SAMPLE_DOC: KaraokeDoc = {
 	artist: null,
 	language: 'gl',
 	duration: 12,
-	audio: { instrumental: 'instrumental.m4a', vocals: null, loudness_lufs: null },
+	audio: { instrumental: 'instrumental.opus', vocals: null, loudness_lufs: null, gain_db: null },
 	video: null,
 	cover: null,
 	singers: [{ id: 's1', name: null, color: null }],
