@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from pydantic import BaseModel
 
 from karaoke_contracts.nodes import (
+    Capabilities,
     Enrolled,
     Enrollment,
     Heartbeat,
@@ -102,6 +103,15 @@ class Me(BaseModel):
 
 @router.get("/nodes/me")
 async def me(who: Node = Depends(node)) -> Me:
+    return Me(id=who.id, kind=who.kind, name=who.name)
+
+
+@router.put("/nodes/me/capabilities")
+async def update_capabilities(
+    body: Capabilities, request: Request, who: Node = Depends(node)
+) -> Me:
+    """A node says what it offers now (on every start: a new driver, new models, a new GPU)."""
+    services(request).auth.update_capabilities(who, body)
     return Me(id=who.id, kind=who.kind, name=who.name)
 
 

@@ -1,4 +1,4 @@
-.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve player
+.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve player e2e-v4
 
 # Everything a person needs to run the karaoke on this machine (docs/development.md). Developers also
 # run `make setup` for the git hooks.
@@ -76,7 +76,12 @@ ci: contracts lint typecheck test web player
 
 # The native player's platform-free crates and the software sync bench (docs/plan-v4/decisiones/002).
 player:
-	cd player && cargo fmt --check && cargo clippy -q --all-targets -- -D warnings && cargo test -q --workspace
+	cd player && cargo fmt --check && cargo clippy -q --workspace --all-targets -- -D warnings && cargo test -q --workspace
+
+# Server, a worker with the fake engine and the player headless, end to end (player/tests/e2e.py).
+e2e-v4:
+	cd player && cargo build -q -p kp-player
+	uv run python player/tests/e2e.py
 
 # The server with the built web app (built once if missing). Not `uv run`: it would sync the
 # environment without the GPU extras.

@@ -1,0 +1,21 @@
+[package]
+name = "kp-net"
+description = "The player's line to the server: HTTPS and WebSocket pinned to the server's certificate."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kp-proto = { path = "../proto" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+ureq.workspace = true
+rustls.workspace = true
+tungstenite.workspace = true
+log.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -53,3 +53,17 @@ def test_nodes_cannot_use_operator_routes(clients: Clients) -> None:
     assert worker.get("/api/jobs").status_code == 401
     _, player = clients.enrol("player")
     assert player.post("/api/worker/lease", json={}).status_code == 403
+
+
+def test_nodes_update_their_capabilities(clients: Clients) -> None:
+    node_id, worker = clients.enrol("worker", gpus=[])
+    caps = {
+        "os": "windows",
+        "gpus": [{"name": "RTX 4070", "vram_total_mb": 12288}],
+        "internet": True,
+    }
+    assert worker.put("/api/nodes/me/capabilities", json=caps).status_code == 200
+    listed = clients.operator().get("/api/nodes").json()[0]["capabilities"]
+    assert listed["gpus"][0]["name"] == "RTX 4070"
+    assert listed["os"] == "windows"
+    assert node_id

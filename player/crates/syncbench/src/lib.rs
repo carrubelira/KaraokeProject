@@ -15,7 +15,7 @@
 //! audio↔audio error (target < 5 ms), A/V error per presented frame (target ≤ one video frame)
 //! and the lyrics error (target ≤ one display frame).
 
-use kp_clock::{Correction, DriftController, MasterClock, Micros, RateEstimator};
+use kp_clock::{Follower, MasterClock, Micros, RateEstimator};
 use serde::{Deserialize, Serialize};
 
 const NOMINAL: f64 = 48_000.0;
@@ -157,13 +157,7 @@ pub fn run(scenario: &Scenario) -> Report {
         jitter: device.jitter_us,
         block: device.block,
         next: 0.5 * main_period,
-        // Song position of the next frame the second output will render.
-        content: None,
-        ratio: 1.0,
-        controller: DriftController::new(),
-        estimator: RateEstimator::new(1_000_000),
-        frames: 0,
-        jumps: 0,
+        follower: Follower::new(NOMINAL),
     });
 
     let mut displays: Vec<DisplayState> = scenario
@@ -213,39 +207,15 @@ pub fn run(scenario: &Scenario) -> Report {
             }
             Event::Second => {
                 let s = second.as_mut().expect("second output");
-                let snapshot = clock.snapshot();
                 let heard_true = t + s.latency;
                 let reported = heard_true + s.jitter * 1e-6 * rng.symmetric();
-                if let Some(snapshot) = snapshot {
-                    let target = snapshot.position_at(to_us(reported));
-                    match s.content {
-                        None => s.content = Some(target),
-                        Some(content) => {
-                            // Feed-forward from both measured rates; the controller only trims
-                            // what they miss.
-                            let own = s.estimator.update(s.frames as f64 / NOMINAL, to_us(reported));
-                            let feed_forward = snapshot.rate / own;
-                            match s.controller.update(content - target, s.period) {
-                                Correction::Ratio(r) => s.ratio = feed_forward * r,
-                                Correction::Jump => {
-                                    s.jumps += 1;
-                                    s.content = Some(target);
-                                    s.ratio = 1.0;
-                                }
-                            }
-                        }
-                    }
-                    let content = s.content.expect("set above");
-                    // This block is heard from heard_true at the device's real rate.
-                    s.content = Some(content + f64::from(s.block) * s.ratio / NOMINAL);
-                    s.frames += u64::from(s.block);
-                    if heard_true > SETTLE_SECONDS {
-                        let advance = s.rate * s.ratio / NOMINAL;
-                        // Sample the error in the middle of the block.
-                        let mid = heard_true + 0.5 * f64::from(s.block) / s.rate;
-                        let heard_second = content + (mid - heard_true) * advance;
-                        audio_audio.push(heard_second - truth.heard(mid));
-                    }
+                // The same code the player runs for its secondary outputs.
+                if let Some((content, ratio)) = s.follower.block(clock.snapshot(), to_us(reported), s.block)
+                    && heard_true > SETTLE_SECONDS
+                {
+                    let advance = s.rate * ratio / NOMINAL;
+                    let mid = heard_true + 0.5 * f64::from(s.block) / s.rate;
+                    audio_audio.push(content + (mid - heard_true) * advance - truth.heard(mid));
                 }
                 s.next += s.period;
             }
@@ -280,8 +250,8 @@ pub fn run(scenario: &Scenario) -> Report {
     let mut report = Report {
         scenario: scenario.name.clone(),
         audio_audio: audio_stats,
-        learnt_ppm: second.as_ref().map(|s| (s.ratio - 1.0) * -1e6),
-        jumps: second.as_ref().map_or(0, |s| s.jumps),
+        learnt_ppm: second.as_ref().map(|s| -s.follower.correction_ppm()),
+        jumps: second.as_ref().map_or(0, |s| s.follower.jumps),
         av: Vec::new(),
         lyrics: Vec::new(),
         passed: true,
@@ -337,12 +307,7 @@ struct SecondState {
     jitter: f64,
     block: u32,
     next: f64,
-    content: Option<f64>,
-    ratio: f64,
-    controller: DriftController,
-    estimator: RateEstimator,
-    frames: u64,
-    jumps: u32,
+    follower: Follower,
 }
 
 struct DisplayState {

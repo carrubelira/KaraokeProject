@@ -296,6 +296,87 @@ impl RateEstimator {
     }
 }
 
+/// Keeps a secondary output on the master's song position, block by block.
+///
+/// Feed-forward from both measured rates (the crystals' ratio, learnt over the song) plus the
+/// [`DriftController`] trimming what is left. The player's secondary outputs and the sync bench
+/// run this same code.
+#[derive(Clone, Debug)]
+pub struct Follower {
+    controller: DriftController,
+    estimator: RateEstimator,
+    content: Option<f64>,
+    frames: u64,
+    ratio: f64,
+    nominal: f64,
+    pub jumps: u32,
+}
+
+impl Follower {
+    pub fn new(nominal_rate: f64) -> Self {
+        Self {
+            controller: DriftController::new(),
+            estimator: RateEstimator::new(1_000_000),
+            content: None,
+            frames: 0,
+            ratio: 1.0,
+            nominal: nominal_rate,
+            jumps: 0,
+        }
+    }
+
+    /// For a block of `frames` heard from `heard_at` on: the song position of its first frame
+    /// and the resampling ratio to read it at, or `None` (silence) while the master is paused or
+    /// not running yet.
+    pub fn block(&mut self, master: Option<Snapshot>, heard_at: Micros, frames: u32) -> Option<(f64, f64)> {
+        let master = master?;
+        if master.rate == 0.0 {
+            self.reset();
+            return None;
+        }
+        let target = master.position_at(heard_at);
+        match self.content {
+            None => {
+                self.content = Some(target);
+                self.ratio = 1.0;
+            }
+            Some(content) => {
+                let own = self.estimator.update(self.frames as f64 / self.nominal, heard_at);
+                let feed_forward = master.rate / own;
+                let interval = f64::from(frames) / self.nominal;
+                match self.controller.update(content - target, interval) {
+                    Correction::Ratio(r) => self.ratio = feed_forward * r,
+                    Correction::Jump => {
+                        self.jumps += 1;
+                        self.controller.reset();
+                        self.content = Some(target);
+                        self.ratio = 1.0;
+                    }
+                }
+            }
+        }
+        let content = self.content.expect("set above");
+        self.content = Some(content + f64::from(frames) * self.ratio / self.nominal);
+        self.frames += u64::from(frames);
+        Some((content, self.ratio))
+    }
+
+    /// After a seek or a pause: the next block starts again from the master's position.
+    pub fn reset(&mut self) {
+        self.content = None;
+        self.controller.reset();
+    }
+
+    pub fn ratio(&self) -> f64 {
+        self.ratio
+    }
+
+    /// How much faster than nominal this output reads, in ppm (the drift it absorbs).
+    pub fn correction_ppm(&self) -> f64 {
+        (self.ratio - 1.0) * 1e6
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

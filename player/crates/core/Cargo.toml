@@ -1,0 +1,14 @@
+[package]
+name = "kp-core"
+description = "The player's logic: server clock, timeline of anchors, orders, playlist and status."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kp-clock = { path = "../clock" }
+kp-proto = { path = "../proto" }
+log.workspace = true
+
+[lints]
+workspace = true

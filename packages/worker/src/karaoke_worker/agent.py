@@ -80,6 +80,7 @@ class Agent:
         if self._gpu_busy() and self._cpu_busy() >= CPU_SLOTS:
             return None
         telemetry = await asyncio.to_thread(system.telemetry)
+        # Without NVML (a fake engine, a machine without a driver) the server uses the total.
         free = 0 if self._gpu_busy() else telemetry.vram_free_mb
         lease = await asyncio.to_thread(
             self.ctx.client.lease, free, self.busy_playing(), self.lease_wait

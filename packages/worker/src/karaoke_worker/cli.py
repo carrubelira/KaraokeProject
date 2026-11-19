@@ -9,7 +9,7 @@ from importlib import metadata
 from pathlib import Path
 
 from karaoke_contracts.cas import BlobStore
-from karaoke_contracts.nodes import Enrollment
+from karaoke_contracts.nodes import Enrollment, Gpu
 from karaoke_worker import system
 from karaoke_worker.config import WorkerConfig, default_data_dir
 
@@ -94,6 +94,13 @@ def _run(args: argparse.Namespace, data: Path) -> int:
         downloader=YtDlp(YTDLP),
         fake=args.fake or config.fake_engine,
     )
+    capabilities = system.capabilities(config.tasks, config.internet)
+    if ctx.fake and not capabilities.gpus:
+        # The fake engine needs no GPU; it says it has one so it gets GPU tasks.
+        capabilities = capabilities.model_copy(
+            update={"gpus": [Gpu(name="fake", vram_total_mb=8192)], "tasks": config.tasks}
+        )
+    client.update_capabilities(capabilities)
     agent = Agent(ctx, player_lock=Path(config.player_lock) if config.player_lock else None)
     try:
         asyncio.run(agent.run_forever())

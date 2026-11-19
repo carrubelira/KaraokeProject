@@ -7,14 +7,19 @@ use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 
 fn fixture(name: &str) -> Value {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../../fixtures/contracts-v2/{name}.json"));
+    let path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(format!("../../../fixtures/contracts-v2/{name}.json"));
     serde_json::from_str(&std::fs::read_to_string(path).expect("fixture")).expect("json")
 }
 
 fn round_trip<T: DeserializeOwned + Serialize>(name: &str) -> T {
     let value = fixture(name);
     let parsed: T = serde_json::from_value(value.clone()).unwrap_or_else(|e| panic!("{name}: {e}"));
-    assert_eq!(serde_json::to_value(&parsed).unwrap(), value, "{name} changed on the way back");
+    assert_eq!(
+        serde_json::to_value(&parsed).unwrap(),
+        value,
+        "{name} changed on the way back"
+    );
     parsed
 }
 
@@ -44,5 +49,5 @@ fn unknown_fields_are_refused() {
 #[test]
 fn server_messages_are_tagged() {
     let message: ServerMessage = serde_json::from_str(r#"{"type":"time","now":5}"#).unwrap();
-    assert_eq!(message, ServerMessage::Time { now: 5 });
+    assert_eq!(message, ServerMessage::Time { now: 5, sent: None });
 }

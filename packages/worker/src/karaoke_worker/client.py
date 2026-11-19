@@ -17,6 +17,7 @@ import httpx
 
 from karaoke_contracts.cas import BlobStore, HashMismatchError, sha256_file
 from karaoke_contracts.nodes import (
+    Capabilities,
     Enrolled,
     Enrollment,
     Heartbeat,
@@ -106,6 +107,9 @@ class ServerClient:
         answer = self.http.request(method, url, **kwargs)
         answer.raise_for_status()
         return answer
+
+    def update_capabilities(self, capabilities: Capabilities) -> None:
+        self._json("PUT", "/api/nodes/me/capabilities", json=capabilities.model_dump(mode="json"))
 
     def heartbeat(self, beat: Heartbeat) -> dict[str, Any]:
         data: dict[str, Any] = self._json(

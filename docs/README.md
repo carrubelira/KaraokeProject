@@ -13,6 +13,7 @@ The technical guides of Proxecto Karaoke en Galego. The project's presentation i
 | [Development](development.md) | setting up the environment and the everyday commands |
 | [Server](server.md) | starting it, enrolling nodes, storage, upkeep and the API (v4) |
 | [Worker](worker.md) | running the engine for the server on a GPU machine (v4) |
+| [Player](player.md) | the native player for Windows and macOS: enrolling, outputs, screens (v4) |
 
 ## Each part
 

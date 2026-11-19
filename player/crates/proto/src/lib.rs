@@ -136,15 +136,18 @@ pub struct Word {
     pub text: String,
     pub start: f64,
     pub end: f64,
+    #[serde(default)]
     pub confidence: Option<f64>,
+    #[serde(default)]
     pub parts: Vec<Part>,
     #[serde(flatten)]
     pub extra: Map<String, Value>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
+    #[default]
     Lead,
     Backing,
 }
@@ -154,7 +157,9 @@ pub struct Line {
     pub id: String,
     pub start: f64,
     pub end: f64,
+    #[serde(default)]
     pub singer: Option<String>,
+    #[serde(default)]
     pub role: Role,
     pub words: Vec<Word>,
     #[serde(flatten)]
@@ -285,11 +290,14 @@ impl Routing {
     /// What to do when `output` disappears: its own policy, else pause for the master and
     /// continue for the rest (plan v4 §6).
     pub fn policy(&self, output: &str) -> OutputPolicy {
-        self.policies.get(output).copied().unwrap_or(if self.master.as_deref() == Some(output) {
-            OutputPolicy::Pause
-        } else {
-            OutputPolicy::Continue
-        })
+        self.policies
+            .get(output)
+            .copied()
+            .unwrap_or(if self.master.as_deref() == Some(output) {
+                OutputPolicy::Pause
+            } else {
+                OutputPolicy::Continue
+            })
     }
 }
 
@@ -441,18 +449,31 @@ pub struct Enrolled {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ServerMessage {
-    Config { config: PlayerConfig },
-    Playlist { playlist: Playlist },
-    Command { command: PlayerCommand },
+    Config {
+        config: PlayerConfig,
+    },
+    Playlist {
+        playlist: Playlist,
+    },
+    Command {
+        command: PlayerCommand,
+    },
     /// The server's clock now (µs), for the player to learn the offset to its own.
-    Time { now: i64 },
+    Time {
+        now: i64,
+        sent: Option<i64>,
+    },
 }
 
 /// Messages a player sends.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum PlayerMessage {
-    Status { status: PlayerStatus },
+    Status {
+        status: PlayerStatus,
+    },
     /// Asks for the server's time; `sent` is the player's clock (µs) for the round trip.
-    TimeRequest { sent: i64 },
+    TimeRequest {
+        sent: i64,
+    },
 }
