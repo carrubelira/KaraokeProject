@@ -1,0 +1,40 @@
+name: Player
+
+on:
+  push:
+    branches: ["main", "v4/**", "claude/**"]
+    paths: ["player/**", ".github/workflows/player.yml"]
+  pull_request:
+    branches: ["main"]
+    paths: ["player/**", ".github/workflows/player.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: player-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    # The player ships for Windows and macOS (decision 001); Linux runs the same tests and the
+    # lints. The runners' own rustup is used, so no third-party action is needed.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: player
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+      - if: runner.os == 'Linux'
+        run: cargo fmt --check && cargo clippy --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - name: Sync bench (full length)
+        run: cargo run --release -p kp-syncbench

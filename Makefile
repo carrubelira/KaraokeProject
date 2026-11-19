@@ -1,4 +1,4 @@
-.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve
+.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve player
 
 # Everything a person needs to run the karaoke on this machine (docs/development.md). Developers also
 # run `make setup` for the git hooks.
@@ -72,7 +72,11 @@ check-env:
 	uv run python scripts/check_env.py
 
 # Regenerates the contracts first so a stale schema or TS type shows up locally, as in CI.
-ci: contracts lint typecheck test web
+ci: contracts lint typecheck test web player
+
+# The native player's platform-free crates and the software sync bench (docs/plan-v4/decisiones/002).
+player:
+	cd player && cargo fmt --check && cargo clippy -q --all-targets -- -D warnings && cargo test -q --workspace
 
 # The server with the built web app (built once if missing). Not `uv run`: it would sync the
 # environment without the GPU extras.

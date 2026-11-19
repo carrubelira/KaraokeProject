@@ -4,8 +4,8 @@ Tablero por fases (`00-vision.md` §9). Cada fase actualiza **su fila** tras cad
 
 | Fase | Entrega | Estado | Rama | Último hito |
 |---|---|---|---|---|
-| 0a | Spike del reproductor (GStreamer frente a propio; libmpv como referencia) | pendiente | — | — |
-| 0b | Banco de medición de sincronía | bloqueada: falta el hardware de medida (§8) | — | — |
+| 0a | Motor del reproductor | hecho | `claude/trusting-johnson-3p992a` | pipeline propio (`decisiones/001`); `kp-clock`, `kp-mix` |
+| 0b | Banco de sincronía por software | hecho | `claude/trusting-johnson-3p992a` | `kp-syncbench`: audio↔audio 1,4 ms máx en el peor caso (`decisiones/002`) |
 | 1 | Contratos v2 y migrador v3 → manifiesto | pendiente | — | — |
 | 2 | Servidor: CAS, cola con lease, enrolado y TLS, API/WS | pendiente | — | — |
 | 3 | Worker en Windows y Linux, tarea `make` gruesa | pendiente | — | — |
@@ -16,10 +16,7 @@ Tablero por fases (`00-vision.md` §9). Cada fase actualiza **su fila** tras cad
 | 7 | Editor con mini reproductor y MP4 | pendiente | — | — |
 | 8 | (opcional) Varios reproductores | fuera hasta que haga falta | — | — |
 
-## Preguntas abiertas
+## Decidido después
 
-- Hardware de medida: comprar una interfaz USB de 2 entradas y un fotodiodo (propuesto) o medir
-  solo por software más un móvil a 240 fps.
-- Equipo del reproductor: GPU, SO, monitores y, en Linux, si es Wayland o X11.
-- Tono sobre la voz guía: transportar ambas pistas (propuesto) o silenciar la voz.
-- Globo 3D de «Noite»: solo en la pantalla de inicio o eliminarlo de la interfaz de control.
+- Medición solo por software; reproductor en Windows con NVIDIA y macOS; el tono también se
+  aplica a la voz guía; el globo de inicio se mantiene de noche, con Galicia en su contexto real.

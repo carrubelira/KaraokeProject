@@ -10,11 +10,13 @@
 |---|---|
 | Red | Red local y Tailscale. Servidor y reproductor, normalmente en la misma LAN |
 | Topología | Servidor, worker y reproductor **pueden ser el mismo PC**, o estar separados |
-| Reproductores | Linux y Windows. Caso real: **un** reproductor, **2 pantallas**, **1 o 2 salidas de audio** |
+| Reproductores | **Windows (NVIDIA) y macOS**; Linux solo para desarrollo. Caso real: **un** reproductor, **2 pantallas**, **1 o 2 salidas de audio** |
 | Reproductor | Nativo (Rust), sin navegador |
 | Workers | Linux y Windows nativos (sin WSL), GPU NVIDIA (CUDA), modelo *pull* |
 | Micrófonos | Fuera del sistema: mezclador o monitor directo de la tarjeta |
-| Tono | Se mantiene, aplicado en el reproductor |
+| Tono | Se mantiene, aplicado en el reproductor a la voz guía y a la música |
+| Medición | Solo por software: banco simulado (`decisiones/002`) y diagnóstico en el aparato |
+| Globo de inicio | Se mantiene, de noche, con Galicia en su contexto geográfico real |
 | Se mantienen | Editor de letra y tiempos (con mini reproductor web), exportación MP4 |
 | Se descartan | PWA, reproductor web de uso general, modo fiesta, zonas de red |
 
@@ -97,10 +99,8 @@ Se reutiliza: `db.py`, `library.py`, `jobs/intake.py` (subidas en streaming), `j
 ## 6. Reproductor
 
 ### Tecnología
-Rust, wgpu y winit con varias ventanas. El motor de medios (GStreamer con `gstreamer-rs`, o uno
-propio con ffmpeg y WASAPI/PipeWire) se decide en el spike 0a. libmpv sirve solo de referencia:
-una instancia tiene un reloj y una salida de audio, y dos pantallas serían dos instancias sin
-sincronizar. Proceso sin interfaz propia, con un panel de diagnóstico.
+Rust, con pipeline propio (`decisiones/001`): `cpal` (WASAPI y CoreAudio), Opus, ffmpeg con
+decodificación por hardware (D3D11VA/NVDEC y VideoToolbox), y wgpu y winit con varias ventanas. Proceso sin interfaz propia, con un panel de diagnóstico.
 
 ### Sincronización
 - **Reloj maestro**: el reloj hardware de la salida de audio principal.
@@ -180,6 +180,8 @@ atajo, `run()`) del que salen la paleta, los atajos, los menús y la chuleta. Lo
 se prueban en e2e con Playwright **solo con teclado**.
 
 ## 8. Medición de sincronía
+
+> Decidido: solo por software (`decisiones/002`). Lo que sigue queda como referencia.
 
 Hoy no hay instrumentación, y por software no se ve la latencia del DAC, del HDMI ni del monitor.
 Propuesta (≈ 40–60 €): una interfaz USB de 2 entradas (audio↔audio por correlación cruzada) y un
