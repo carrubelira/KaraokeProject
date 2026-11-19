@@ -3,7 +3,7 @@ name = "karaoke-workspace"
 version = "3.0.0"
 description = "Workspace root for the v3 karaoke generator (Galician first)"
 requires-python = ">=3.12,<3.13"
-dependencies = ["karaoke-contracts", "karaoke-engine", "karaoke-bench", "karaoke-server"]
+dependencies = ["karaoke-contracts", "karaoke-engine", "karaoke-bench", "karaoke-server", "karaoke-worker"]
 
 [project.optional-dependencies]
 # GPU stack for the engine. Kept out of the default sync so CI and the web
@@ -42,6 +42,7 @@ karaoke-contracts = { workspace = true }
 karaoke-engine = { workspace = true }
 karaoke-bench = { workspace = true }
 karaoke-server = { workspace = true }
+karaoke-worker = { workspace = true }
 torch = { index = "pytorch-cu130" }
 torchaudio = { index = "pytorch-cu130" }
 torchvision = { index = "pytorch-cu130" }
@@ -72,27 +73,36 @@ ignore = ["S101", "S603", "S607"]
 # Lyrics legitimately use typographic apostrophes and accents.
 allowed-confusables = ["’", "‘", "´"]
 
+# FastAPI's dependencies are declared in argument defaults by design.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]
+
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S106", "S108", "S310", "S311", "T20", "ASYNC", "PLW1510"]
 "scripts/**" = ["T20"]
 # Command-line entry points talk to the user on stdout; the job runner speaks JSON lines on it.
 "**/cli.py" = ["T20"]
-"packages/server/src/karaoke_server/jobs/runner.py" = ["T20"]
+"packages/worker/src/karaoke_worker/runner.py" = ["T20"]
 "packages/engine/src/karaoke_engine/subtitles/conformance.py" = ["T20"]
 "packages/contracts/src/karaoke_contracts/schema_export.py" = ["T20"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["karaoke_contracts", "karaoke_engine", "karaoke_bench", "karaoke_server"]
+known-first-party = [
+    "karaoke_contracts", "karaoke_engine", "karaoke_bench", "karaoke_server", "karaoke_worker",
+]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["packages/contracts/src", "packages/engine/src", "packages/bench/src", "packages/server/src"]
+files = [
+    "packages/contracts/src", "packages/engine/src", "packages/bench/src", "packages/server/src",
+    "packages/worker/src",
+]
 
 # Libraries without type information used by the bench (the optional ones live in the ml extra).
 [[tool.mypy.overrides]]
-module = ["pynvml", "faster_whisper.*", "demucs.*", "ctranslate2.*", "audio_separator.*"]
+module = ["pynvml", "win32job", "win32api", "win32con", "win32process", "faster_whisper.*", "demucs.*", "ctranslate2.*", "audio_separator.*"]
 ignore_missing_imports = true
 
 # The ml extra (torch and the Hugging Face libraries) is only installed on the GPU machine; CI
@@ -118,13 +128,15 @@ testpaths = ["packages", "scripts"]
 
 # Package boundaries, checked by `make lint` (lint-imports). Imports inside functions count too.
 [tool.importlinter]
-root_packages = ["karaoke_contracts", "karaoke_engine", "karaoke_bench", "karaoke_server"]
+root_packages = [
+    "karaoke_contracts", "karaoke_engine", "karaoke_bench", "karaoke_server", "karaoke_worker",
+]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
-name = "Contracts, then the engine, then the bench and the server (which never import each other)"
+name = "Contracts, then the engine, then the bench, the server and the worker (apart)"
 type = "layers"
-layers = ["karaoke_bench | karaoke_server", "karaoke_engine", "karaoke_contracts"]
+layers = ["karaoke_bench | karaoke_server | karaoke_worker", "karaoke_engine", "karaoke_contracts"]
 
 [[tool.importlinter.contracts]]
 name = "The contracts only need pydantic"
@@ -132,8 +144,8 @@ type = "forbidden"
 source_modules = ["karaoke_contracts"]
 forbidden_modules = ["numpy", "torch", "fastapi", "starlette", "uvicorn", "jiwer", "transformers"]
 
-# The server process must stay small: models load only in the child process of a job
-# (jobs.runner), so a crash or the RAM a model keeps never takes the API down.
+# The server never runs inference (plan v4 §2): the models load only on workers, in the child
+# process of each task, so a crash or the RAM a model keeps never takes the API down.
 [[tool.importlinter.contracts]]
 name = "The server process never imports the models"
 type = "forbidden"
@@ -148,4 +160,3 @@ forbidden_modules = [
     "demucs",
     "huggingface_hub",
 ]
-ignore_imports = ["karaoke_server.jobs.runner -> karaoke_engine.**"]

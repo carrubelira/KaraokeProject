@@ -1,7 +1,7 @@
 [project]
 name = "karaoke-server"
 version = "3.0.0"
-description = "Karaoke server: library, job queue for one GPU, party rooms and the web app"
+description = "Karaoke server (v4): content store, task queue, nodes, playlists and the control UI"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "karaoke-contracts",
@@ -10,11 +10,16 @@ dependencies = [
     "fastapi>=0.162,<0.163",
     "starlette>=1.0",
     "uvicorn>=0.54",
-    "python-multipart>=0.0.32",
+    "cryptography>=46",
+    "websockets>=15",
 ]
 
 [project.scripts]
 karaoke-server = "karaoke_server.cli:main"
+
+# uvicorn serves WebSockets through it; nothing imports it.
+[tool.deptry.per_rule_ignores]
+DEP002 = ["websockets"]
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

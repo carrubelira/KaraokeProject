@@ -1,12 +1,12 @@
-name: Player
+name: Player and worker
 
 on:
   push:
     branches: ["main", "v4/**", "claude/**"]
-    paths: ["player/**", ".github/workflows/player.yml"]
+    paths: ["player/**", "packages/**", "fixtures/contracts-v2/**", ".github/workflows/player.yml"]
   pull_request:
     branches: ["main"]
-    paths: ["player/**", ".github/workflows/player.yml"]
+    paths: ["player/**", "packages/**", "fixtures/contracts-v2/**", ".github/workflows/player.yml"]
 
 permissions:
   contents: read
@@ -38,3 +38,17 @@ jobs:
       - run: cargo test --workspace
       - name: Sync bench (full length)
         run: cargo run --release -p kp-syncbench
+
+  worker-windows:
+    name: Worker and contracts on Windows (no GPU)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.6"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run pytest -q packages/contracts packages/worker packages/server

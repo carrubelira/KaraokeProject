@@ -11,7 +11,8 @@ The technical guides of Proxecto Karaoke en Galego. The project's presentation i
 |---|---|
 | [Architecture](architecture.md) | the pieces, how they fit and why, with the numbers |
 | [Development](development.md) | setting up the environment and the everyday commands |
-| [Server](server.md) | starting it, phones at home, away from home, backups and troubleshooting |
+| [Server](server.md) | starting it, enrolling nodes, storage, upkeep and the API (v4) |
+| [Worker](worker.md) | running the engine for the server on a GPU machine (v4) |
 
 ## Each part
 

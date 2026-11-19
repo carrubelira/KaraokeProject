@@ -6,8 +6,11 @@ for v3 packages: their AAC stems (already levelled) are re-encoded to Opus with 
 their WAV stems (the synthetic demo) too.
 """
 
+import os
+import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -20,6 +23,7 @@ from karaoke_contracts import (
     Track,
     VideoInfo,
     canonical_json,
+    dump_doc,
     load_doc,
     resolve_media,
     slug,
@@ -129,6 +133,64 @@ def with_lyrics(
     )
     new = Manifest.model_validate(new.model_dump(mode="json"))
     return new, store_manifest(store, new)
+
+
+def unpack(manifest: Manifest, lyrics: Lyrics, blob: Callable[[str], Path], dest: Path) -> Path:
+    """The working folder a manifest stands for (karaoke.json and its media), for the engine's
+    commands that read one (the MP4 export, the editor's tools). `blob` gives a blob's path."""
+    dest.mkdir(parents=True, exist_ok=True)
+    names = {"instrumental": "instrumental.opus", "vocals": "vocals.opus", "cover": "cover.jpg"}
+    files: dict[str, str] = {}
+    gain = None
+    loudness = None
+    for track in manifest.tracks:
+        if track.kind in names:
+            name = names[track.kind]
+            _link(blob(track.blob.sha256), dest / name)
+            files[track.kind] = name
+            if track.audio is not None:
+                gain, loudness = track.audio.gain_db, track.audio.loudness_lufs
+    videos = sorted(
+        (t for t in manifest.tracks if t.video), key=lambda t: t.video.height if t.video else 0
+    )
+    video = None
+    if videos:
+        _link(blob(videos[0].blob.sha256), dest / "background.mp4")
+        video = {"background": "background.mp4", "master": None}
+        if len(videos) > 1:
+            _link(blob(videos[-1].blob.sha256), dest / "master.mp4")
+            video["master"] = "master.mp4"
+    doc = KaraokeDoc.model_validate(
+        {
+            "id": manifest.content_id,
+            "title": manifest.title,
+            "artist": manifest.artist,
+            "language": manifest.language,
+            "duration": manifest.duration,
+            "audio": {
+                "instrumental": files["instrumental"],
+                "vocals": files.get("vocals"),
+                "loudness_lufs": loudness,
+                "gain_db": gain,
+            },
+            "video": video,
+            "cover": files.get("cover"),
+            "singers": [s.model_dump(mode="json") for s in lyrics.singers],
+            "lines": [line.model_dump(mode="json") for line in lyrics.lines],
+            "provenance": lyrics.provenance.model_dump(mode="json"),
+            "edited": lyrics.edited,
+        }
+    )
+    dump_doc(doc, dest / "karaoke.json")
+    return dest
+
+
+def _link(src: Path, dest: Path) -> None:
+    dest.unlink(missing_ok=True)
+    try:
+        os.link(src, dest)
+    except OSError:
+        shutil.copy2(src, dest)
 
 
 def _audio_track(role: str, path: Path, doc: KaraokeDoc, store: BlobStore, tmp: Path) -> Track:

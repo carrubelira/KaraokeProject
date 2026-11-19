@@ -79,6 +79,56 @@ def find_lyrics(
     return _closest(by_artist, duration)
 
 
+@dataclass(frozen=True)
+class Candidate:
+    """An LRCLIB entry offered to the operator to choose from (plan v4 §7)."""
+
+    id: int
+    title: str
+    artist: str
+    album: str | None
+    duration: float
+    synced: bool
+    text: str
+    duration_gap: float | None
+
+
+def search_lyrics(
+    query: str,
+    duration: float | None = None,
+    fetch: Fetch | None = None,
+    wait: Callable[[float], None] = time.sleep,
+    limit: int = 12,
+) -> list[Candidate]:
+    """Every entry a free search finds, closest in duration first, those with times first."""
+    entries = _ask(f"{URL}?{urllib.parse.urlencode({'q': query})}", fetch or _http_get, wait)
+    found = []
+    for entry in entries:
+        if not entry.get("plainLyrics"):
+            continue
+        length = float(entry.get("duration") or 0)
+        found.append(
+            Candidate(
+                id=int(entry["id"]),
+                title=str(entry.get("trackName") or ""),
+                artist=str(entry.get("artistName") or ""),
+                album=entry.get("albumName"),
+                duration=length,
+                synced=bool(entry.get("syncedLyrics")),
+                text=str(entry["plainLyrics"]),
+                duration_gap=None if duration is None else round(length - duration, 1),
+            )
+        )
+    found.sort(
+        key=lambda c: (
+            abs(c.duration_gap or 0) > MAX_DURATION_GAP,
+            not c.synced,
+            abs(c.duration_gap or 0),
+        )
+    )
+    return found[:limit]
+
+
 def song_names(title: str, artist: str) -> list[str]:
     """What the song is probably called, from how a video page or a file names it: without the
     artist in front or behind, the kind of video and the guests; then without brackets."""

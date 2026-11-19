@@ -36,5 +36,5 @@ def test_every_dependency_runs_on_the_event_loop(settings: Settings, db: Databas
         for call in _calls(route.dependant)
         if not inspect.iscoroutinefunction(call)
     }
-    assert any("/api/jobs/{job_id}/events" in r.path for r in _api_routes(app.routes))
+    assert any("/api/jobs/{job_id}" in r.path for r in _api_routes(app.routes))
     assert blocking == set()

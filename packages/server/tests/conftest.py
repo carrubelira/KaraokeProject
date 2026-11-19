@@ -1,31 +1,26 @@
-import json
-from collections.abc import Callable, Iterator
+import shutil
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from karaoke_contracts.nodes import Capabilities, Enrollment, Gpu
 from karaoke_server.config import Settings
 from karaoke_server.db import Database
+from karaoke_server.services import Services
 
 REPO = Path(__file__).resolve().parents[3]
 DEMO = REPO / "fixtures" / "packages" / "demo-sintetico"
 
 
-def write_package(folder: Path, title: str = "Mar de Vigo", **changes: object) -> Path:
-    """A valid package: the demo's karaoke.json with small stand-in media files."""
-    folder.mkdir(parents=True, exist_ok=True)
-    doc = json.loads((DEMO / "karaoke.json").read_text(encoding="utf-8"))
-    doc.update(id=folder.name, title=title, **changes)
-    (folder / "karaoke.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
-    for ref in (doc["audio"]["instrumental"], doc["audio"]["vocals"]):
-        (folder / ref).write_bytes(b"RIFF" + bytes(2048))
-    return folder
-
-
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
-    s = Settings.from_env(data_dir=tmp_path / "data", web_dir=tmp_path / "web")
+    s = Settings.from_env(
+        data_dir=tmp_path / "data", web_dir=tmp_path / "web", tls=False, lease_wait_seconds=0.0
+    )
     s.ensure_dirs()
     return s
 
@@ -37,41 +32,67 @@ def db(settings: Settings) -> Database:
     return database
 
 
-HOME_IP = "192.168.1.20"
-REMOTE_IP = "100.85.1.2"
+@pytest.fixture
+def services(settings: Settings, db: Database) -> Services:
+    from karaoke_server.app import build_services
 
-
-MakeClient = Callable[..., TestClient]
+    return build_services(settings, db=db, fingerprint="f" * 64)
 
 
 @pytest.fixture
-def make_client(settings: Settings, db: Database) -> Iterator[MakeClient]:
-    """Clients of one app, as seen from a zone: local (the laptop), home or remote.
+def app(settings: Settings, services: Services) -> FastAPI:
+    from karaoke_server.app import create_app
 
-    They do not run the app's startup (the job queue stays idle): tests that need it run a real
-    server (tests/live.py).
-    """
-    from karaoke_server.app import build_services, create_app
-    from karaoke_server.network import NetworkState
+    return create_app(settings, services=services)
 
-    services = build_services(
-        settings, db=db, network_state=NetworkState("mirrored", HOME_IP, None, None)
-    )
-    app = create_app(settings, services=services)
-    opened: list[TestClient] = []
 
-    def make(zone: str = "local", **kwargs: object) -> TestClient:
-        host = {"local": "127.0.0.1", "home": HOME_IP, "remote": REMOTE_IP}[zone]
-        base = kwargs.pop("base_url", f"http://localhost:{settings.home_port}")
-        client = TestClient(app, base_url=str(base), client=(host, 50000), **kwargs)  # type: ignore[arg-type]
-        opened.append(client)
-        return client
+@dataclass
+class Clients:
+    app: FastAPI
+    services: Services
+    operator_token: str
+    _opened: list[TestClient]
 
-    yield make
-    for client in opened:
+    def client(self, token: str | None = None) -> TestClient:
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        made = TestClient(self.app, headers=headers)
+        self._opened.append(made)
+        return made
+
+    def operator(self) -> TestClient:
+        return self.client(self.operator_token)
+
+    def enrol(
+        self, kind: str = "worker", name: str | None = None, **caps: object
+    ) -> tuple[str, TestClient]:
+        token = self.services.auth.new_enrollment(kind)  # type: ignore[arg-type]
+        defaults: dict[str, object] = {"os": "linux"}
+        if kind == "worker":
+            defaults |= {"gpus": [Gpu(name="RTX 3050", vram_total_mb=4096)], "internet": True}
+        capabilities = Capabilities.model_validate({**defaults, **caps})
+        body = Enrollment(token=token, kind=kind, name=name or kind, capabilities=capabilities)  # type: ignore[arg-type]
+        answer = self.client().post("/api/nodes/enroll", json=body.model_dump(mode="json"))
+        assert answer.status_code == 200, answer.text
+        data = answer.json()
+        return data["node_id"], self.client(data["credential"])
+
+
+@pytest.fixture
+def clients(app: FastAPI, services: Services) -> Iterator[Clients]:
+    made = Clients(app, services, services.auth.add_operator("Test"), [])
+    yield made
+    for client in made._opened:
         client.close()
 
 
 @pytest.fixture
-def anyio_backend() -> str:
-    return "asyncio"
+def demo_manifest(services: Services, tmp_path: Path) -> str:
+    """A real manifest of the synthetic demo in the server's store; returns its hash."""
+    from karaoke_engine.demo import synthesize_package_audio
+    from karaoke_engine.package import build_manifest
+
+    package = tmp_path / "demo"
+    shutil.copytree(DEMO, package)
+    synthesize_package_audio(package)
+    _, blob = build_manifest(package, services.store, content_id="demo")
+    return blob.sha256

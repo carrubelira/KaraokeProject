@@ -1,0 +1,30 @@
+[project]
+name = "karaoke-worker"
+version = "3.0.0"
+description = "Karaoke worker (v4): leases tasks from the server and runs the engine on its GPU"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "karaoke-contracts",
+    "karaoke-engine",
+    "httpx>=0.28",
+    "nvidia-ml-py>=13; sys_platform != 'darwin'",
+    "pywin32>=311; sys_platform == 'win32'",
+]
+
+[project.scripts]
+karaoke-worker = "karaoke_worker.cli:main"
+
+[tool.deptry]
+known_first_party = ["karaoke_worker"]
+
+[tool.deptry.package_module_name_map]
+nvidia-ml-py = "pynvml"
+pywin32 = ["win32job", "win32api", "win32con", "win32process"]
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+karaoke-contracts = { workspace = true }
+karaoke-engine = { workspace = true }

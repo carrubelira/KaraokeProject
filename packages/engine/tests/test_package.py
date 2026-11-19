@@ -10,7 +10,7 @@ from karaoke_contracts import Lyrics, Manifest, canonical_json
 from karaoke_contracts.cas import BlobStore, sha256_file
 from karaoke_engine.audio import convert_package
 from karaoke_engine.demo import synthesize_package_audio
-from karaoke_engine.package import build_manifest, manifest_sha, with_lyrics
+from karaoke_engine.package import build_manifest, manifest_sha, unpack, with_lyrics
 
 pytestmark = pytest.mark.usefixtures("ffmpeg")
 
@@ -87,3 +87,16 @@ def test_karaoke_package_command(
 
     assert main(["package", str(demo), "--store", str(tmp_path / "cas"), "--id", "demo"]) == 0
     assert capsys.readouterr().out.startswith("demo v1: ")
+
+
+def test_a_manifest_unpacks_to_a_working_folder(demo: Path, tmp_path: Path) -> None:
+    from karaoke_contracts import validate_package
+
+    store = BlobStore(tmp_path / "cas")
+    convert_package(demo)
+    manifest, _ = build_manifest(demo, store)
+    lyrics = Lyrics.model_validate_json(store.read_bytes(manifest.track("lyrics").blob.sha256))  # type: ignore[union-attr]
+    folder = unpack(manifest, lyrics, store.path, tmp_path / "work")
+    assert validate_package(folder) == []
+    again, _ = build_manifest(folder, BlobStore(tmp_path / "cas2"))
+    assert [t.blob.sha256 for t in again.tracks] == [t.blob.sha256 for t in manifest.tracks]
