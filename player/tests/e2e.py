@@ -33,8 +33,14 @@ class Api:
     def __init__(self, base: str, token: str) -> None:
         self.base, self.token = base, token
 
-    def call(self, method: str, path: str, body: Any = None, headers: dict[str, str] | None = None,
-             raw: bytes | None = None) -> Any:  # fmt: skip
+    def call(
+        self,
+        method: str,
+        path: str,
+        body: Any = None,
+        headers: dict[str, str] | None = None,
+        raw: bytes | None = None,
+    ) -> Any:
         data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
         request = urllib.request.Request(self.base + path, data=data, method=method)
         request.add_header("Authorization", f"Bearer {self.token}")
@@ -42,7 +48,7 @@ class Api:
             request.add_header("Content-Type", "application/json")
         for key, value in (headers or {}).items():
             request.add_header(key, value)
-        with urllib.request.urlopen(request, timeout=30) as answer:  # noqa: S310 - local server
+        with urllib.request.urlopen(request, timeout=30) as answer:
             text = answer.read()
             return json.loads(text) if text else None
 
@@ -73,15 +79,37 @@ def main() -> int:
     env = {**os.environ, "KARAOKE_FAKE_STAGE_SECONDS": "0.01"}
     try:
         token = cli("karaoke-server", "--data", str(server_data), "operator", "add", "e2e")
-        procs.append(subprocess.Popen(
-            ["karaoke-server", "--data", str(server_data), "serve", "--no-tls", "--host", "127.0.0.1",
-             "--port", str(port), "--web", str(tmp / "noweb")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))  # fmt: skip
+        procs.append(
+            subprocess.Popen(
+                [
+                    "karaoke-server",
+                    "--data",
+                    str(server_data),
+                    "serve",
+                    "--no-tls",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    str(port),
+                    "--web",
+                    str(tmp / "noweb"),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        )
         api = Api(base, token)
         wait("the server", lambda: _alive(base))
         worker_token = api.call("POST", "/api/enrollments", {"kind": "worker"})["token"]
         cli("karaoke-worker", "--data", str(worker_data), "enroll", base, worker_token)
-        procs.append(subprocess.Popen(["karaoke-worker", "--data", str(worker_data), "run", "--fake"], env=env,
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))  # fmt: skip
+        procs.append(
+            subprocess.Popen(
+                ["karaoke-worker", "--data", str(worker_data), "run", "--fake"],
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        )
 
         song = b"ID3" + bytes(2000)
         upload = api.call("POST", "/api/uploads", {"filename": "Proba.mp3", "size": len(song)})
@@ -107,16 +135,38 @@ def main() -> int:
             )
         )
         player_log = (tmp / "player.log").open("wb")
-        procs.append(subprocess.Popen(
-            [str(PLAYER), "--data", str(player_data), "run", "--headless", "--virtual-outputs", "2", "--diagnose"],
-            stdout=player_log, stderr=player_log))  # fmt: skip
+        procs.append(
+            subprocess.Popen(
+                [
+                    str(PLAYER),
+                    "--data",
+                    str(player_data),
+                    "run",
+                    "--headless",
+                    "--virtual-outputs",
+                    "2",
+                    "--diagnose",
+                ],
+                stdout=player_log,
+                stderr=player_log,
+            )
+        )
         player = wait(
             "the player",
             lambda: next((p for p in api.call("GET", "/api/players") if p["online"]), None),
         )
         playlist = api.call("POST", "/api/playlists", {"name": "Noite"})
-        playlist["items"] = [{"id": "one", "content_id": content, "manifest": None, "start": None, "end": None,
-                              "semitones": 0, "singer": "Uxía"}]  # fmt: skip
+        playlist["items"] = [
+            {
+                "id": "one",
+                "content_id": content,
+                "manifest": None,
+                "start": None,
+                "end": None,
+                "semitones": 0,
+                "singer": "Uxía",
+            }
+        ]
         api.call("PUT", f"/api/playlists/{playlist['id']}", playlist)
         config = {
             "playlist_id": playlist["id"],
@@ -192,7 +242,7 @@ def main() -> int:
 
 def _alive(base: str) -> bool:
     try:
-        with urllib.request.urlopen(base + "/api/server", timeout=2):  # noqa: S310 - local server
+        with urllib.request.urlopen(base + "/api/server", timeout=2):
             return True
     except OSError:
         return False
