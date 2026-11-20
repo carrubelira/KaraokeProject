@@ -9,6 +9,20 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ### Added
 
+- Contracts v2: manifests of tracks by SHA-256, lyrics, nodes, orders and routing, as JSON Schema,
+  TypeScript and Rust (`kp-proto`).
+- `karaoke-server` v4: content store with Range and checked uploads, resumable uploads, a task
+  DAG with leases and data affinity, enrolled nodes over a pinned TLS certificate, operators,
+  playlists with optimistic versions, WebSockets for players and the control.
+- `karaoke-worker`: fetch, make and render tasks in a child process capped by a systemd scope or
+  a Windows Job Object.
+- `kp-player`: one clock for every output and screen, routing with gain and delay, pitch on the
+  guide vocals and the music, calibration, outputs that come and go, a waiting screen; the
+  software sync bench `kp-syncbench` and `make e2e-v4`.
+- The control UI: command palette, rebindable shortcuts, cheat sheet, resizable panels, undo,
+  live state, and the lyrics editor on contracts v2.
+
+
 - `karaoke captions`: professional subtitles for long interviews, phrase by phrase and in sync
   with the voice, written next to each video as SRT (for DaVinci Resolve, Premiere and VLC) and
   WebVTT (for the web and archives, with who speaks), plus a short list of places to check. The
@@ -56,7 +70,20 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 - New type, colours and shapes everywhere: white and the flag's sky blue on a blue-black night,
   gold for what is lit, rounded panels that let the globe show through.
 
+### Removed
+
+- The PWA, the browser player, party mode, device pairing, network zones and the WSL setup.
+
 ### Changed
+
+- **v4, a distributed karaoke** ([`docs/plan-v4/`](docs/plan-v4/00-vision.md)): the server stores
+  songs by content and queues the work, GPU workers on Windows or Linux take it, a native player
+  for Windows and macOS plays every screen and output in sync, and a keyboard-first web control
+  drives it all. There is no compatibility with v3 at run time; `karaoke package` migrates v3
+  packages.
+- Song stems are Opus at 48 kHz, no longer levelled when encoded: `karaoke.json` 1.3.0 carries the
+  gain (`audio.gain_db`) and the player and the MP4 apply it.
+- The night globe shows Galicia in its real surroundings, its neighbours in half-light.
 
 - **Lyrics are timed by two models instead of one.** Each language's speech model now works with
   a model trained on songs in many languages, and their probabilities are averaged: each misses

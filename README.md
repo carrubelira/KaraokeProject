@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
 </p>
 
+> **v4 en desenvolvemento** (rama `claude/trusting-johnson-3p992a`): servidor, workers con GPU, reprodutor nativo para Windows e macOS e un control web pensado para o teclado. O plan e o estado: [`docs/plan-v4/`](docs/plan-v4/ESTADO.md).
+
 **Proxecto Karaoke en Galego** converte calquera canción nun karaoke no que a letra se acende
 palabra a palabra e sílaba a sílaba, xusto cando se canta. Funciona no teu propio ordenador cunha
 tarxeta gráfica modesta, e cántase dende o móbil, o portátil ou a tele. Está feito **primeiro para
