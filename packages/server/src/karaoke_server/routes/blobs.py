@@ -22,11 +22,23 @@ def _check(sha256: str) -> None:
         raise ApiError(422, "bad_hash", "Not a SHA-256")
 
 
-@router.api_route("/{sha256}", methods=["GET", "HEAD"], response_class=FileResponse)
+@router.get("/{sha256}", response_class=FileResponse)
 async def read(
     sha256: str, request: Request, who: Operator | Node = Depends(anyone)
 ) -> FileResponse:
     """The blob's bytes; `Range` is honoured, so downloads resume. Blobs never change."""
+    return _file(sha256, request)
+
+
+@router.head("/{sha256}", response_class=FileResponse)
+async def exists(
+    sha256: str, request: Request, who: Operator | Node = Depends(anyone)
+) -> FileResponse:
+    """Whether the server has the blob, and its size, without the bytes."""
+    return _file(sha256, request)
+
+
+def _file(sha256: str, request: Request) -> FileResponse:
     _check(sha256)
     store = services(request).store
     if not store.has(sha256):

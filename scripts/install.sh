@@ -114,18 +114,16 @@ pnpm --dir web build
 if [ "$gpu" = 1 ] && [ "$models" = 1 ]; then
   step "Downloading the models for Galician (several GB the first time)"
   # Not `uv run`: it would sync the environment again without the GPU extra.
-  .venv/bin/karaoke-server prepare --lang gl
+  .venv/bin/python -c "from karaoke_engine.make import prepare_models; prepare_models('gl')"
 fi
-
-step "What the server still needs"
-.venv/bin/karaoke-server doctor || true
 
 cat <<'EOF'
 
-Proxecto Karaoke en Galego is installed. Start it with:
+Proxecto Karaoke en Galego (v4) is installed. Make yourself an operator and start the server:
 
+    .venv/bin/karaoke-server operator add "Your name"
     make serve
 
-and open http://localhost:8765 on this machine. The guide for phones, the TV and using it away
-from home is docs/server.md.
+then open https://localhost:8765 and sign in with that token. Enrol a worker on a GPU machine
+(docs/worker.md) and the native player on the karaoke computer (docs/player.md).
 EOF

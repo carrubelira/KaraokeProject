@@ -1,396 +1,401 @@
 <script lang="ts">
-	/*
-	 * The lyrics editor: fix a word or a timing in seconds, without processing the song again.
-	 * Pick a line, listen to it (once or on a loop), click a word to retype it, nudge or drag its
-	 * edges, or tap the rhythm with the space bar to retime the whole line.
+	/**
+	 * The lyrics and timing editor (plan v4 §7, phase 7), keyboard first. It edits the song's
+	 * current lyrics with the editor operations of v3 and plays the stems in the browser (the
+	 * mini player); saving makes a new version of the manifest on the server, where only the
+	 * lyrics blob is new. Scope `editor`: its keys win over the global ones while it is open.
 	 */
-	import { splitTitle } from '#lib/poster/fit.js';
-	import { beforeNavigate, goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { ApiError, deleteSong, getDoc, mediaUrl, saveDoc } from '#lib/api';
-	import { explain, needsPairing } from '#lib/devices/explain.js';
-	import PairingNotice from '#lib/devices/PairingNotice.svelte';
-	import type { KaraokeDoc } from '#lib/contracts';
+	import { onMount } from 'svelte';
+	import { AudioEngine } from '#lib/audio/engine.js';
+	import type { KaraokeDoc, Lyrics, Manifest } from '#lib/contracts';
+	import { commands } from '#lib/commands/registry.svelte.js';
+	import { api, ApiError } from '#lib/control/api.js';
+	import { toasts } from '#lib/control/toasts.svelte.js';
 	import { History } from '#lib/editor/history.svelte.js';
 	import { checkDoc, moveWordEdge, retimeLine, setWordText, shiftLine } from '#lib/editor/ops.js';
 	import Waveform from '#lib/editor/Waveform.svelte';
 	import { i18n } from '#lib/i18n';
-	import { saved as offline } from '#lib/offline/saved.svelte.js';
-	import { PlayerSession } from '#lib/player/session.svelte.js';
-	import { settings } from '#lib/settings/settings.svelte.js';
-	import Button from '#lib/ui/Button.svelte';
+	import { DEFAULT_THEME, Lyrics as LyricsView, THEMES, normalizeDoc } from '#lib/lyrics';
+	import { fail } from '#lib/shell/actions.svelte.js';
+	import { clock } from '#lib/shell/format.js';
+	import Kbd from '#lib/shell/Kbd.svelte';
 
-	/** Words the aligner was unsure about are marked for a second look (as in the engine's checks). */
-	const DOUBTFUL = 0.3;
-	/** Listening to a line starts this long before it and runs this long after it. */
 	const LEAD = 0.6;
-
+	const DOUBTFUL = 0.5;
 	const id = $derived(page.params.id ?? '');
+	const t = $derived(i18n.t);
+
+	let manifest = $state.raw<Manifest | null>(null);
+	let base = $state<string | null>(null);
+	let lyrics = $state.raw<Lyrics | null>(null);
 	let history = $state.raw<History<KaraokeDoc> | null>(null);
 	let saved = $state.raw<KaraokeDoc | null>(null);
-	let missing = $state(false);
-	let failure = $state<string | null>(null);
-	let notice = $state<string | null>(null);
-	let saving = $state(false);
-	/** Deleting the song: asked once, then done; a failure says why (and how to pair if needed). */
-	let confirmDelete = $state(false);
-	let deleting = $state(false);
-	let deleteFailure = $state<string | null>(null);
-	let deleteUnpaired = $state(false);
-	let deleted = false;
-	/** How long the server keeps a deleted song (karaoke_server.library.Library.purge_trash). */
-	const TRASH_DAYS = '30';
+	let dragging = $state.raw<KaraokeDoc | null>(null);
 	let lineIndex = $state(0);
 	let wordIndex = $state(0);
 	let mode = $state<'idle' | 'line' | 'loop' | 'tap'>('idle');
 	let taps = $state<number[]>([]);
-	let editing = $state<string | null>(null);
-	/** The document while a word edge is being dragged; it joins the history only when let go. */
-	let dragging = $state.raw<KaraokeDoc | null>(null);
-	let detail = $state<HTMLElement | null>(null);
-	let linesOpen = $state(false);
+	let editing = $state(false);
+	let time = $state(0);
+	let playing = $state(false);
+	let context: AudioContext | null = null;
+	let engine: AudioEngine | null = null;
+	let vocals = $state.raw<AudioBuffer | null>(null);
 
-	const session = new PlayerSession();
-	const t = $derived(i18n.t.editor);
 	const doc = $derived(dragging ?? history?.current ?? null);
 	const line = $derived(doc?.lines[lineIndex] ?? null);
 	const word = $derived(line?.words[wordIndex] ?? null);
 	const dirty = $derived(doc !== null && doc !== saved);
-	/** Sounding now (the session's state is reactive; its `playing` getter is not). */
-	const playing = $derived(session.state === 'playing');
+	const problems = $derived(doc ? checkDoc(doc) : []);
 	const from = $derived(line ? Math.max(0, line.start - LEAD) : 0);
 	const to = $derived(line ? line.end + LEAD : 1);
-	/** Every word the aligner was unsure about, in order, to review them one by one. */
-	const doubtful = $derived(
-		doc
-			? doc.lines.flatMap((l, i) =>
-					l.words.flatMap((w, j) => ((w.confidence ?? 1) < DOUBTFUL ? [{ line: i, word: j }] : []))
-				)
-			: []
-	);
+	const theme = THEMES[DEFAULT_THEME];
 
-	function nextDoubtful() {
-		if (doubtful.length === 0) return;
-		const after =
-			doubtful.find((d) => d.line > lineIndex || (d.line === lineIndex && d.word > wordIndex)) ??
-			doubtful[0];
-		if (after.line !== lineIndex) selectLine(after.line);
-		wordIndex = after.word;
+	function asDoc(m: Manifest, l: Lyrics): KaraokeDoc {
+		const audio = m.tracks.find((tr) => tr.kind === 'instrumental')?.audio;
+		return normalizeDoc({
+			schema_version: '1.3.0',
+			id: m.content_id,
+			title: m.title,
+			artist: m.artist ?? null,
+			language: m.language,
+			duration: m.duration,
+			audio: {
+				instrumental: 'instrumental.opus',
+				vocals: 'vocals.opus',
+				loudness_lufs: audio?.loudness_lufs ?? null,
+				gain_db: audio?.gain_db ?? null
+			},
+			video: null,
+			cover: null,
+			singers: l.singers,
+			lines: l.lines,
+			provenance: l.provenance,
+			edited: l.edited
+		});
 	}
 
-	$effect(() => {
-		const songId = id;
-		getDoc(songId)
-			.then((loaded) => {
-				history = new History(loaded);
-				saved = loaded;
-				return session.load(
-					{
-						instrumental: mediaUrl(songId, loaded.audio.instrumental),
-						vocals: loaded.audio.vocals ? mediaUrl(songId, loaded.audio.vocals) : null
-					},
-					// The singer's voice up: it is what the timings follow.
-					{ vocals: 1, latencyMs: settings.latencyMs }
-				);
-			})
-			.catch((error: unknown) => {
-				if (error instanceof ApiError && error.status === 404) missing = true;
-				else failure = i18n.t.errors.generic;
-			});
-		return () => session.destroy();
-	});
-
-	$effect(() => {
-		let frame = requestAnimationFrame(function loop() {
-			session.tick();
-			follow();
-			frame = requestAnimationFrame(loop);
-		});
-		return () => cancelAnimationFrame(frame);
-	});
-
-	beforeNavigate(({ cancel }) => {
-		if (!deleted && dirty && !confirm(t.leave)) cancel();
-	});
-
-	/** Stops (or loops) at the end of the line being listened to. */
-	function follow() {
-		if (!line || mode === 'idle' || !session.playing) return;
-		if (session.time > line.end + LEAD) {
-			if (mode === 'loop') session.seek(from);
-			else if (mode === 'tap') finishTap();
-			else {
-				session.pause();
-				mode = 'idle';
-			}
+	async function load() {
+		try {
+			const [m, l] = await Promise.all([api.manifest(id), api.lyrics(id)]);
+			const content = await fetch(`/api/contents/${encodeURIComponent(id)}`).then((r) => r.json());
+			manifest = m;
+			lyrics = l;
+			base = content.manifest;
+			const loaded = asDoc(m, l);
+			history = new History(loaded);
+			saved = loaded;
+		} catch (error) {
+			fail(error);
 		}
 	}
 
-	function apply(next: KaraokeDoc) {
-		history?.push(next);
-		notice = null;
+	async function ensureAudio() {
+		if (engine || !manifest) return;
+		context = new AudioContext();
+		engine = new AudioEngine(context);
+		const blob = (kind: string) => manifest?.tracks.find((tr) => tr.kind === kind)?.blob.sha256;
+		const instrumental = blob('instrumental');
+		const voice = blob('vocals');
+		if (!instrumental) return;
+		await engine.load({
+			instrumental: api.blobUrl(instrumental),
+			vocals: voice ? api.blobUrl(voice) : null
+		});
+		engine.setVocalVolume(1);
+		vocals = engine.vocalsBuffer;
+	}
+
+	async function playLine(loop = false) {
+		await ensureAudio();
+		if (!engine || !line) return;
+		if (engine.playing && mode !== 'idle') {
+			engine.pause();
+			mode = 'idle';
+			return;
+		}
+		engine.seek(from);
+		mode = loop ? 'loop' : 'line';
+		await engine.play();
+	}
+
+	async function startTap() {
+		await ensureAudio();
+		if (!engine || !line) return;
+		taps = [];
+		engine.seek(from);
+		mode = 'tap';
+		await engine.play();
+	}
+
+	function tap() {
+		if (mode !== 'tap' || !engine || !doc || !line) return;
+		taps = [...taps, engine.now()];
+		if (taps.length >= line.words.length) finishTap();
+	}
+
+	function finishTap() {
+		if (doc && taps.length) history?.push(retimeLine(doc, lineIndex, taps));
+		taps = [];
+		mode = 'idle';
+		engine?.pause();
 	}
 
 	function selectLine(index: number) {
 		if (!doc) return;
 		lineIndex = Math.max(0, Math.min(doc.lines.length - 1, index));
 		wordIndex = 0;
-		editing = null;
-		linesOpen = false;
-		if (mode === 'tap') mode = 'idle';
-		if (matchMedia('(max-width: 59.99em)').matches) detail?.scrollIntoView({ behavior: 'smooth' });
+		editing = false;
 	}
 
-	async function listen(loop: boolean) {
+	function selectWord(step: number) {
 		if (!line) return;
-		if (session.playing && (mode === 'line' || mode === 'loop') && (mode === 'loop') === loop) {
-			session.pause();
-			mode = 'idle';
-			return;
-		}
-		mode = loop ? 'loop' : 'line';
-		session.seek(from);
-		await session.play();
+		const next = wordIndex + step;
+		if (next < 0) {
+			if (lineIndex > 0) {
+				selectLine(lineIndex - 1);
+				wordIndex = (doc?.lines[lineIndex]?.words.length ?? 1) - 1;
+			}
+		} else if (next >= line.words.length) {
+			if (doc && lineIndex < doc.lines.length - 1) selectLine(lineIndex + 1);
+		} else wordIndex = next;
 	}
 
-	async function startTap() {
-		if (!line) return;
-		// The button that started it must not catch the space bar meant for tapping.
-		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-		taps = [];
-		mode = 'tap';
-		session.seek(Math.max(0, line.start - 1.5));
-		await session.play();
-	}
-
-	function tap() {
-		if (!line) return;
-		taps = [...taps, session.time];
-		if (taps.length >= line.words.length) finishTap();
-	}
-
-	function finishTap() {
-		if (doc && taps.length > 0) apply(retimeLine(doc, lineIndex, taps));
-		taps = [];
-		mode = 'idle';
-		session.pause();
-	}
-
-	function nudge(edge: 'start' | 'end', delta: number) {
-		if (doc) apply(moveWordEdge(doc, { line: lineIndex, word: wordIndex }, edge, delta));
-	}
-
-	/** `delta` is measured from where the drag began; null when the drag was cancelled. */
-	function onDrag(index: number, edge: 'start' | 'end', delta: number | null, done: boolean) {
-		const base = history?.current;
-		if (!base) return;
-		if (delta === null) {
-			dragging = null;
-			return;
-		}
-		const next = moveWordEdge(base, { line: lineIndex, word: index }, edge, delta);
-		if (done) {
-			dragging = null;
-			apply(next);
-		} else {
-			dragging = next;
+	function nextDoubtful() {
+		if (!doc) return;
+		const all = doc.lines.flatMap((l, i) =>
+			l.words.flatMap((w, j) => ((w.confidence ?? 1) < DOUBTFUL ? [{ i, j }] : []))
+		);
+		const after =
+			all.find((d) => d.i > lineIndex || (d.i === lineIndex && d.j > wordIndex)) ?? all[0];
+		if (after) {
+			lineIndex = after.i;
+			wordIndex = after.j;
 		}
 	}
 
-	function commitText(event?: Event) {
-		event?.preventDefault();
-		if (!doc || editing === null) return;
-		if (!editing.trim()) {
-			notice = t.emptyWord;
-			return;
-		}
-		apply(setWordText(doc, { line: lineIndex, word: wordIndex }, editing));
-		editing = null;
-	}
+	const edit = (next: KaraokeDoc) => doc && next !== doc && history?.push(next);
 
 	async function save() {
-		if (!doc || saving) return;
-		if (checkDoc(doc).length > 0) {
-			notice = t.invalid;
-			return;
-		}
-		saving = true;
-		const sent = doc;
+		if (!doc || !lyrics || !base || !dirty) return;
+		const next: Lyrics = { ...lyrics, singers: doc.singers ?? [], lines: doc.lines, edited: true };
 		try {
-			const stored = await saveDoc(id, sent);
-			// Edits made while the save was on its way stay, still to be saved.
-			saved = history && !history.settle(sent, stored) ? sent : stored;
-			notice = t.saved;
+			const content = await api.saveLyrics(id, base, next);
+			base = content.manifest;
+			lyrics = next;
+			saved = doc;
+			toasts.show(t.editor.saved);
 		} catch (error) {
-			notice = explain(error, t.saveError, i18n.t);
-		} finally {
-			saving = false;
+			if (error instanceof ApiError && error.code === 'version_conflict')
+				toasts.show(t.editor.conflict, 'error');
+			else fail(error);
 		}
 	}
 
-	async function remove() {
-		if (deleting) return;
-		deleting = true;
-		deleteFailure = null;
-		deleteUnpaired = false;
-		try {
-			await deleteSong(id);
-			deleted = true;
-			// A copy kept on this device for singing offline goes too.
-			if (offline.has(id)) await offline.remove(id).catch(() => {});
-			await goto(resolve('/'));
-		} catch (error) {
-			deleteUnpaired = needsPairing(error);
-			deleteFailure = explain(error, t.deleteError, i18n.t);
-		} finally {
-			deleting = false;
-		}
-	}
-
-	function onKey(event: KeyboardEvent) {
-		if (!doc || !line) return;
-		// While tapping, space is always a tap, even if a button (the one that started it) has focus.
-		if (mode === 'tap' && event.key === ' ') {
-			event.preventDefault();
-			tap();
-			return;
-		}
-		const target = event.target instanceof Element ? event.target : document.body;
-		if (target.matches('input, textarea')) return;
-		const mod = event.ctrlKey || event.metaKey;
-		if (mod && event.key.toLowerCase() === 'z') {
-			event.preventDefault();
-			if (event.shiftKey) history?.redo();
-			else history?.undo();
-			return;
-		}
-		if (mod && event.key.toLowerCase() === 's') {
-			event.preventDefault();
-			void save();
-			return;
-		}
-		if (mod || (target.matches('button, a') && (event.key === ' ' || event.key === 'Enter')))
-			return;
-		const words = line.words.length;
-		const step = (fine: number) => (event.shiftKey ? 0.05 : fine);
-		const handled: Record<string, () => void> = {
-			ArrowLeft: () => (wordIndex = Math.max(0, wordIndex - 1)),
-			ArrowRight: () => (wordIndex = Math.min(words - 1, wordIndex + 1)),
-			ArrowUp: () => selectLine(lineIndex - 1),
-			ArrowDown: () => selectLine(lineIndex + 1),
-			'[': () => nudge('start', -0.01),
-			']': () => nudge('start', 0.01),
-			'{': () => nudge('start', -0.05),
-			'}': () => nudge('start', 0.05),
-			',': () => nudge('end', -step(0.01)),
-			'.': () => nudge('end', step(0.01)),
-			'<': () => nudge('end', -0.05),
-			'>': () => nudge('end', 0.05),
-			' ': () => (mode === 'tap' ? tap() : void listen(false)),
-			l: () => void listen(true),
-			t: () => (mode === 'tap' ? finishTap() : void startTap()),
-			Enter: () => (mode === 'tap' ? finishTap() : (editing = word?.text ?? null))
+	onMount(() => {
+		void load();
+		commands.scope = 'editor';
+		const group = () => t.editor.title;
+		const scope = 'editor' as const;
+		const unregister = commands.register(
+			{
+				id: 'editor.play',
+				title: () => t.editor.play,
+				group,
+				scope,
+				keys: ['Space'],
+				run: () => (mode === 'tap' ? tap() : playLine())
+			},
+			{
+				id: 'editor.loop',
+				title: () => `${t.editor.play} ⟳`,
+				group,
+				scope,
+				keys: ['l'],
+				run: () => playLine(true)
+			},
+			{ id: 'editor.tap', title: () => 'Tap', group, scope, keys: ['t'], run: startTap },
+			{
+				id: 'editor.nextLine',
+				title: () => t.cmd.down,
+				group,
+				scope,
+				keys: ['j', 'ArrowDown'],
+				run: () => selectLine(lineIndex + 1)
+			},
+			{
+				id: 'editor.prevLine',
+				title: () => t.cmd.up,
+				group,
+				scope,
+				keys: ['k', 'ArrowUp'],
+				run: () => selectLine(lineIndex - 1)
+			},
+			{
+				id: 'editor.nextWord',
+				title: () => '→',
+				group,
+				scope,
+				keys: ['ArrowRight', 'w'],
+				run: () => selectWord(1),
+				hidden: true
+			},
+			{
+				id: 'editor.prevWord',
+				title: () => '←',
+				group,
+				scope,
+				keys: ['ArrowLeft', 'b'],
+				run: () => selectWord(-1),
+				hidden: true
+			},
+			{
+				id: 'editor.earlier',
+				title: () => '−50 ms',
+				group,
+				scope,
+				keys: [','],
+				run: () => void (doc && edit(shiftLine(doc, lineIndex, -0.05)))
+			},
+			{
+				id: 'editor.later',
+				title: () => '+50 ms',
+				group,
+				scope,
+				keys: ['.'],
+				run: () => void (doc && edit(shiftLine(doc, lineIndex, 0.05)))
+			},
+			{
+				id: 'editor.startEarlier',
+				title: () => '⇤ −20 ms',
+				group,
+				scope,
+				keys: ['Shift+,'],
+				run: () =>
+					void (
+						doc && edit(moveWordEdge(doc, { line: lineIndex, word: wordIndex }, 'start', -0.02))
+					)
+			},
+			{
+				id: 'editor.startLater',
+				title: () => '⇤ +20 ms',
+				group,
+				scope,
+				keys: ['Shift+.'],
+				run: () =>
+					void (doc && edit(moveWordEdge(doc, { line: lineIndex, word: wordIndex }, 'start', 0.02)))
+			},
+			{
+				id: 'editor.endEarlier',
+				title: () => '⇥ −20 ms',
+				group,
+				scope,
+				keys: ['Alt+,'],
+				run: () =>
+					void (doc && edit(moveWordEdge(doc, { line: lineIndex, word: wordIndex }, 'end', -0.02)))
+			},
+			{
+				id: 'editor.endLater',
+				title: () => '⇥ +20 ms',
+				group,
+				scope,
+				keys: ['Alt+.'],
+				run: () =>
+					void (doc && edit(moveWordEdge(doc, { line: lineIndex, word: wordIndex }, 'end', 0.02)))
+			},
+			{
+				id: 'editor.text',
+				title: () => t.cmd.edit,
+				group,
+				scope,
+				keys: ['Enter'],
+				run: () => void (editing = true)
+			},
+			{ id: 'editor.doubtful', title: () => '?', group, scope, keys: ['u'], run: nextDoubtful },
+			{
+				id: 'editor.undo',
+				title: () => t.cmd.undo,
+				group,
+				scope,
+				keys: ['Mod+z'],
+				run: () => void history?.undo()
+			},
+			{
+				id: 'editor.redo',
+				title: () => t.cmd.redo,
+				group,
+				scope,
+				keys: ['Mod+Shift+z', 'Mod+y'],
+				run: () => void history?.redo()
+			},
+			{
+				id: 'editor.save',
+				title: () => t.editor.save,
+				group,
+				scope,
+				keys: ['Mod+s'],
+				whileTyping: true,
+				run: save
+			}
+		);
+		let frame = requestAnimationFrame(function loop() {
+			if (engine) {
+				time = engine.now();
+				playing = engine.playing;
+				if (line && mode !== 'idle' && engine.playing && time > line.end + LEAD) {
+					if (mode === 'loop') engine.seek(from);
+					else if (mode === 'tap') finishTap();
+					else {
+						engine.pause();
+						mode = 'idle';
+					}
+				}
+			}
+			frame = requestAnimationFrame(loop);
+		});
+		return () => {
+			unregister();
+			cancelAnimationFrame(frame);
+			engine?.pause();
+			void context?.close();
 		};
-		const action = handled[event.key.length === 1 ? event.key.toLowerCase() : event.key];
-		if (!action) return;
-		event.preventDefault();
-		action();
-	}
-
-	const precise = (seconds: number) => {
-		const m = Math.floor(seconds / 60);
-		const s = (seconds % 60).toFixed(2).padStart(5, '0');
-		return `${m}:${s}`;
-	};
+	});
 </script>
 
-<svelte:head><title>{doc ? t.title(doc.title) : t.help} · Karaoke en Galego</title></svelte:head>
-<svelte:window onkeydown={onKey} onbeforeunload={(e) => dirty && e.preventDefault()} />
+<svelte:window onbeforeunload={(e) => dirty && e.preventDefault()} />
 
-<div class="editor">
-	<header class="bar">
-		<Button variant="ghost" iconOnly icon="back" href={resolve('/cantar/[id]', { id })}
-			>{t.toPlayer}</Button
+<div class="ctl-page editor">
+	<div class="ctl-page-head">
+		<h1>{t.editor.title}</h1>
+		<span class="ctl-muted">{manifest?.title ?? ''}</span>
+		<button class="ctl-btn ctl-primary" onclick={save} disabled={!dirty}
+			>{t.editor.save} <Kbd keys="Mod+s" /></button
 		>
-		<h1>{doc ? t.title(splitTitle(doc.title).main) : ''}</h1>
-		{#if dirty}<p class="status">{t.unsaved}</p>{/if}
-		<Button variant="primary" icon="check" disabled={!dirty || saving} onclick={save}
-			>{t.save}</Button
-		>
-	</header>
-
-	{#if notice}<p class="notice" role="status">{notice}</p>{/if}
-
-	{#if missing}
-		<p class="message">{i18n.t.player.notFound}</p>
-	{:else if failure}
-		<p class="message" role="alert">{failure}</p>
-	{:else if doc}
+	</div>
+	{#if !doc}
+		<p class="ctl-muted">{t.common.loading}</p>
+	{:else}
 		<div class="layout">
-			<nav class="lines" class:open={linesOpen} aria-label={t.lines}>
-				<ol>
-					{#each doc.lines as l, i (l.id)}
-						<li>
-							<button
-								type="button"
-								class:current={i === lineIndex}
-								class:playing={playing && session.time >= l.start && session.time < l.end}
-								class:backing={l.role === 'backing'}
-								aria-current={i === lineIndex ? 'true' : undefined}
-								onclick={() => selectLine(i)}
-							>
-								<span class="time num">{precise(l.start)}</span>
-								<span class="text"
-									>{#each l.words as w, j (j)}{j > 0 ? ' ' : ''}<span
-											class:doubtful={(w.confidence ?? 1) < DOUBTFUL}>{w.text}</span
-										>{/each}</span
-								>
-							</button>
-						</li>
-					{/each}
-				</ol>
-			</nav>
-
-			{#if line}
-				<section class="detail" bind:this={detail} aria-label={t.word}>
-					<div class="line-bar">
-						<button
-							type="button"
-							class="lines-toggle"
-							aria-expanded={linesOpen}
-							onclick={() => (linesOpen = !linesOpen)}
-						>
-							{i18n.t.party.lineOf(lineIndex + 1, doc.lines.length)}
-						</button>
-						{#if doubtful.length > 0}
-							<p class="doubts">
-								<span>{t.doubtfulCount(doubtful.length)}.</span>
-								<button type="button" class="link" onclick={nextDoubtful}>{t.nextDoubtful}</button>
-							</p>
-						{/if}
-					</div>
-					<div class="words" role="listbox" aria-label={t.word}>
-						{#each line.words as w, j (j)}
-							<button
-								type="button"
-								role="option"
-								aria-selected={j === wordIndex}
-								class:doubtful={(w.confidence ?? 1) < DOUBTFUL}
-								class:sung={mode !== 'tap' && playing && session.time >= w.start}
-								class:tapped={mode === 'tap' && j < taps.length}
-								class:next={mode === 'tap' && j === taps.length}
-								onclick={() => {
-									wordIndex = j;
-									editing = null;
-								}}
-								ondblclick={() => (editing = w.text)}>{w.text}</button
-							>
-						{/each}
-					</div>
-
+			<ol class="ctl-rows lines ctl-box" aria-label="Liñas">
+				{#each doc.lines as l, i (l.id)}
+					<li
+						class="ctl-row"
+						class:ctl-cursor={i === lineIndex}
+						onclick={() => selectLine(i)}
+						onkeydown={() => {}}
+						role="option"
+						aria-selected={i === lineIndex}
+					>
+						<span class="ctl-muted mono">{clock(l.start)}</span>
+						<span>{l.words.map((w) => w.text).join(' ')}</span>
+					</li>
+				{/each}
+			</ol>
+			<section class="ctl-box detail">
+				{#if line}
 					<Waveform
-						buffer={session.vocalsBuffer}
+						buffer={vocals}
 						{from}
 						{to}
 						words={line.words.map((w) => ({
@@ -400,654 +405,120 @@
 							doubtful: (w.confidence ?? 1) < DOUBTFUL
 						}))}
 						selected={wordIndex}
-						time={session.time}
+						{time}
 						{playing}
-						onseek={(s) => session.seek(s)}
-						onselect={(j) => (wordIndex = j)}
-						ondrag={onDrag}
+						onseek={(s) => engine?.seek(s)}
+						onselect={(i) => (wordIndex = i)}
+						ondrag={(i, edge, delta, done) => {
+							if (!history) return;
+							const next =
+								delta === null
+									? null
+									: moveWordEdge(history.current, { line: lineIndex, word: i }, edge, delta);
+							if (done) {
+								dragging = null;
+								if (next) edit(next);
+							} else dragging = next;
+						}}
 					/>
-
-					<div class="listen">
-						<Button
-							icon={mode === 'line' && playing ? 'pause' : 'play'}
-							onclick={() => listen(false)}>{t.playLine}</Button
-						>
-						<Button
-							icon="loop"
-							variant={mode === 'loop' ? 'primary' : 'quiet'}
-							aria-pressed={mode === 'loop'}
-							onclick={() => listen(true)}>{t.loop}</Button
-						>
-						<Button
-							icon="tap"
-							variant={mode === 'tap' ? 'primary' : 'quiet'}
-							aria-pressed={mode === 'tap'}
-							onclick={() => (mode === 'tap' ? finishTap() : startTap())}>{t.tap}</Button
-						>
-						<span class="history">
-							<Button
-								variant="ghost"
-								iconOnly
-								icon="undo"
-								disabled={!history?.canUndo}
-								onclick={() => history?.undo()}>{t.undo}</Button
+					<p class="words">
+						{#each line.words as w, j (j)}
+							<span
+								class:selected={j === wordIndex}
+								class:doubtful={(w.confidence ?? 1) < DOUBTFUL}
 							>
-							<Button
-								variant="ghost"
-								iconOnly
-								icon="redo"
-								disabled={!history?.canRedo}
-								onclick={() => history?.redo()}>{t.redo}</Button
-							>
-						</span>
-						{#if mode === 'tap'}
-							<p class="tapping" aria-live="polite">
-								{t.tapping(Math.min(taps.length + 1, line.words.length), line.words.length)}
-								<span>{t.tapHint}</span>
-							</p>
-							<button type="button" class="tap-pad" onpointerdown={tap}>{t.tap}</button>
-						{/if}
-					</div>
-
-					{#if word}
-						<div class="word-tools">
-							{#if editing !== null}
-								<form class="edit" onsubmit={commitText}>
-									<label for="word-text" class="visually-hidden">{t.editWord}</label>
+								{#if editing && j === wordIndex}
 									<!-- svelte-ignore a11y_autofocus -->
 									<input
-										id="word-text"
-										bind:value={editing}
+										class="ctl-field"
 										autofocus
-										spellcheck="false"
-										onkeydown={(e) => e.key === 'Escape' && (editing = null)}
+										value={w.text}
+										onkeydown={(e) => {
+											e.stopPropagation();
+											if (e.key === 'Enter' && doc) {
+												edit(setWordText(doc, { line: lineIndex, word: j }, e.currentTarget.value));
+												editing = false;
+											}
+											if (e.key === 'Escape') editing = false;
+										}}
 									/>
-									<Button variant="primary" type="submit" icon="check">{i18n.t.common.save}</Button>
-									<Button variant="ghost" onclick={() => (editing = null)}
-										>{i18n.t.common.cancel}</Button
-									>
-								</form>
-							{:else}
-								<Button icon="edit" onclick={() => (editing = word.text)}>{t.editWord}</Button>
-							{/if}
-
-							<div class="edges">
-								{#each [['start', t.start, word.start], ['end', t.end, word.end]] as const as [edge, label, value] (edge)}
-									<div class="edge" role="group" aria-label={label}>
-										<span class="edge-label">{label}</span>
-										<Button iconOnly icon="minus" onclick={() => nudge(edge, -0.01)}
-											>{t.earlier}</Button
-										>
-										<output class="num">{precise(value)}</output>
-										<Button iconOnly icon="plus" onclick={() => nudge(edge, 0.01)}>{t.later}</Button
-										>
-									</div>
-								{/each}
-								<div class="edge" role="group" aria-label={t.moveLine}>
-									<span class="edge-label">{t.moveLine}</span>
-									<Button
-										iconOnly
-										icon="minus"
-										onclick={() => doc && apply(shiftLine(doc, lineIndex, -0.1))}
-										>{t.earlier}</Button
-									>
-									<output class="num">{precise(line.start)}</output>
-									<Button
-										iconOnly
-										icon="plus"
-										onclick={() => doc && apply(shiftLine(doc, lineIndex, 0.1))}>{t.later}</Button
-									>
-								</div>
-							</div>
-							{#if (word.confidence ?? 1) < DOUBTFUL}<p class="doubtful-note">{t.doubtful}</p>{/if}
-						</div>
-					{/if}
-
-					<details class="help">
-						<summary>{t.help}</summary>
-						<dl>
-							{#each t.keys as [keys, what] (keys)}
-								<div>
-									<dt><kbd>{keys}</kbd></dt>
-									<dd>{what}</dd>
-								</div>
-							{/each}
-						</dl>
-					</details>
-
-					<div class="delete">
-						{#if confirmDelete}
-							<!-- The figure in tabular numerals, as in every count of the app. -->
-							{@const [before, after] = t.deleteConfirm('\u0001').split('\u0001')}
-							<p>{before}<span class="num">{TRASH_DAYS}</span>{after}</p>
-							<div class="row">
-								<Button variant="danger" icon="trash" disabled={deleting} onclick={remove}
-									>{t.deleteYes}</Button
-								>
-								<Button onclick={() => (confirmDelete = false)}>{i18n.t.common.cancel}</Button>
-							</div>
-						{:else}
-							<Button variant="ghost" icon="trash" onclick={() => (confirmDelete = true)}
-								>{t.deleteSong}</Button
-							>
-						{/if}
-						{#if deleteFailure && deleteUnpaired}
-							<PairingNotice text={deleteFailure} />
-						{:else if deleteFailure}
-							<p class="failed" role="alert">{deleteFailure}</p>
-						{/if}
-					</div>
-				</section>
-			{:else}
-				<p class="message">{t.chooseLine}</p>
-			{/if}
+								{:else}{w.text}{/if}
+							</span>
+						{/each}
+					</p>
+					{#if word}<p class="ctl-muted mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
+					{#if mode === 'tap'}<p class="ctl-pill ctl-warn">
+							Tap {taps.length}/{line.words.length} · <Kbd keys="Space" />
+						</p>{/if}
+				{/if}
+				{#if problems.length}<ul class="problems">
+						{#each problems as p (p)}<li>{p}</li>{/each}
+					</ul>{/if}
+				<div class="preview">
+					<LyricsView {doc} {theme} clock={{ now: () => time }} />
+				</div>
+				<p class="ctl-muted keys">
+					<Kbd keys="Space" />
+					{t.editor.play} · <Kbd keys="l" /> ⟳ · <Kbd keys="t" /> Tap · <Kbd keys="j" />/<Kbd
+						keys="k"
+					/> · ←/→ ·
+					<Kbd keys="," />/<Kbd keys="." /> ±50 ms · <Kbd keys="Shift+," />/<Kbd keys="Alt+." /> · <Kbd
+						keys="Enter"
+					/>
+					{t.cmd.edit} · <Kbd keys="u" /> ?
+				</p>
+			</section>
 		</div>
 	{/if}
 </div>
 
 <style>
-	.editor {
-		min-height: 100dvh;
-		display: grid;
-		grid-template-rows: auto auto 1fr;
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.bar {
-		position: sticky;
-		top: 0;
-		z-index: 3;
-		display: flex;
-		align-items: center;
-		gap: var(--s-3);
-		padding: var(--s-3) var(--page-x);
-		background: var(--fondo);
-		border-bottom: 1px solid var(--raia);
-	}
-
-	h1 {
-		flex: 1;
-		min-width: 0;
-		font-family: var(--font-display);
-		font-size: var(--t-2);
-		font-weight: 700;
-		line-height: 1;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		overflow: hidden;
-	}
-
-	@media (max-width: 44.99em) {
-		h1 {
-			font-size: 1.25rem;
-		}
-
-		/* No room in the bar: the enabled Save says it; screen readers still hear it. */
-		.status {
-			position: absolute;
-			width: 1px;
-			height: 1px;
-			overflow: hidden;
-			clip-path: inset(50%);
-		}
-	}
-
-	/* Unsaved: the save waiting is "now", in amber like the Save button. */
-	.status {
-		font-size: var(--t--1);
-		color: var(--ouro);
-		font-weight: 650;
-	}
-
-	/* Last in the song's page, apart from the editing, as in a contact card. */
-	.delete {
-		display: grid;
-		justify-items: start;
-		gap: var(--s-3);
-		margin-top: var(--s-6);
-		padding-top: var(--s-4);
-		border-top: 1px solid var(--raia);
-	}
-
-	.delete p {
-		max-width: 38rem;
-		color: var(--texto-2);
-	}
-
-	.delete .row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-3);
-	}
-
-	.delete .failed {
-		font-weight: 650;
-		color: var(--erro);
-	}
-
-	.notice {
-		margin: var(--s-3) var(--page-x) 0;
-		padding: var(--s-2) var(--s-4);
-		border: 1px solid var(--raia-forte);
-		background: var(--fondo-2);
-		font-weight: 600;
-	}
-
-	.message {
-		padding: var(--s-6) var(--page-x);
-		color: var(--texto-2);
-	}
-
 	.layout {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-5);
-		padding: var(--s-4) var(--page-x) var(--s-8);
-		min-height: 0;
-	}
-
-	@media (min-width: 60em) {
-		.layout {
-			grid-template-columns: minmax(18rem, 26rem) 1fr;
-			align-items: start;
-		}
-
-		.lines {
-			position: sticky;
-			top: 5rem;
-			max-height: calc(100dvh - 6.5rem);
-			overflow-y: auto;
-		}
-
-		.detail {
-			position: sticky;
-			top: 5rem;
-		}
-	}
-
-	/* The lines: a board, one row each, its time in a column. The one picked is blue; the one
-	   being heard is lit in amber, as in the player. */
-	.lines ol {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		border-top: 1px solid var(--raia);
-	}
-
-	.lines li {
-		border-bottom: 1px solid var(--raia);
-	}
-
-	.lines button {
-		display: grid;
-		grid-template-columns: 4.5rem 1fr;
-		gap: var(--s-3);
-		width: 100%;
-		min-height: 2.75rem;
-		padding: var(--s-2) var(--s-3);
-		border: 0;
-		background: none;
-		text-align: left;
-		line-height: 1.35;
-		outline-offset: -3px;
-		transition:
-			background-color var(--dur-1) ease,
-			color var(--dur-1) ease;
-	}
-
-	@media (hover: hover) {
-		.lines button:hover {
-			background: var(--fondo-2);
-		}
-	}
-
-	.lines button.current {
-		background: var(--ceo-fondo);
-	}
-
-	.lines button.backing {
-		padding-left: var(--s-6);
-		font-size: var(--t--1);
-		color: var(--texto-2);
-	}
-
-	.lines button.playing .text {
-		color: var(--ouro);
-	}
-
-	.time {
-		font-variant-numeric: tabular-nums;
-		font-size: var(--t--1);
-		color: var(--texto-2);
-		padding-top: 0.1em;
-	}
-
-	.current .time {
-		color: var(--ceo);
-	}
-
-	/* A dotted line, not a spellchecker's wave: the word may be out of time, not misspelt. */
-	.doubtful {
-		text-decoration: underline dotted var(--texto-2);
-		text-decoration-thickness: 2px;
-		text-underline-offset: 0.3em;
-	}
-
-	.line-bar {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--s-2) var(--s-4);
-	}
-
-	.lines-toggle {
-		display: none;
-		gap: var(--s-2);
-		align-items: center;
-		min-height: var(--target);
-		padding: 0 var(--s-4);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-control);
-		background: transparent;
-		font-weight: 650;
-		transition:
-			border-color var(--dur-1) ease,
-			transform var(--dur-1) var(--ease);
-	}
-
-	.lines-toggle[aria-expanded='true'] {
-		border-color: var(--ceo);
-		background: var(--ceo-fondo);
-	}
-
-	.lines-toggle:active {
-		transform: scale(0.97);
-	}
-
-	.doubts {
-		display: flex;
-		gap: var(--s-2);
-		align-items: baseline;
-		color: var(--texto-2);
-		font-size: var(--t--1);
-	}
-
-	.link {
-		min-height: var(--target);
-		padding: 0 var(--s-2);
-		border: 0;
-		background: none;
-		font-weight: 650;
-		color: var(--texto);
-		text-decoration: underline;
-		text-decoration-color: var(--raia-forte);
-		text-underline-offset: 0.25em;
-		transition:
-			color var(--dur-1) ease,
-			text-decoration-color var(--dur-1) ease;
-	}
-
-	@media (hover: hover) {
-		.link:hover {
-			color: var(--ceo);
-			text-decoration-color: currentColor;
-		}
-	}
-
-	.history {
-		display: flex;
-		gap: var(--s-2);
-		margin-left: auto;
-	}
-
-	.detail {
-		display: grid;
+		grid-template-columns: minmax(16rem, 1fr) minmax(0, 2.2fr);
 		gap: var(--s-4);
-		min-width: 0;
+		height: calc(100vh - 11rem);
 	}
-
+	.lines {
+		overflow: auto;
+	}
+	.lines .ctl-row {
+		grid-template-columns: 4rem 1fr;
+	}
+	.detail {
+		overflow: auto;
+	}
 	.words {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s-2);
+		font-size: var(--t-1);
 	}
-
-	/* The words of the line: the one picked in blue, the ones already sung in amber. */
-	.words button {
-		min-height: var(--target);
-		padding: 0 var(--s-3);
-		border: 1px solid var(--raia-forte);
+	.words span {
+		padding: 0 var(--s-1);
 		border-radius: var(--radius-control);
-		background: transparent;
-		font-family: var(--font-text);
-		font-size: var(--t-2);
-		font-weight: 650;
-		transition:
-			border-color var(--dur-1) ease,
-			background-color var(--dur-1) ease,
-			color var(--dur-1) ease,
-			transform var(--dur-1) var(--ease);
 	}
-
-	@media (hover: hover) {
-		.words button:hover {
-			border-color: var(--ceo);
-		}
+	.words .selected {
+		outline: 2px solid var(--ceo);
 	}
-
-	.words button:active {
-		transform: scale(0.97);
+	.words .doubtful {
+		text-decoration: underline wavy var(--erro);
 	}
-
-	.words button[aria-selected='true'] {
-		border-color: var(--ceo);
-		background: var(--ceo-fondo);
-		box-shadow: inset 0 -3px 0 var(--ceo);
+	.preview {
+		position: relative;
+		height: 14rem;
+		margin-top: var(--s-4);
+		border-radius: var(--radius-panel);
+		overflow: hidden;
+		background: #0b0b12;
 	}
-
-	.words button.sung,
-	.words button.tapped {
-		color: var(--ouro);
+	.problems {
+		color: var(--erro);
 	}
-
-	/* Tapping: the word the next tap is for. */
-	.words button.next {
-		outline: 2px dashed var(--ouro);
-		outline-offset: 3px;
+	.mono {
+		font-family: var(--font-data);
 	}
-
-	.listen {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--s-2);
-	}
-
-	.tapping {
-		display: grid;
-		font-weight: 650;
-	}
-
-	.tapping span {
-		font-weight: 400;
+	.keys {
 		font-size: var(--t--1);
-		color: var(--texto-2);
-	}
-
-	.tap-pad {
-		flex-basis: 100%;
-		min-height: 6rem;
-		border: 1px solid var(--ouro);
-		border-radius: var(--radius-control);
-		background: color-mix(in oklch, var(--ouro) 12%, transparent);
-		color: var(--ouro);
-		font-family: var(--font-display);
-		font-size: var(--t-3);
-		font-weight: 700;
-		touch-action: manipulation;
-		transition: transform var(--dur-1) var(--ease);
-	}
-
-	.tap-pad:active {
-		transform: scale(0.98);
-	}
-
-	@media (hover: hover) and (pointer: fine) {
-		.tap-pad {
-			display: none;
-		}
-	}
-
-	.word-tools {
-		display: grid;
-		gap: var(--s-4);
-		padding: var(--s-4);
-		border-top: 1px solid var(--raia);
-		background: var(--fondo-2);
-	}
-
-	.word-tools > :global(.button) {
-		justify-self: start;
-	}
-
-	.edit {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-2);
-	}
-
-	.edit input {
-		flex: 1;
-		min-width: 10rem;
-		min-height: var(--target);
-		padding: 0 var(--s-3);
-		border: 1px solid var(--ceo);
-		border-radius: var(--radius-control);
-		box-shadow: 0 0 0 1px var(--ceo);
-		background: var(--fondo);
-		font-family: var(--font-display);
-		font-size: var(--t-2);
-		font-weight: 650;
-	}
-
-	.edit input:focus {
-		outline: none;
-	}
-
-	.edges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-4) var(--s-6);
-	}
-
-	.edge {
-		display: grid;
-		grid-template-columns: auto auto auto;
-		align-items: center;
-		gap: var(--s-2);
-	}
-
-	.edge-label {
-		grid-column: 1 / -1;
-		font-size: var(--t--1);
-		font-weight: 600;
-		color: var(--texto-2);
-	}
-
-	.edge output {
-		min-width: 6.5ch;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-		font-weight: 650;
-	}
-
-	.doubtful-note {
-		font-size: var(--t--1);
-		color: var(--texto-2);
-	}
-
-	/* Keyboard shortcuts mean nothing on a touch screen. */
-	@media (pointer: coarse) {
-		.help {
-			display: none;
-		}
-	}
-
-	.help summary {
-		cursor: pointer;
-		padding-block: var(--s-2);
-		font-weight: 650;
-		color: var(--texto-2);
-	}
-
-	@media (hover: hover) {
-		.help summary:hover {
-			color: var(--texto);
-		}
-	}
-
-	.help dl {
-		display: grid;
-		gap: var(--s-1);
-		margin-top: var(--s-3);
-	}
-
-	.help div {
-		display: grid;
-		grid-template-columns: 7rem 1fr;
-		gap: var(--s-3);
-	}
-
-	.help dd {
-		margin: 0;
-		color: var(--texto-2);
-	}
-
-	kbd {
-		padding: 0 0.4em;
-		border: 1px solid var(--raia-forte);
-		border-radius: 4px;
-		font-family: inherit;
-		font-size: var(--t--1);
-	}
-
-	/* Phones: the lines are a drawer over the editor, opened from the line's own button. */
-	@media (max-width: 59.99em) {
-		.lines {
-			display: none;
-			position: fixed;
-			inset: auto 0 0;
-			z-index: 4;
-			max-height: 70dvh;
-			overflow-y: auto;
-			padding: var(--s-3) var(--page-x) var(--s-6);
-			background: var(--fondo);
-			border-top: 1px solid var(--raia);
-		}
-
-		.lines.open {
-			display: block;
-		}
-
-		.lines-toggle {
-			display: inline-flex;
-		}
-
-		.listen {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.detail {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.history {
-			margin-left: 0;
-			justify-content: flex-end;
-		}
 	}
 </style>

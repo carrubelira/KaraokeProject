@@ -20,7 +20,7 @@ lint:
 	# Every import a package makes is declared by that package (deptry reads its pyproject).
 	for p in packages/*/; do (cd $$p && uv run deptry src) || exit 1; done
 	uv run lint-imports
-	uv run shellcheck scripts/*.sh web/e2e/server/serve.sh
+	uv run shellcheck scripts/*.sh
 	# GitHub's own files and CITATION.cff against their published schemas (bundled, offline).
 	uv run check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/*.yml
 	uv run check-jsonschema --builtin-schema vendor.dependabot .github/dependabot.yml

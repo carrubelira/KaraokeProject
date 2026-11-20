@@ -44,7 +44,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     copy = commands.add_parser("backup", help="copy the database and the blobs elsewhere")
     copy.add_argument("dest", type=Path)
     commands.add_parser("fingerprint", help="print the TLS certificate's fingerprint")
-    commands.add_parser("openapi", help="print the API's OpenAPI document")
+    openapi = commands.add_parser("openapi", help="print (or write) the API's OpenAPI document")
+    openapi.add_argument("--out", type=Path)
 
     args = parser.parse_args(argv)
     settings = Settings.from_env(data_dir=args.data)
@@ -64,7 +65,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "openapi":
         from karaoke_server.app import create_app
 
-        print(json.dumps(create_app(settings).openapi(), ensure_ascii=False, indent=2))
+        text = json.dumps(create_app(settings).openapi(), ensure_ascii=False, indent=2) + "\n"
+        if args.out:
+            args.out.write_text(text, encoding="utf-8")
+        else:
+            print(text, end="")
         return 0
     if args.command == "fingerprint":
         from karaoke_server.tls import ensure_certificate, fingerprint

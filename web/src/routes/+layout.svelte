@@ -1,107 +1,152 @@
 <script lang="ts">
+	/*
+	 * The control UI (plan v4 §7): sign-in, the top bar, the status bar, the command palette, the
+	 * cheat sheet and notices around every section; every key goes through the command registry.
+	 * Files dropped anywhere and links pasted anywhere become karaokes.
+	 */
 	import '../lib/ui/styles/tokens.css';
 	import '../lib/ui/styles/fonts.css';
 	import '../lib/ui/styles/base.css';
-	import displayFont from '../lib/ui/fonts/Unbounded.woff2?url';
-	import textFont from '../lib/ui/fonts/Figtree.woff2?url';
+	import '../lib/ui/styles/control.css';
 	import favicon from '#lib/assets/favicon.svg';
-	import { onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
+	import { commands } from '#lib/commands/registry.svelte.js';
+	import { isTyping } from '#lib/commands/keys.js';
+	import { api, ApiError } from '#lib/control/api.js';
+	import { live } from '#lib/control/live.svelte.js';
+	import { toasts } from '#lib/control/toasts.svelte.js';
+	import type { Session } from '#lib/control/types.js';
 	import { i18n, initLocale } from '#lib/i18n';
-	import { jobs } from '#lib/create/jobs.svelte.js';
-	import Stage from '#lib/globe/Stage.svelte';
-	import Nav from '#lib/ui/Nav.svelte';
-	import { chrome } from '#lib/ui/chrome.svelte.js';
-	import { watchForUpdate } from '#lib/offline/register.js';
-	import Button from '#lib/ui/Button.svelte';
-	import { prefersReducedMotion } from 'svelte/motion';
+	import Cheatsheet from '#lib/shell/Cheatsheet.svelte';
+	import { registerGlobal } from '#lib/shell/global.js';
+	import { intake, looksLikeLink } from '#lib/shell/intake.svelte.js';
+	import Login from '#lib/shell/Login.svelte';
+	import Palette from '#lib/shell/Palette.svelte';
+	import { prefs } from '#lib/shell/prefs.svelte.js';
+	import StatusBar from '#lib/shell/StatusBar.svelte';
+	import Toasts from '#lib/shell/Toasts.svelte';
+	import TopBar from '#lib/shell/TopBar.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+	let session = $state<Session | null>(null);
+	let checked = $state(false);
+	let dragging = $state(false);
 
 	initLocale();
-	// Karaoke jobs keep being followed from any screen (the Create tab shows their progress).
-	void jobs.refresh();
 
-	// A new version waits until the singer says so: an update must never cut a song.
-	let applyUpdate = $state<(() => void) | null>(null);
-	watchForUpdate((apply) => (applyUpdate = apply));
+	function start(found: Session) {
+		session = found;
+		prefs.load(found.preferences);
+		live.start();
+	}
 
-	/** Screens that take the whole viewport and bring their own controls. */
-	const IMMERSIVE = ['/cantar/[id]', '/festa/[code]', '/editar/[id]', '/proba-letra'];
-	const immersive = $derived(IMMERSIVE.includes(page.route.id ?? '') || chrome.immersive);
-
-	// Page changes cross-fade (and shared elements morph) where the browser can.
-	onNavigate((navigation) => {
-		if (!document.startViewTransition || prefersReducedMotion.current || navigation.shallow) return;
-		return new Promise((resolve) => {
-			document.startViewTransition(async () => {
-				resolve();
-				await navigation.complete;
-			});
-		});
+	onMount(() => {
+		const unregister = registerGlobal();
+		api
+			.session()
+			.then(start)
+			.catch((error: unknown) => {
+				if (!(error instanceof ApiError && error.status === 401))
+					toasts.show(String(error), 'error');
+			})
+			.finally(() => (checked = true));
+		return () => {
+			unregister();
+			live.stop();
+		};
 	});
+
+	function keydown(event: KeyboardEvent) {
+		if (!session) return;
+		commands.handle(event);
+	}
+
+	function paste(event: ClipboardEvent) {
+		if (!session || isTyping(event.target)) return;
+		const text = event.clipboardData?.getData('text') ?? '';
+		if (looksLikeLink(text)) {
+			event.preventDefault();
+			toasts.show(i18n.t.app.pasted);
+			void intake.link(text.trim());
+		}
+	}
+
+	function drop(event: DragEvent) {
+		event.preventDefault();
+		dragging = false;
+		if (session && event.dataTransfer?.files.length) void intake.files(event.dataTransfer.files);
+	}
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<link rel="preload" href={displayFont} as="font" type="font/woff2" crossorigin="anonymous" />
-	<link rel="preload" href={textFont} as="font" type="font/woff2" crossorigin="anonymous" />
+	<title>{i18n.t.app.name}</title>
 </svelte:head>
 
-<Stage />
+<svelte:window
+	onkeydown={keydown}
+	onpaste={paste}
+	ondragover={(e) => {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			dragging = true;
+		}
+	}}
+	ondragleave={(e) => e.relatedTarget === null && (dragging = false)}
+	ondrop={drop}
+/>
 
-{#if !immersive}<Nav working={jobs.working} home={page.route.id === '/'} />{/if}
-
-<div class="app" class:immersive>
+{#if page.route.id === '/proba-letra'}
+	<!-- A development test page for the lyrics, outside the control UI. -->
 	{@render children()}
-</div>
-
-{#if applyUpdate && !immersive}
-	<div class="update" role="status">
-		<p>{i18n.t.common.updateReady}</p>
-		<Button variant="primary" onclick={() => applyUpdate?.()}>{i18n.t.common.update}</Button>
-	</div>
+{:else if !checked}
+	<p class="boot">{i18n.t.common.loading}</p>
+{:else if !session}
+	<Login onsession={start} />
+{:else}
+	<TopBar />
+	<main class="app">{@render children()}</main>
+	<StatusBar />
+	<Palette />
+	<Cheatsheet />
+	{#if !live.connected}<p class="offline" role="status">{i18n.t.app.reconnecting}</p>{/if}
+	{#if dragging}<div class="drop">{i18n.t.app.dropHere}</div>{/if}
 {/if}
+<Toasts />
 
 <style>
+	.boot {
+		padding: var(--s-6);
+		color: var(--texto-3);
+	}
 	.app {
-		/* Room for the phone tab bar. */
-		padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+		padding-bottom: 2.6rem;
 	}
-
-	.update {
+	.offline {
 		position: fixed;
-		z-index: 30;
+		top: 3.4rem;
 		left: 50%;
-		bottom: calc(5rem + env(safe-area-inset-bottom));
 		transform: translateX(-50%);
-		display: flex;
-		align-items: center;
-		gap: var(--s-4);
-		width: max-content;
-		max-width: calc(100% - 2 * var(--page-x));
-		padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5);
+		z-index: 30;
+		margin: 0;
+		padding: var(--s-1) var(--s-4);
 		border-radius: var(--radius-pill);
-		background: var(--accion);
-		color: var(--accion-texto);
+		background: var(--erro);
+		color: var(--fondo);
 		font-weight: 700;
-		box-shadow: var(--sombra);
 	}
-
-	@media (min-width: 45em) {
-		.update {
-			bottom: var(--s-6);
-		}
-	}
-
-	.app.immersive {
-		padding-bottom: 0;
-	}
-
-	@media (min-width: 45em) {
-		.app {
-			padding-bottom: 0;
-		}
+	.drop {
+		position: fixed;
+		inset: 0;
+		z-index: 60;
+		display: grid;
+		place-items: center;
+		background: rgb(4 7 12 / 0.8);
+		border: 3px dashed var(--ceo);
+		color: var(--ceo);
+		font-size: var(--t-3);
+		pointer-events: none;
 	}
 </style>

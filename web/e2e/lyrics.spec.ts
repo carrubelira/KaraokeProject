@@ -132,17 +132,19 @@ test('the break bar shows its progress when opened in the middle of a break', as
 });
 
 test('a backing line is faint as a whole, not layer by layer', async ({ page }) => {
-	await page.route('**/media/demo-sintetico/karaoke.json', async (route) => {
-		const doc = await (await route.fetch()).json();
-		doc.lines.splice(1, 0, {
-			id: 'b1',
-			start: 4.5,
-			end: 5.0,
-			singer: 's1',
-			role: 'backing',
-			words: [{ text: 'ei', start: 4.5, end: 5.0, confidence: null, parts: [] }]
-		});
-		await route.fulfill({ json: doc });
+	await page.addInitScript(() => {
+		(window as unknown as { __lyricsPatch: (doc: { lines: unknown[] }) => unknown }).__lyricsPatch =
+			(doc) => {
+				doc.lines.splice(1, 0, {
+					id: 'b1',
+					start: 4.5,
+					end: 5.0,
+					singer: 's1',
+					role: 'backing',
+					words: [{ text: 'ei', start: 4.5, end: 5.0, confidence: null, parts: [] }]
+				});
+				return doc;
+			};
 	});
 	await open(page, 6);
 
