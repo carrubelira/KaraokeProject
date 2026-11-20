@@ -26,8 +26,9 @@
 	--erro: #c3203a;
 }
 
+/* The page background is painted on the root (base.css): the globe's canvas sits under the
+   body, which must stay transparent. */
 body {
-	background: var(--fondo);
 	color: var(--texto);
 }
 

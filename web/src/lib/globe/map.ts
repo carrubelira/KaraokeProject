@@ -15,7 +15,7 @@ export interface GaliciaMap {
 	heights: Uint8Array;
 	/** 0 dark; otherwise the logarithm of the people in the cell, 1..255. */
 	lights: Uint8Array;
-	/** 0 none; otherwise which of the four provinces the cell is in. */
+	/** 0 sea; 1-4 which of Galicia's provinces the cell is in; `NEIGHBOUR` the land around. */
 	provinces: Uint8Array;
 }
 
@@ -24,8 +24,9 @@ export interface Atlas {
 	/**
 	 * Four bytes per cell of the whole grid, rows from the north: the stored height, the light
 	 * there (the square root of its brightness, 0..255), how far the coast is (128 on it, more
-	 * inland, less out at sea, `COAST_STEP` per cell) and whether two provinces meet there (0 or
-	 * 255).
+	 * inland, less out at sea, `COAST_STEP` per cell) and what kind of land it is: 255 where two
+	 * provinces (or Galicia and its neighbours) meet, `NEIGHBOUR_MARK` on the land around Galicia
+	 * (drawn in half-light), 0 elsewhere.
 	 */
 	data: Uint8Array;
 }
@@ -34,6 +35,10 @@ export interface Atlas {
 const LIGHT_CONTRAST = 5.4;
 /** What one cell of distance from the coast adds to (or takes from) the atlas's third byte. */
 export const COAST_STEP = 6;
+/** The province number of the land around Galicia (scripts/galicia_map.py). */
+export const NEIGHBOUR = 5;
+/** The atlas's fourth byte on the land around Galicia (not on a border). */
+export const NEIGHBOUR_MARK = 96;
 
 export function decodeMap(buffer: ArrayBuffer): GaliciaMap {
 	const view = new DataView(buffer);
@@ -114,6 +119,7 @@ export function buildAtlas(map: GaliciaMap): Atlas {
 			if ((heights[cell] ?? 0) > 0) land[out] = 1;
 			const here = province(column, row);
 			if (here === 0) continue;
+			if (here === NEIGHBOUR) data[out * 4 + 3] = NEIGHBOUR_MARK;
 			for (const [dx, dy] of [
 				[1, 0],
 				[-1, 0],

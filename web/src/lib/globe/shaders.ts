@@ -256,10 +256,13 @@ void main() {
 	c += vec3(0.20, 0.42, 0.66) * contour * (0.055 + 0.2 * uTech) * step(0.012, h);
 
 	vec4 here = texture(uAtlas, vUv);
-	// Where two provinces meet.
-	c = mix(c, vec3(0.50, 0.68, 0.88), smoothstep(0.2, 0.75, here.a) * 0.15);
+	// The land around Galicia (the atlas marks it at 96/255): in half-light, its coast fainter.
+	float around = smoothstep(0.2, 0.33, here.a) * (1.0 - smoothstep(0.5, 0.8, here.a));
+	c *= mix(1.0, 0.32, around);
+	// Where two provinces meet, and where Galicia ends.
+	c = mix(c, vec3(0.50, 0.68, 0.88), smoothstep(0.6, 0.9, here.a) * 0.18);
 	// The coast, a clean bright line.
-	c = mix(c, vec3(0.62, 0.86, 1.0), smoothstep(1.7, 0.35, inland) * 0.8);
+	c = mix(c, vec3(0.62, 0.86, 1.0), smoothstep(1.7, 0.35, inland) * mix(0.8, 0.3, around));
 
 	// The lights of the towns: a sharp core and the glow it throws around.
 	// (The atlas keeps the square root of the brightness.)
@@ -291,6 +294,7 @@ void main() {
 	float done = step(x, uScanAt);
 	glow *= mix(1.0, mix(0.16, 1.25, done), uFill);
 	glow *= 1.0 - 0.5 * uTech;
+	glow *= mix(1.0, 0.3, around);
 	c += lamp * glow;
 	c += vec3(0.45, 0.80, 1.0) * smoothstep(0.035, 0.0, abs(x - uScanAt)) * uScan * 0.9;
 

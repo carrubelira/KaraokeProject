@@ -91,9 +91,9 @@ The night globe of the app (`web/src/lib/globe/`, built by `scripts/galicia_map.
 
 | Data | Source | Licence |
 |---|---|---|
-| The lights of Galicia: people per 400 m hexagon, 2023 | [Kontur Population](https://data.humdata.org/dataset/kontur-population-spain) (Kontur, via HDX) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| The boundary of Galicia and its four provinces at 1:10m | [Natural Earth](https://www.naturalearthdata.com/) | public domain |
-| The relief and the coast | [Mapzen Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data: SRTM (NASA, public domain), EU-DEM (produced using Copernicus data and information funded by the European Union) and ETOPO1 (NOAA, public domain) | free to use with this credit |
+| The lights of Galicia and of the land around: people per 400 m hexagon, 2023 | [Kontur Population](https://data.humdata.org/dataset/kontur-population-spain) of Spain and [of Portugal](https://data.humdata.org/dataset/kontur-population-portugal) (Kontur, via HDX) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| The boundaries of Galicia, its four provinces and its neighbours at 1:10m | [Natural Earth](https://www.naturalearthdata.com/) | public domain |
+| The relief, the coast and the sea floor of the north-west of the Peninsula | [Mapzen Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data: SRTM (NASA, public domain), EU-DEM (produced using Copernicus data and information funded by the European Union) and ETOPO1 (NOAA, public domain) | free to use with this credit |
 | The lighthouses of the coast: position, rhythm and range | [Wikidata](https://www.wikidata.org/) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 
 ## Songs, lyrics and benchmark data

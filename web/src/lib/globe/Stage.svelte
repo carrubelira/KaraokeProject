@@ -19,7 +19,7 @@
 	import { i18n } from '#lib/i18n';
 	import { direction, project, rotation, viewProjection, type Frame } from './camera';
 	import type { Scene } from './engine';
-	import { CITIES, EXTENT, HEIGHT_MAX, KM_PER_RADIAN, LIGHTHOUSES } from './galicia';
+	import { CITIES, EXTENT, HEIGHT_MAX, KM_PER_RADIAN, LIGHTHOUSES, REGIONS } from './galicia';
 	import mapUrl from './galicia-map.bin?url';
 	import { loadGlobe } from './load';
 	import { SINGER_LIGHTS, stage, type Anchor } from './stage.svelte';
@@ -34,7 +34,9 @@
 	// The ocean goes where a chart would write it: off the west coast.
 	const places = $derived<Place[]>([
 		...CITIES.map((city) => ({ ...city, kind: 'city' as const })),
-		{ name: i18n.t.globe.atlantic, theta: -0.86, phi: -0.12, kind: 'sea' }
+		// The land around and the seas: written in the dark, like the ocean.
+		...REGIONS.map((region) => ({ ...region, kind: 'sea' as const })),
+		{ name: i18n.t.globe.atlantic, theta: -0.62, phi: -0.08, kind: 'sea' }
 	]);
 
 	let canvas = $state<HTMLCanvasElement | null>(null);

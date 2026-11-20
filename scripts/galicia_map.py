@@ -10,21 +10,23 @@ Run it only to refresh the data; the results are versioned:
 
 Sources, downloaded from pinned or stable URLs and cached in ~/.cache/karaoke/galicia:
 
-- Boundary: Natural Earth admin-1 at 1:10m (public domain), the four provinces merged. It
+- Boundaries: Natural Earth admin-1 at 1:10m (public domain), the four provinces merged. It
   decides what is Galicia and what is Asturias, León, Zamora or Portugal.
 - Relief and coast: Mapzen Terrain Tiles on AWS Open Data (SRTM and EU-DEM on land, ETOPO1 at
-  sea), zoom 9, about 220 m per pixel. Inside the boundary, and up to a few kilometres off it
-  for the islands, whatever stands above the sea is land: the rías and the islands come out of
-  the relief itself, finer than the boundary's coast.
-- Lights: Kontur Population 2023, people per 400 m H3 hexagon (CC BY 4.0, via HDX). Every
-  inhabited cell inside Galicia becomes one light, brighter with more people.
+  sea), zoom 9, about 220 m per pixel, over the whole north-west of the Peninsula (`BOX`):
+  whatever stands above the sea is land, Galicia's and its neighbours'; the rías and the islands
+  come out of the relief itself, finer than the boundary's coast.
+- Lights: Kontur Population 2023 of Spain and Portugal, people per 400 m H3 hexagon (CC BY 4.0,
+  via HDX). Every inhabited cell becomes one light, brighter with more people; outside Galicia
+  they keep `NEIGHBOUR_LIGHT` of it: Galicia is lit, the land around in the dark.
 - Lighthouses: Wikidata (CC0): position, the light's character as charts write it ("Fl(4) W
   20s": four flashes every twenty seconds) and its range in nautical miles.
 
-Galicia is drawn on the front of a small planet, much bigger than it would be on the real
-Earth: local flat coordinates around its centre become angles on the sphere (`theta` east,
-`phi` north; the widest side spans `SPAN_DEGREES` each way), so a point is
-(cos phi * sin theta, sin phi, cos phi * cos theta) in units of the sphere's radius.
+Galicia is drawn on the front of a small planet, bigger than it would be on the real Earth but
+with its real surroundings in their real proportions: local flat coordinates around its centre
+become angles on the sphere (`theta` east, `phi` north; Galicia's widest side spans
+`SPAN_DEGREES` each way), so a point is (cos phi * sin theta, sin phi, cos phi * cos theta) in
+units of the sphere's radius.
 
 Outputs (web/src/lib/globe/):
 
@@ -36,8 +38,8 @@ Outputs (web/src/lib/globe/):
   uint16 grid, column, row, width, height; then width * height uint8 heights in rows from the
   north (0 sea; otherwise 1 + 254 * sqrt(metres / HEIGHT_MAX)); then width * height uint8
   lights (0 dark; otherwise the log of the people, 1..255); then width * height uint8
-  provinces (0 none; 1 A Coruña, 2 Lugo, 3 Ourense, 4 Pontevedra), for the lines between them.
-  A cell is about 0.45 km.
+  provinces (0 sea; 1 A Coruña, 2 Lugo, 3 Ourense, 4 Pontevedra; 5 the land around Galicia),
+  for the lines between them and the half-light outside. A cell is about 0.75 km.
 """
 
 import gzip
@@ -63,7 +65,7 @@ NATURAL_EARTH = (
 )
 KONTUR = (
     "https://geodata-eu-central-1-kontur-public.s3.amazonaws.com/kontur_datasets/"
-    "kontur_population_ES_20231101.gpkg.gz"
+    "kontur_population_{country}_20231101.gpkg.gz"
 )
 TERRAIN = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
 TERRAIN_ZOOM = 9
@@ -88,17 +90,30 @@ USER_AGENT = "galicia-night-map-builder/1.0 (data script)"
 CACHE = Path.home() / ".cache/karaoke/galicia"
 OUT = Path(__file__).resolve().parents[1] / "web/src/lib/globe"
 
-SPAN_DEGREES = 34.0
-# The grid reaches a little past Galicia's widest side, for the islands and the capes.
-MARGIN = 1.06
-GRID = 512
+SPAN_DEGREES = 22.0
+# The grid reaches a little past the box of the north-west of the Peninsula.
+MARGIN = 1.02
+GRID = 1024
 HEIGHT_MAX = 2200.0
 # How far off the boundary land still counts (islands, capes the 1:10m coast cuts): ~6 km.
 SEAWARD = 0.06
 # Douglas-Peucker tolerance of the still outline, in degrees (~250 m).
 OUTLINE_TOLERANCE = 0.0025
 EARTH_RADIUS = 6378137.0
-BOX = (-9.6, 41.6, -6.5, 44.0)
+# Galicia in its real surroundings: the Atlantic, the north of Portugal, Asturias, León, Zamora.
+BOX = (-12.5, 39.4, -2.8, 45.8)
+# What a neighbour's lights keep of their brightness: Galicia is lit, the rest in the dark.
+NEIGHBOUR_LIGHT = 0.4
+# Provinces in the raster: 1-4 Galicia's, this one every other land.
+NEIGHBOUR = 5
+# Names written on the land around, dimmer than Galicia's cities.
+REGIONS = [
+    ("Portugal", -8.0, 41.05),
+    ("Asturias", -6.0, 43.3),
+    ("León", -5.85, 42.65),
+    ("Zamora", -6.1, 41.75),
+    ("Cantábrico", -6.6, 44.35),
+]
 
 CITIES = [
     ("A Coruña", -8.4115, 43.3623),
@@ -163,10 +178,11 @@ def boundaries():  # type: ignore[no-untyped-def]
     return unary_union(provinces), unary_union(others), provinces
 
 
-def hexagons() -> np.ndarray:
-    """(lon, lat, people) of every hexagon of Spain, from the GeoPackage's bounding boxes."""
-    packed = _cached(KONTUR, "kontur_population_ES_20231101.gpkg.gz")
-    gpkg = CACHE / "kontur_population_ES_20231101.gpkg"
+def hexagons(country: str) -> np.ndarray:
+    """(lon, lat, people) of every hexagon of a country, from the GeoPackage's bounding boxes."""
+    name = f"kontur_population_{country}_20231101.gpkg"
+    packed = _cached(KONTUR.format(country=country), name + ".gz")
+    gpkg = CACHE / name
     if not gpkg.exists():
         gpkg.write_bytes(gzip.decompress(packed.read_bytes()))
     rows = []
@@ -234,7 +250,14 @@ class Projection:
         min_lon, min_lat, max_lon, max_lat = region.bounds
         half = max((max_lon - min_lon) * self.cos0, max_lat - min_lat) / 2
         self.scale = math.radians(SPAN_DEGREES) / half
-        self.extent = math.radians(SPAN_DEGREES) * MARGIN
+        # The grid covers the whole box around, the same way each side of the centre.
+        reach = max(
+            abs(BOX[0] - self.lon0) * self.cos0,
+            abs(BOX[2] - self.lon0) * self.cos0,
+            abs(BOX[1] - self.lat0),
+            abs(BOX[3] - self.lat0),
+        )
+        self.extent = reach * self.scale * MARGIN
         # Kilometres on the ground per radian on the sphere.
         self.km = math.radians(1) * EARTH_RADIUS / 1000 / self.scale
 
@@ -330,38 +353,47 @@ def main() -> None:
     theta_grid, phi_grid = np.meshgrid(theta, phi)
     lon, lat = project.lonlat(theta_grid, phi_grid)
     metres = relief(lon.ravel(), lat.ravel()).reshape(GRID, GRID)
-    inside = contains_xy(region, lon.ravel(), lat.ravel()).reshape(GRID, GRID)
-    offshore = contains_xy(region.buffer(SEAWARD), lon.ravel(), lat.ravel()).reshape(GRID, GRID)
-    foreign = contains_xy(neighbours.buffer(0.004), lon.ravel(), lat.ravel()).reshape(GRID, GRID)
-    land = (metres > 0.5) & (inside | (offshore & ~foreign))
+    # Land is whatever stands above the sea, Galicia's and its neighbours' alike; the rías and
+    # the islands come out of the relief itself, finer than the 1:10m coast.
+    land = metres > 0.5
     height = np.where(
         land, 1 + np.round(254 * np.sqrt(np.clip(metres, 0, HEIGHT_MAX) / HEIGHT_MAX)), 0
     )
+    galician = contains_xy(region.buffer(SEAWARD), lon.ravel(), lat.ravel()).reshape(GRID, GRID)
+    foreign = contains_xy(neighbours.buffer(0.004), lon.ravel(), lat.ravel()).reshape(GRID, GRID)
+    galician &= ~foreign | contains_xy(region, lon.ravel(), lat.ravel()).reshape(GRID, GRID)
 
-    province = np.zeros((GRID, GRID))
+    province = np.where(land, NEIGHBOUR, 0)
     for number, shape_ in enumerate(provinces, start=1):
-        here = contains_xy(shape_, lon.ravel(), lat.ravel()).reshape(GRID, GRID)
-        province[here & land] = number
+        here = contains_xy(shape_.buffer(SEAWARD), lon.ravel(), lat.ravel()).reshape(GRID, GRID)
+        province[here & land & galician] = number
 
-    cells = hexagons()
+    every = np.vstack([hexagons("ES"), hexagons("PT")])
     near = (
-        (cells[:, 0] > BOX[0])
-        & (cells[:, 0] < BOX[2])
-        & (cells[:, 1] > BOX[1])
-        & (cells[:, 1] < BOX[3])
+        (every[:, 0] > BOX[0])
+        & (every[:, 0] < BOX[2])
+        & (every[:, 1] > BOX[1])
+        & (every[:, 1] < BOX[3])
+        & (every[:, 2] > 0)
     )
-    cells = cells[near]
+    every = every[near]
     # A little margin keeps the coastal villages that the 1:10m coast cuts off.
-    in_galicia = contains_xy(region.buffer(0.01), cells[:, 0], cells[:, 1])
-    cells = cells[in_galicia & (cells[:, 2] > 0)]
+    in_galicia = contains_xy(region.buffer(0.01), every[:, 0], every[:, 1])
+    cells = every[in_galicia]
     people = cells[:, 2]
-    column, row = project.cell(*project.angles(cells[:, 0], cells[:, 1]))
-    grid = np.zeros(GRID * GRID)
-    np.add.at(grid, np.clip(row, 0, GRID - 1) * GRID + np.clip(column, 0, GRID - 1), people)
-    grid = grid.reshape(GRID, GRID)
-    light = np.where(
-        grid > 0, np.clip(np.round(np.log1p(grid) / np.log1p(grid.max()) * 255), 1, 255), 0
-    )
+
+    def gather(points: np.ndarray) -> np.ndarray:
+        column, row = project.cell(*project.angles(points[:, 0], points[:, 1]))
+        keep = (column >= 0) & (row >= 0) & (column < GRID) & (row < GRID)
+        grid = np.zeros(GRID * GRID)
+        np.add.at(grid, row[keep] * GRID + column[keep], points[keep, 2])
+        return grid.reshape(GRID, GRID)
+
+    ours, theirs = gather(cells), gather(every[~in_galicia])
+    brightest = np.log1p(ours.max())
+    light = np.where(ours > 0, np.clip(np.round(np.log1p(ours) / brightest * 255), 1, 255), 0)
+    dim = np.clip(np.round(np.log1p(theirs) / brightest * 255 * NEIGHBOUR_LIGHT), 1, 255)
+    light = np.where((light == 0) & (theirs > 0), dim, light)
 
     rows, columns = np.nonzero((height > 0) | (light > 0))
     top, left = int(rows.min()), int(columns.min())
@@ -408,11 +440,16 @@ def main() -> None:
                 beacon[key] = found[key]
         beacons.append(beacon)
 
-    lights = int((light > 0).sum())
+    regions = []
+    for name, region_lon, region_lat in REGIONS:
+        t, p = project.angles(np.array([region_lon]), np.array([region_lat]))
+        regions.append({"name": name, "theta": round(float(t[0]), 4), "phi": round(float(p[0]), 4)})
+
     module = f"""/*
  * Generated by scripts/galicia_map.py. Do not edit by hand.
- * Boundary: Natural Earth (public domain). Relief: Mapzen Terrain Tiles (SRTM, EU-DEM, ETOPO1).
- * Lights: Kontur Population 2023 (CC BY 4.0). Lighthouses: Wikidata (CC0).
+ * Boundaries: Natural Earth (public domain). Relief and sea floor: Mapzen Terrain Tiles (SRTM,
+ * EU-DEM, ETOPO1). Lights: Kontur Population 2023 of Spain and Portugal (CC BY 4.0).
+ * Lighthouses: Wikidata (CC0).
  */
 
 /** The raster reaches this many radians each way from Galicia's centre, east and north. */
@@ -455,14 +492,23 @@ export interface Lighthouse {{
 /** The lighthouses of the Galician coast, from the north-east round to the south. */
 export const LIGHTHOUSES: readonly Lighthouse[] = {json.dumps(beacons, ensure_ascii=False)};
 
-/** People counted inside Galicia and the lights they make (inhabited cells of about 0.45 km). */
+/** Names written on the land and the sea around Galicia, in the dark. */
+export interface Region {{
+	name: string;
+	theta: number;
+	phi: number;
+}}
+
+export const REGIONS: readonly Region[] = {json.dumps(regions, ensure_ascii=False)};
+
+/** People counted inside Galicia. */
 export const PEOPLE = {int(people.sum())};
-export const LIGHTS = {lights};
 """
     (OUT / "galicia.ts").write_text(module)
     size = (OUT / "galicia-map.bin").stat().st_size
     print(
-        f"{int(land.sum())} land cells, {lights} lights, {int(people.sum())} people, "
+        f"{int(land.sum())} land cells, {int((light > 0).sum())} lights, "
+        f"{int(people.sum())} people, "
         f"{len(beacons)} lighthouses, {size / 1024:.0f} kB",
         file=sys.stderr,
     )

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { beamOffsets, buildAtlas, decodeMap, metres } from './map';
+import { NEIGHBOUR, NEIGHBOUR_MARK, beamOffsets, buildAtlas, decodeMap, metres } from './map';
 
 /** A raster as the script writes it: a 4 by 3 crop at column 2, row 1 of an 8 by 8 grid. */
 function raster(): ArrayBuffer {
@@ -82,6 +82,24 @@ describe('buildAtlas', () => {
 		expect(at(3, 2)[3]).toBe(255);
 		expect(at(4, 3)[3]).toBe(255);
 		expect(at(0, 0)[3]).toBe(0);
+	});
+
+	it('marks the land around Galicia, and its border with Galicia', () => {
+		const grid = 4;
+		const header = new Uint8Array(new Uint16Array([grid, 0, 0, 3, 1]).buffer);
+		const layers = new Uint8Array([
+			...[10, 10, 10], // heights: all land
+			...[0, 0, 0], // no lights
+			...[1, NEIGHBOUR, NEIGHBOUR] // Galicia, then the land around
+		]);
+		const buffer = new Uint8Array(header.length + layers.length);
+		buffer.set(header);
+		buffer.set(layers, header.length);
+		const atlas = buildAtlas(decodeMap(buffer.buffer));
+		const mark = (column: number) => atlas.data[column * 4 + 3];
+		expect(mark(0)).toBe(255);
+		expect(mark(1)).toBe(255);
+		expect(mark(2)).toBe(NEIGHBOUR_MARK);
 	});
 });
 
