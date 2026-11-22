@@ -1,4 +1,4 @@
-"""`karaoke-server`: run the server, add operators, enrol nodes, collect garbage, back up."""
+"""`karaoke-server`: run the server, add operators, enrol workers, collect garbage, back up."""
 
 import argparse
 import json
@@ -23,8 +23,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     serve = commands.add_parser("serve", help="run the server")
     serve.add_argument("--host")
     serve.add_argument("--port", type=int)
-    serve.add_argument("--no-tls", action="store_true", help="plain HTTP (development only)")
-    serve.add_argument("--name", action="append", default=[], help="extra name for the certificate")
+    serve.add_argument(
+        "--audio", help="kp-audio: auto (default), a path, external (started by hand) or off"
+    )
     serve.add_argument("--web", type=Path, help="built control UI (default: web/build)")
     serve.add_argument("-v", "--verbose", action="store_true")
 
@@ -34,16 +35,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     add.add_argument("name")
     operator_commands.add_parser("list", help="list operators")
 
-    enrol = commands.add_parser("enroll", help="print a one-time token to enrol a node")
-    enrol.add_argument("kind", choices=["worker", "player"])
+    enrol = commands.add_parser("enroll", help="print a one-time token to enrol a worker")
+    enrol.add_argument("kind", choices=["worker"], nargs="?", default="worker")
 
-    nodes = commands.add_parser("nodes", help="list or revoke enrolled nodes")
+    nodes = commands.add_parser("nodes", help="list or revoke enrolled workers")
     nodes.add_argument("--revoke", metavar="NODE_ID")
 
     commands.add_parser("gc", help="delete blobs nothing refers to and the expired trash")
     copy = commands.add_parser("backup", help="copy the database and the blobs elsewhere")
     copy.add_argument("dest", type=Path)
-    commands.add_parser("fingerprint", help="print the TLS certificate's fingerprint")
     openapi = commands.add_parser("openapi", help="print (or write) the API's OpenAPI document")
     openapi.add_argument("--out", type=Path)
 
@@ -56,26 +56,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             data_dir=args.data,
             host=args.host,
             port=args.port,
-            tls=False if args.no_tls else None,
-            tls_names=tuple(args.name) or None,
+            audio=args.audio,
             web_dir=args.web,
         )
         run(settings, args.verbose)
         return 0
     if args.command == "openapi":
+        import tempfile
+
         from karaoke_server.app import create_app
 
-        text = json.dumps(create_app(settings).openapi(), ensure_ascii=False, indent=2) + "\n"
+        # The document only needs the routes: an empty data folder, never the real one (whose
+        # database the app would open and migrate).
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as scratch:
+            app = create_app(Settings.from_env(data_dir=Path(scratch), audio="off"))
+            text = json.dumps(app.openapi(), ensure_ascii=False, indent=2) + "\n"
         if args.out:
             args.out.write_text(text, encoding="utf-8", newline="\n")
         else:
             print(text, end="")
-        return 0
-    if args.command == "fingerprint":
-        from karaoke_server.tls import ensure_certificate, fingerprint
-
-        cert, _ = ensure_certificate(settings.tls_dir, settings.tls_names)
-        print(fingerprint(cert))
         return 0
     from karaoke_server.app import build_services
 

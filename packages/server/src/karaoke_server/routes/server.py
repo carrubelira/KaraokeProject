@@ -1,4 +1,4 @@
-"""What the server is: its version, its certificate's fingerprint, its clock; and lyrics search."""
+"""What the server is: its version and its clock; and lyrics search."""
 
 import asyncio
 from dataclasses import asdict
@@ -11,27 +11,18 @@ from pydantic import BaseModel
 from karaoke_server.auth import Operator, operator
 from karaoke_server.clock import now_us
 from karaoke_server.errors import ApiError
-from karaoke_server.routes._deps import services
 
 router = APIRouter(prefix="/api", tags=["server"])
 
 
 class ServerInfo(BaseModel):
     version: str
-    fingerprint: str
     now: int
-    tls: bool
 
 
 @router.get("/server")
-async def info(request: Request) -> ServerInfo:
-    found = services(request)
-    return ServerInfo(
-        version=metadata.version("karaoke-server"),
-        fingerprint=found.fingerprint,
-        now=now_us(),
-        tls=found.settings.tls,
-    )
+async def info() -> ServerInfo:
+    return ServerInfo(version=metadata.version("karaoke-server"), now=now_us())
 
 
 @router.get("/lyrics/search")

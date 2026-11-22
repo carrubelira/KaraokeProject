@@ -61,50 +61,42 @@ def test_lyrics_edit_makes_a_new_version(clients: Clients, demo_manifest: str) -
     assert stale.status_code == 409
 
 
-def test_every_player_has_a_queue_and_adding_never_conflicts(
+def test_the_queue_starts_empty_and_adding_never_conflicts(
     clients: Clients, demo_manifest: str
 ) -> None:
     clients.services.library.register(demo_manifest)
-    player_id, _ = clients.enrol("player", name="sala")
     op = clients.operator()
-    queue = op.get(f"/api/players/{player_id}/queue").json()
+    queue = op.get("/api/stage/queue").json()
     assert (queue["version"], queue["items"]) == (0, [])
     added = op.post(
-        f"/api/players/{player_id}/queue/items",
-        json={"items": [{"content_id": "demo", "singer": "Uxía"}]},
+        "/api/stage/queue/items", json={"items": [{"content_id": "demo", "singer": "Uxía"}]}
     ).json()
     assert added["version"] == 1
     assert added["items"][0]["singer"] == "Uxía"
-    # A second control adds at the same time from version 0: it still lands, at the end.
-    both = op.post(
-        f"/api/players/{player_id}/queue/items", json={"items": [{"content_id": "demo"}]}
-    ).json()
+    # A second console adds at the same time from version 0: it still lands, at the end.
+    both = op.post("/api/stage/queue/items", json={"items": [{"content_id": "demo"}]}).json()
     assert [i["singer"] for i in both["items"]] == ["Uxía", None]
     first = op.post(
-        f"/api/players/{player_id}/queue/items",
+        "/api/stage/queue/items",
         json={"items": [{"content_id": "demo", "singer": "Brais"}], "first": True},
     ).json()
     assert first["items"][0]["singer"] == "Brais"
-    unknown = op.post(
-        f"/api/players/{player_id}/queue/items", json={"items": [{"content_id": "nope"}]}
-    )
+    unknown = op.post("/api/stage/queue/items", json={"items": [{"content_id": "nope"}]})
     assert unknown.status_code == 404
-    assert op.get("/api/players/nobody/queue").status_code == 404
 
 
-def test_rewriting_a_queue_refuses_a_newer_version(clients: Clients, demo_manifest: str) -> None:
+def test_rewriting_the_queue_refuses_a_newer_version(clients: Clients, demo_manifest: str) -> None:
     clients.services.library.register(demo_manifest)
-    player_id, _ = clients.enrol("player", name="sala")
     op = clients.operator()
-    queue = op.get(f"/api/players/{player_id}/queue").json()
+    queue = op.get("/api/stage/queue").json()
     queue["items"] = [{"id": "i1", "content_id": "demo", "manifest": None, "start": None,
                        "end": None, "semitones": 0, "singer": "Uxía"}]  # fmt: skip
-    saved = op.put(f"/api/players/{player_id}/queue", json=queue).json()
+    saved = op.put("/api/stage/queue", json=queue).json()
     assert saved["version"] == 1
-    # Another control still holds version 0.
-    conflict = op.put(f"/api/players/{player_id}/queue", json=queue)
+    # Another console still holds version 0.
+    conflict = op.put("/api/stage/queue", json=queue)
     assert conflict.status_code == 409
     assert conflict.json()["current"]["version"] == 1
     queue["version"] = 1
     queue["items"][0]["content_id"] = "missing"
-    assert op.put(f"/api/players/{player_id}/queue", json=queue).status_code == 422
+    assert op.put("/api/stage/queue", json=queue).status_code == 422

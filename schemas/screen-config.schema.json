@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/screen-config.schema.json",
+  "additionalProperties": false,
+  "description": "What the operator sets for one screen, kept by its id.",
+  "properties": {
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "layout": {
+      "default": "video-lyrics",
+      "enum": [
+        "video-lyrics",
+        "lyrics",
+        "video",
+        "off"
+      ],
+      "type": "string"
+    },
+    "theme": {
+      "default": "clasico",
+      "type": "string"
+    },
+    "display_ms": {
+      "default": 0.0,
+      "description": "How late the picture really is (the TV's processing).",
+      "maximum": 2000,
+      "minimum": -500,
+      "type": "number"
+    },
+    "video_max_height": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Never download a taller video than this (a Raspberry Pi)."
+    }
+  },
+  "required": [
+    "name",
+    "layout",
+    "theme",
+    "display_ms",
+    "video_max_height"
+  ],
+  "title": "ScreenConfig",
+  "type": "object"
+}

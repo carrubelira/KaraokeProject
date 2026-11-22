@@ -3,7 +3,7 @@ import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { commands, type Command } from '#lib/commands/registry.svelte.js';
 import { i18n } from '#lib/i18n';
-import { nextPlayer, redo, transport, undo } from './actions.svelte';
+import { redo, transport, undo } from './actions.svelte';
 
 const t = () => i18n.t;
 
@@ -82,8 +82,7 @@ export function registerGlobal(): () => void {
 			keys: ['Mod+0'],
 			run: transport.pitchReset
 		},
-		{ id: 'transport.stop', title: () => t().cmd.stop, keys: ['Shift+s'], run: transport.stop },
-		{ id: 'screen.next', title: () => t().cmd.nextScreen, keys: ['s'], run: nextPlayer }
+		{ id: 'transport.stop', title: () => t().cmd.stop, keys: ['Shift+s'], run: transport.stop }
 	].map((c) => ({ ...c, group: () => t().groups.playback }));
 	const general: Command[] = [
 		{

@@ -1,8 +1,9 @@
 <script lang="ts">
 	/*
-	 * The control (docs/web.md): a sidebar with the sections, the page, and the player bar at the
+	 * The console (docs/web.md): a sidebar with the sections, the page, and the player bar at the
 	 * foot. Every key goes through the command registry. A link pasted or a file dropped anywhere
-	 * is analysed at once.
+	 * is analysed at once. The screens (/pantalla) and the lyrics test page live outside it: no
+	 * sign-in, no console, no line to the server's events.
 	 */
 	import '../lib/ui/styles/fonts.css';
 	import '../lib/ui/styles/app.css';
@@ -18,7 +19,7 @@
 	import { api, ApiError } from '#lib/control/api.js';
 	import { live } from '#lib/control/live.svelte.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
-	import type { Session } from '#lib/control/types.js';
+	import type { OperatorSession } from '#lib/control/types.js';
 	import { i18n, initLocale } from '#lib/i18n';
 	import Cheatsheet from '#lib/shell/Cheatsheet.svelte';
 	import { registerGlobal } from '#lib/shell/global.js';
@@ -30,19 +31,22 @@
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
-	let session = $state<Session | null>(null);
+	/** Pages with nothing of the console. */
+	const bare = $derived(['/pantalla', '/proba-letra'].includes(page.route.id ?? ''));
+	let session = $state<OperatorSession | null>(null);
 	let checked = $state(false);
 	let dragging = $state(false);
 
 	initLocale();
 
-	function start(found: Session) {
+	function start(found: OperatorSession) {
 		session = found;
 		prefs.load(found.preferences);
 		live.start();
 	}
 
 	onMount(() => {
+		if (bare) return;
 		const unregister = registerGlobal();
 		api
 			.session()
@@ -85,7 +89,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>{i18n.t.app.name}</title>
+	{#if !bare}<title>{i18n.t.app.name}</title>{/if}
 </svelte:head>
 
 <svelte:window
@@ -101,29 +105,26 @@
 	ondrop={drop}
 />
 
-{#if page.route.id === '/proba-letra'}
-	<!-- A development test page for the lyrics, outside the control. -->
+{#if bare}
 	{@render children()}
+{:else if !checked}
+	<p class="boot muted">{i18n.t.common.loading}</p>
+{:else if !session}
+	<Login onsession={start} />
 {:else}
-	{#if !checked}
-		<p class="boot muted">{i18n.t.common.loading}</p>
-	{:else if !session}
-		<Login onsession={start} />
-	{:else}
-		<div class="app">
-			<Sidebar name={session.name} />
-			<main class="content">
-				{#if !live.connected}
-					<p class="notice warn offline" role="status">{i18n.t.app.reconnecting}</p>
-				{/if}
-				{@render children()}
-			</main>
-			<PlayerBar />
-		</div>
-		<Palette />
-		<Cheatsheet />
-		{#if dragging}<div class="drop"><span>{i18n.t.app.dropHere}</span></div>{/if}
-	{/if}
+	<div class="app">
+		<Sidebar name={session.name} />
+		<main class="content">
+			{#if !live.connected}
+				<p class="notice warn offline" role="status">{i18n.t.app.reconnecting}</p>
+			{/if}
+			{@render children()}
+		</main>
+		<PlayerBar />
+	</div>
+	<Palette />
+	<Cheatsheet />
+	{#if dragging}<div class="drop"><span>{i18n.t.app.dropHere}</span></div>{/if}
 	<Toasts />
 {/if}
 

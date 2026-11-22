@@ -9,9 +9,9 @@ from karaoke_server.config import Settings
 from karaoke_server.db import Database
 from karaoke_server.events import EventHub
 from karaoke_server.library import Library
-from karaoke_server.players import PlayerHub
 from karaoke_server.queue import TaskQueue
 from karaoke_server.queues import Queues
+from karaoke_server.stage import Stage
 from karaoke_server.uploads import Uploads
 
 
@@ -26,8 +26,8 @@ class Services:
     queue: TaskQueue
     uploads: Uploads
     queues: Queues
-    players: PlayerHub
-    # SHA-256 of the TLS certificate nodes pin ("" without TLS).
-    fingerprint: str = ""
-    # Last telemetry of each worker (time, telemetry, busy playing), in memory: only live use.
-    telemetry: dict[str, tuple[float, Any, bool]] = field(default_factory=dict)
+    stage: Stage
+    # The secret kp-audio connects with (decision 011).
+    audio_token: str
+    # Last telemetry of each worker (time, telemetry), in memory: only live use.
+    telemetry: dict[str, tuple[float, Any]] = field(default_factory=dict)

@@ -54,13 +54,6 @@
           "description": "Model name to version.",
           "type": "object"
         },
-        "decoders": {
-          "description": "Video codecs a player decodes in hardware.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
         "same_host_as_server": {
           "default": false,
           "description": "It shares the server's disk: blobs go by path, not HTTP.",
@@ -75,7 +68,6 @@
         "internet",
         "tasks",
         "models",
-        "decoders",
         "same_host_as_server"
       ],
       "title": "Capabilities",
@@ -109,10 +101,7 @@
       "type": "string"
     },
     "kind": {
-      "enum": [
-        "worker",
-        "player"
-      ],
+      "const": "worker",
       "type": "string"
     },
     "name": {

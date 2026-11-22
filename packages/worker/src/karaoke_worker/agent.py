@@ -9,7 +9,6 @@ the heartbeat that keeps its leases alive.
 import asyncio
 import contextlib
 import logging
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -35,19 +34,10 @@ class Running:
 @dataclass
 class Agent:
     ctx: Context
-    player_lock: Path | None = None
     heartbeat_seconds: float = 5.0
     retry_seconds: float = 3.0
     running: dict[str, Running] = field(default_factory=dict)
     lease_wait: bool = True
-
-    def busy_playing(self) -> bool:
-        if self.player_lock is None:
-            return False
-        try:
-            return time.time() - self.player_lock.stat().st_mtime < 10
-        except OSError:
-            return False
 
     def _gpu_busy(self) -> bool:
         return any(r.gpu for r in self.running.values())
@@ -59,7 +49,6 @@ class Agent:
         beat = Heartbeat(
             telemetry=await asyncio.to_thread(system.telemetry),
             running=list(self.running),
-            busy_playing=self.busy_playing(),
         )
         answer = await asyncio.to_thread(self.ctx.client.heartbeat, beat)
         for task_id in answer.get("stop", []):
@@ -82,9 +71,7 @@ class Agent:
         telemetry = await asyncio.to_thread(system.telemetry)
         # Without NVML (a fake engine, a machine without a driver) the server uses the total.
         free = 0 if self._gpu_busy() else telemetry.vram_free_mb
-        lease = await asyncio.to_thread(
-            self.ctx.client.lease, free, self.busy_playing(), self.lease_wait
-        )
+        lease = await asyncio.to_thread(self.ctx.client.lease, free, self.lease_wait)
         if lease is not None:
             self.start(lease)
         return lease

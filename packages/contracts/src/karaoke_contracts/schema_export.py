@@ -8,10 +8,11 @@ from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema
 
-from karaoke_contracts.control import PlayerCommand, PlayerConfig, Queue
+from karaoke_contracts.control import AudioConfig, Queue
 from karaoke_contracts.doc import KaraokeDoc
 from karaoke_contracts.manifest import Lyrics, Manifest
-from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease, PlayerStatus
+from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease
+from karaoke_contracts.stage import AudioStatus, ScreenConfig, ScreenHello, ScreenStatus, Session
 from karaoke_contracts.theme import Theme
 
 SCHEMA_BASE_ID = "https://github.com/gaelfernandez1/KaraokeProject/schemas/"
@@ -23,10 +24,13 @@ MODELS: dict[str, type[BaseModel]] = {
     "enrollment": Enrollment,
     "heartbeat": Heartbeat,
     "lease": Lease,
-    "player-status": PlayerStatus,
-    "player-command": PlayerCommand,
-    "player-config": PlayerConfig,
     "queue": Queue,
+    "session": Session,
+    "screen-hello": ScreenHello,
+    "screen-status": ScreenStatus,
+    "screen-config": ScreenConfig,
+    "audio-status": AudioStatus,
+    "audio-config": AudioConfig,
 }
 
 

@@ -16,7 +16,7 @@
 	import { checkDoc, moveWordEdge, retimeLine, setWordText, shiftLine } from '#lib/editor/ops.js';
 	import Waveform from '#lib/editor/Waveform.svelte';
 	import { i18n } from '#lib/i18n';
-	import { DEFAULT_THEME, Lyrics as LyricsView, THEMES, normalizeDoc } from '#lib/lyrics';
+	import { DEFAULT_THEME, Lyrics as LyricsView, THEMES, docFromTracks } from '#lib/lyrics';
 	import { fail } from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
 	import Kbd from '#lib/shell/Kbd.svelte';
@@ -52,30 +52,6 @@
 	const to = $derived(line ? line.end + LEAD : 1);
 	const theme = THEMES[DEFAULT_THEME];
 
-	function asDoc(m: Manifest, l: Lyrics): KaraokeDoc {
-		const audio = m.tracks.find((tr) => tr.kind === 'instrumental')?.audio;
-		return normalizeDoc({
-			schema_version: '1.3.0',
-			id: m.content_id,
-			title: m.title,
-			artist: m.artist ?? null,
-			language: m.language,
-			duration: m.duration,
-			audio: {
-				instrumental: 'instrumental.opus',
-				vocals: 'vocals.opus',
-				loudness_lufs: audio?.loudness_lufs ?? null,
-				gain_db: audio?.gain_db ?? null
-			},
-			video: null,
-			cover: null,
-			singers: l.singers,
-			lines: l.lines,
-			provenance: l.provenance,
-			edited: l.edited
-		});
-	}
-
 	async function load() {
 		try {
 			const [m, l] = await Promise.all([api.manifest(id), api.lyrics(id)]);
@@ -83,7 +59,7 @@
 			manifest = m;
 			lyrics = l;
 			base = content.manifest;
-			const loaded = asDoc(m, l);
+			const loaded = docFromTracks(m, l);
 			history = new History(loaded);
 			saved = loaded;
 		} catch (error) {

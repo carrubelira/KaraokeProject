@@ -1,5 +1,5 @@
 /**
- * The operator's preferences: shortcuts, the screen they drive.
+ * The operator's preferences: shortcuts and how songs come in.
  * Kept on the server (they follow the operator to another computer) and applied at once here;
  * writes are grouped so a burst of changes sends one request.
  */
@@ -8,15 +8,12 @@ import { commands } from '#lib/commands/registry.svelte.js';
 
 export interface Preferences {
 	shortcuts: Record<string, string[]>;
-	/** The screen (player) the player bar and the queue act on. */
-	player: string | null;
 	/** Go on without a review when the analysis is sure. */
 	autoConfirm: boolean;
 }
 
 const DEFAULTS: Preferences = {
 	shortcuts: {},
-	player: null,
 	autoConfirm: false
 };
 

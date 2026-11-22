@@ -73,7 +73,7 @@ class Live {
 				this.latency = (local - event.sent) / 1000;
 			}
 			if (event.type === 'snapshot') this.offset = event.now - Date.now() * 1000;
-			this.state = apply(this.state, event, performance.now());
+			this.state = apply(this.state, event);
 		};
 		socket.onclose = () => {
 			if (this.socket !== socket) return;
@@ -94,9 +94,9 @@ class Live {
 		};
 	}
 
-	/** Server time now, in seconds since the epoch. */
-	serverNow(): number {
-		return (Date.now() * 1000 + this.offset) / 1e6;
+	/** The server's clock now, in µs (the one the stage's anchors are on). */
+	serverMicros(): number {
+		return Date.now() * 1000 + this.offset;
 	}
 }
 

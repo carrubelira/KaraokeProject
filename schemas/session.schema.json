@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/session.schema.json",
+  "$defs": {
+    "Anchor": {
+      "additionalProperties": false,
+      "description": "A song position that holds at an instant (µs on the server's monotonic clock) and moves\nat a rate (0 paused, 1 playing).",
+      "properties": {
+        "position": {
+          "type": "number"
+        },
+        "instant": {
+          "type": "integer"
+        },
+        "rate": {
+          "default": 1.0,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "position",
+        "instant",
+        "rate"
+      ],
+      "title": "Anchor",
+      "type": "object"
+    },
+    "Program": {
+      "additionalProperties": false,
+      "description": "A queue item with the manifest it plays: what screens and audio prepare.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/QueueItem"
+        },
+        "manifest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "duration": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "item",
+        "manifest",
+        "duration"
+      ],
+      "title": "Program",
+      "type": "object"
+    },
+    "QueueItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "content_id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+          "type": "string"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pinned version; None = latest."
+        },
+        "start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Entry point."
+        },
+        "end": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exit point."
+        },
+        "semitones": {
+          "default": 0.0,
+          "maximum": 12,
+          "minimum": -12,
+          "type": "number"
+        },
+        "singer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "content_id",
+        "manifest",
+        "start",
+        "end",
+        "semitones",
+        "singer"
+      ],
+      "title": "QueueItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Goes up on every change.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "epoch": {
+      "description": "Goes up on every cue; `ready` reports name the epoch they are for.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "state": {
+      "default": "idle",
+      "enum": [
+        "idle",
+        "cueing",
+        "cued",
+        "playing",
+        "paused",
+        "ended",
+        "fault"
+      ],
+      "type": "string"
+    },
+    "current": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Program"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Anchor"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where the song is, and when."
+    },
+    "upcoming": {
+      "description": "The next items, to download and get ready ahead.",
+      "items": {
+        "$ref": "#/$defs/Program"
+      },
+      "type": "array"
+    },
+    "semitones": {
+      "default": 0.0,
+      "maximum": 12,
+      "minimum": -12,
+      "type": "number"
+    },
+    "volume": {
+      "default": 1.0,
+      "maximum": 2,
+      "minimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "version",
+    "epoch",
+    "state",
+    "current",
+    "anchor",
+    "upcoming",
+    "semitones",
+    "volume"
+  ],
+  "title": "Session",
+  "type": "object"
+}

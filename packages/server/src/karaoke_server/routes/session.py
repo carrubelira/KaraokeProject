@@ -33,7 +33,6 @@ async def sign_in(body: SignIn, request: Request, response: Response) -> Session
         body.token,
         httponly=True,
         samesite="strict",
-        secure=services(request).settings.tls,
         max_age=180 * 86400,
     )
     return SessionView(id=found.id, name=found.name, preferences=auth.preferences(found))

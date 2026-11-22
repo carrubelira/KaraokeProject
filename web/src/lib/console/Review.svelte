@@ -9,7 +9,7 @@
 	import { live } from '#lib/control/live.svelte.js';
 	import type { Analysis, Guess, Job, LyricsCandidate } from '#lib/control/types.js';
 	import { i18n } from '#lib/i18n';
-	import { fail, jobs, player } from '#lib/shell/actions.svelte.js';
+	import { fail, jobs } from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
 	import Icon from './Icon.svelte';
@@ -89,7 +89,7 @@
 				artist: artist.trim() || null,
 				language,
 				lyrics,
-				queue_on: queue ? (player()?.id ?? null) : null
+				add_to_queue: queue
 			});
 			live.state = {
 				...live.state,
@@ -104,7 +104,6 @@
 	}
 
 	const pct = (c: number) => Math.round(c * 100);
-	const target = $derived(player());
 </script>
 
 <article class="panel review">
@@ -254,16 +253,14 @@
 				<button type="submit" class="btn primary large" disabled={busy || !title.trim()}>
 					{t.add.process}
 				</button>
-				{#if target}
-					<button
-						type="button"
-						class="btn large"
-						disabled={busy || !title.trim()}
-						onclick={() => process(true)}
-					>
-						{t.add.processTo(target.name)}
-					</button>
-				{/if}
+				<button
+					type="button"
+					class="btn large"
+					disabled={busy || !title.trim()}
+					onclick={() => process(true)}
+				>
+					{t.add.processToQueue}
+				</button>
 			</div>
 		</form>
 	</div>

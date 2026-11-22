@@ -1,38 +1,39 @@
 <script lang="ts">
 	/**
-	 * Outputs of the chosen screen: which sound output each part goes to (the music and the guide
-	 * vocals), which output keeps time, what happens if one goes away, and what each display shows.
-	 * Changes are a draft until saved (Mod+S). Rows are keyed by position too: a player that
-	 * reports two devices with one id must never take the page down.
+	 * The stage's sound (decision 011): the sound cards and DACs on the backend, which part goes
+	 * to each (the music and the guide vocals) with its gain and delay, which output keeps time,
+	 * how late each one really is and what happens if one goes away. Changes are a draft until
+	 * saved (Mod+S). Rows are keyed by position too: two devices with one id must never take the
+	 * page down. What each screen shows is set in Devices.
 	 */
-	import type { PlayerConfig, Route, Screen } from '#lib/contracts';
+	import type { AudioConfig, Route } from '#lib/contracts';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import { api } from '#lib/control/api.js';
+	import { live } from '#lib/control/live.svelte.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
 	import { i18n } from '#lib/i18n';
-	import { fail, player } from '#lib/shell/actions.svelte.js';
+	import { fail } from '#lib/shell/actions.svelte.js';
 	import Kbd from '#lib/shell/Kbd.svelte';
 
 	const t = $derived(i18n.t);
-	const target = $derived(player());
-	const audio = $derived(target?.status.outputs.audio ?? []);
-	const displays = $derived(target?.status.outputs.displays ?? []);
+	const engine = $derived(live.state.audio);
+	const audio = $derived(engine.status.devices);
 	const TRACKS = ['instrumental', 'vocals'] as const;
-	const THEMES = ['clasico', 'moderno', 'contraste'];
 
-	let draft = $state<PlayerConfig | null>(null);
-	let draftOf = $state<string | null>(null);
+	let draft = $state<AudioConfig | null>(null);
 	let saved = $state('');
 	$effect(() => {
-		if (target && draftOf !== target.id) {
-			draft = structuredClone($state.snapshot(target.config));
-			saved = JSON.stringify(draft);
-			draftOf = target.id;
+		// The first configuration the server sends; later ones only when nothing is being edited.
+		const config = JSON.stringify(engine.config);
+		if (draft === null || (config !== saved && JSON.stringify(draft) === saved)) {
+			draft = structuredClone($state.snapshot(engine.config));
+			saved = config;
 		}
 	});
 	const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);
-	const errorOf = (id: string) => (target?.status.errors ?? []).find((e) => e.device === id);
+	const errorOf = (id: string) => engine.status.errors.find((e) => e.device === id);
 
 	const route = (track: string, output: string): Route | undefined =>
 		draft?.routing.routes.find((r) => r.track === track && r.output === output);
@@ -45,29 +46,10 @@
 			: [...routes, { track, output, gain_db: 0, delay_ms: 0 }];
 	}
 
-	/** A display's setting; one not listed is off as soon as any display is listed (as the
-	 * player reads it), and shows everything while none is. */
-	function screen(display: string): Screen {
-		const listed = draft?.routing.screens ?? [];
-		return (
-			listed.find((s) => s.display === display) ?? {
-				display,
-				layout: listed.length ? 'off' : 'video-lyrics',
-				theme: 'clasico'
-			}
-		);
-	}
-
-	function setScreen(display: string, change: Partial<Screen>) {
-		if (!draft) return;
-		const next = { ...screen(display), ...change };
-		draft.routing.screens = [...draft.routing.screens.filter((s) => s.display !== display), next];
-	}
-
 	async function save() {
-		if (!target || !draft) return;
+		if (!draft) return;
 		try {
-			await api.setConfig(target.id, $state.snapshot(draft));
+			await api.setAudio($state.snapshot(draft));
 			saved = JSON.stringify(draft);
 			toasts.show(t.outputs.saved);
 		} catch (error) {
@@ -92,7 +74,7 @@
 <div class="page">
 	<header class="page-header">
 		<div>
-			<h1>{t.outputs.title}{target ? ` · ${target.name}` : ''}</h1>
+			<h1>{t.outputs.title}</h1>
 			<p class="description">{t.outputs.description}</p>
 		</div>
 		<div class="actions">
@@ -103,7 +85,10 @@
 			</button>
 		</div>
 	</header>
-	{#if target && draft}
+	{#if !engine.online}
+		<p class="notice warn" role="status">{engine.fault ?? t.outputs.engineOffline}</p>
+	{/if}
+	{#if draft}
 		<section class="panel">
 			<header class="panel-header"><h2>{t.outputs.audio}</h2></header>
 			<div class="scroll">
@@ -125,12 +110,12 @@
 									<div class="device">
 										<strong>{device.name}</strong>
 										<span class="mono faint small"
-											>{device.channels} ch · {device.sample_rate / 1000} kHz{#if target.status.sync[`${device.id}.correction_ppm`] !== undefined}
-												· {target.status.sync[`${device.id}.correction_ppm`].toFixed(1)} ppm{/if}</span
+											>{device.channels} ch · {device.sample_rate / 1000} kHz{#if engine.status.sync[`${device.id}.correction_ppm`] !== undefined}
+												· {engine.status.sync[`${device.id}.correction_ppm`].toFixed(1)} ppm{/if}</span
 										>
 										{#if device.bluetooth}<span class="warn-text small">{t.outputs.bluetooth}</span
 											>{/if}
-										{#if problem}<span class="badge warn">{t.playerErrors[problem.code]}</span>{/if}
+										{#if problem}<span class="badge warn">{t.audioErrors[problem.code]}</span>{/if}
 									</div>
 								</td>
 								<td class="center">
@@ -180,10 +165,9 @@
 										class="field num"
 										type="number"
 										step="1"
-										value={draft.calibration.audio_ms[device.id] ?? 0}
+										value={draft.calibration_ms[device.id] ?? 0}
 										oninput={(e) =>
-											draft &&
-											(draft.calibration.audio_ms[device.id] = Number(e.currentTarget.value))}
+											draft && (draft.calibration_ms[device.id] = Number(e.currentTarget.value))}
 										aria-label={t.outputs.calibration}
 									/>
 								</td>
@@ -213,63 +197,9 @@
 			<p class="panel-footer faint small legend">{t.outputs.gain} · {t.outputs.delay}</p>
 		</section>
 
-		<section class="panel">
-			<header class="panel-header"><h2>{t.outputs.displays}</h2></header>
-			<div class="displays">
-				{#each displays as display, i (`${i}:${display.id}`)}
-					{@const s = screen(display.id)}
-					<article class="display" class:off={s.layout === 'off'}>
-						<div class="glass" style:aspect-ratio={`${display.width} / ${display.height}`}>
-							<span class="mono">{display.width}×{display.height}</span>
-							<span class="mono faint"
-								>{display.refresh_hz} Hz{display.primary ? ` · ${t.outputs.primary}` : ''}</span
-							>
-						</div>
-						<div class="display-name">
-							<strong>{display.name}</strong>
-							{#if !display.connected}<span class="badge warn">{t.outputs.disconnected}</span>{/if}
-						</div>
-						<label class="form-row">
-							<span>{t.outputs.shows}</span>
-							<select
-								class="field"
-								value={s.layout}
-								onchange={(e) =>
-									setScreen(display.id, { layout: e.currentTarget.value as Screen['layout'] })}
-							>
-								{#each Object.entries(t.outputs.layout) as [value, name] (value)}<option {value}
-										>{name}</option
-									>{/each}
-							</select>
-						</label>
-						<label class="form-row">
-							<span>{t.outputs.theme}</span>
-							<select
-								class="field"
-								value={s.theme}
-								onchange={(e) => setScreen(display.id, { theme: e.currentTarget.value })}
-							>
-								{#each THEMES as theme (theme)}<option value={theme}>{theme}</option>{/each}
-							</select>
-						</label>
-						<label class="form-row">
-							<span>{t.outputs.calibration}</span>
-							<input
-								class="field"
-								type="number"
-								step="1"
-								value={draft.calibration.display_ms[display.id] ?? 0}
-								oninput={(e) =>
-									draft &&
-									(draft.calibration.display_ms[display.id] = Number(e.currentTarget.value))}
-							/>
-						</label>
-					</article>
-				{/each}
-			</div>
-		</section>
-	{:else}
-		<section class="panel"><div class="empty"><p>{t.outputs.noPlayer}</p></div></section>
+		<p class="faint small">
+			{t.outputs.screensElsewhere} <a href={resolve('/equipos')}>{t.nav.devices}</a>
+		</p>
 	{/if}
 </div>
 
@@ -312,35 +242,5 @@
 	}
 	.legend {
 		justify-content: flex-start;
-	}
-	.displays {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 20px;
-		padding: 16px;
-	}
-	.display {
-		display: grid;
-		gap: 10px;
-		align-content: start;
-	}
-	.display.off .glass {
-		opacity: 0.35;
-	}
-	.display-name {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-	.glass {
-		display: grid;
-		place-content: center;
-		gap: 2px;
-		max-height: 130px;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius);
-		background: var(--bg);
-		font-size: 12px;
-		text-align: center;
 	}
 </style>

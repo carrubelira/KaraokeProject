@@ -1,22 +1,22 @@
 # The console (v4)
 
 The web app is the **console** of the distributed karaoke (plan v4 §7): an operator adds songs,
-reviews what the system found, follows the work on every worker, fills each screen's queue and
-drives what is on air. It talks to the v4 server only (`docs/server.md`); the songs play on the
-native player (`docs/player.md`), not in the browser. The design decisions are in
+reviews what the system found, follows the work on every worker, fills the queue and drives
+what is on the stage. It talks to the v4 server only (`docs/server.md`); the sound comes from
+the backend (`docs/kp-audio.md`) and the picture from the web screens (`docs/screens.md`,
+`/pantalla` in this same app, outside the console). The design decisions are in
 [`plan-v4/decisiones/010-consola.md`](plan-v4/decisiones/010-consola.md) (in Spanish).
 
 ## Running it
 
 ```bash
 uv run karaoke-server operator add "Your name"     # your token
-uv run karaoke-server serve --no-tls --port 8765   # development: plain HTTP
+uv run karaoke-server serve --audio off           # development: no sound needed
 pnpm --dir web dev                                 # http://localhost:5173, proxied to :8765
 ```
 
-`KARAOKE_SERVER` points the dev server elsewhere (an `https://` server works: the proxy does not
-check its self-signed certificate). In production `make serve` serves the built app from the
-server itself, over its TLS.
+`KARAOKE_SERVER` points the dev server elsewhere. In production `make serve` serves the built
+app from the server itself, over plain HTTP on the LAN (decision 011).
 
 ## What it looks like
 
@@ -29,9 +29,10 @@ A plain desktop application in a sober dark grey, the same in every section:
 - **The page**: a header (title, one line saying what the page is for, its main action), then
   panels with tables. Every list is a table with column headings; every state is a badge with its
   name in words.
-- **The player bar** (bottom, everywhere): the screen being driven (a select), its state, what it
-  plays and where (click the line to jump), previous / play or pause / next / stop, the key
-  (− 0 +) and the volume.
+- **The player bar** (bottom, everywhere): the stage's state (or that the audio engine is down)
+  and how many screens are ready for the song cued, what is on and where (click the line to
+  jump), previous / start or pause / next / stop, the key (− 0 +) and the volume. Nothing plays
+  until the operator starts it; if a screen is not ready, starting asks first.
 
 One family, IBM Plex Sans, and IBM Plex Mono for times and codes (`scripts/build_web_fonts.py`
 subsets them; SIL OFL). One accent, a blue, for what can be clicked and what is selected. Status
@@ -43,12 +44,13 @@ state, notice) are in `src/lib/ui/styles/app.css`; pages add only their layout.
 
 | Path | What |
 |---|---|
-| `/` Playback | What the chosen screen plays (a preview of its lyrics in sync, the singer, the key, what comes next, its alerts) and its queue as a table: search above it and Enter adds a song, rows drag to reorder, the singer is typed in place. |
+| `/` Playback | What is on the stage (a preview of its lyrics in sync, the singer, the key, what comes next, the sound's alerts), the screens and their state, and the queue as a table (how many screens have each song): search above it and Enter adds a song, rows drag to reorder, the singer is typed in place. |
 | `/biblioteca` Library | Every song in a table (title, artist, language, length, version), searched, to the queue in one key. |
-| `/engadir` Add song | Paste a link (or upload or drop a file). The analysis runs at once and shows its steps (download, page details, fingerprint, AcoustID, MusicBrainz, lyrics); then the review: the best guess filled in, the other matches with their source and certainty, the lyrics found (timed ones first), searched again, pasted or left out to transcribe. "Make the karaoke" (or "Make it and queue it on SCREEN") starts the work. |
+| `/engadir` Add song | Paste a link (or upload or drop a file). The analysis runs at once and shows its steps (download, page details, fingerprint, AcoustID, MusicBrainz, lyrics); then the review: the best guess filled in, the other matches with their source and certainty, the lyrics found (timed ones first), searched again, pasted or left out to transcribe. "Make the karaoke" (or "Make it and queue it") starts the work. |
 | `/procesamento` Processing | One row per song being made: status, the step it is on with its progress, the computer doing it, the time. A row opens to show every step (download, analysis, making the karaoke, or the video) with its own status, computer, attempts and time, why one failed and what to do (retry, retry on another computer), and each step's log, live while it runs. Tabs filter by in progress, to review, failed, finished. |
-| `/equipos` Devices | Two tables: processing computers (status, GPU, GPU memory, CPU, memory, temperature, current work) and screens (status, song, monitors and sound outputs, alerts); adding one shows the exact command to paste. |
-| `/saidas` Outputs | For the chosen screen: which sound output gets the music and the guide vocals (gain, delay), the main output, calibration, what happens if one disconnects, and what each monitor shows. |
+| `/equipos` Devices | Two tables: processing computers (status, GPU, GPU memory, CPU, memory, temperature, current work; adding one shows the exact command to paste) and screens (state, flags, sync, downloads, and what each shows: layout, lyrics style, TV delay, tallest video). |
+| `/saidas` Outputs | The backend's sound: which output gets the music and the guide vocals (gain, delay), the main output, calibration, what happens if one disconnects. |
+| `/pantalla` | A screen (outside the console, no sign-in): `docs/screens.md`. |
 | `/editar/[id]` | The lyrics editor. |
 | `/axustes` Settings | Language (Galician, English), server, song identification, session, shortcuts. |
 
@@ -65,12 +67,11 @@ the shortcuts, the cheat sheet and the settings page all come from it.
 | `Ctrl/⌘ N` | Add song |
 | `Space` · `n` / `p` · `←` / `→` | play or pause · next / previous · ±5 s |
 | `+` / `-` · `[` / `]` · `Ctrl/⌘ 0` | volume · key · original key |
-| `s` | the next screen |
 | `Ctrl/⌘ Z` · `Ctrl/⌘ Shift Z` | undo · redo (queue edits, trash) |
 | `/` | search on the page |
 
 In Playback `j`/`k` move, `Enter` cues the song, `Shift+Enter` plays it now, `Delete` removes it,
-`Alt+↑/↓` reorders; in the Library `a` adds to the screen's queue (`Shift+A` right after the song
+`Alt+↑/↓` reorders; in the Library `a` adds to the queue (`Shift+A` right after the song
 on air), `e` opens the editor, `m` exports an MP4, `Delete` sends to the trash; in Processing `Shift+R`
 retries every failed job; in Outputs `Ctrl/⌘ S` saves.
 
@@ -100,8 +101,9 @@ pnpm --dir web lint && pnpm --dir web check && pnpm --dir web test
 pnpm --dir web test:e2e   # needs Playwright's Chromium (or PLAYWRIGHT_CHROMIUM=/path)
 ```
 
-The `control` project starts a v4 server with a fake worker and a screen
+The `control` project starts a v4 server (without sound) with a fake worker
 (`e2e/control/serve.py`) and drives the console: sign in, add a song and review it, follow it in
 Processing, queue it twice, remove and undo, the singer, the palette, the cheat sheet, response times
-and axe's WCAG 2 AA rules on every section. The `lyrics` project compares screenshots of the
-lyrics component.
+and axe's WCAG 2 AA rules on every section; and two screens (`screens.spec.ts`) that download a
+song, wait on its first frame until the operator starts it, then play and pause together. The
+`lyrics` project compares screenshots of the lyrics component.

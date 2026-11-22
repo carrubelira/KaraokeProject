@@ -11,9 +11,10 @@ The technical guides of Proxecto Karaoke en Galego. The project's presentation i
 |---|---|
 | [Architecture](architecture.md) | the pieces, how they fit and why, with the numbers |
 | [Development](development.md) | setting up the environment and the everyday commands |
-| [Server](server.md) | starting it, enrolling nodes, storage, upkeep and the API (v4) |
+| [Server](server.md) | starting it, enrolling workers, the stage, storage, upkeep and the API (v4) |
 | [Worker](worker.md) | running the engine for the server on a GPU machine (v4) |
-| [Player](player.md) | the native player for Windows and macOS: enrolling, outputs, screens (v4) |
+| [kp-audio](kp-audio.md) | the backend's audio engine: outputs, routing, key, calibration (v4) |
+| [Screens](screens.md) | the web screens: opening one, its states, keeping in step, kiosks (v4) |
 
 ## Each part
 

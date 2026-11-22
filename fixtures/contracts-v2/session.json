@@ -1,0 +1,40 @@
+{
+  "version": 12,
+  "epoch": 4,
+  "state": "playing",
+  "current": {
+    "item": {
+      "id": "i1",
+      "content_id": "demo-sintetico",
+      "manifest": null,
+      "start": 1.5,
+      "end": null,
+      "semitones": -2.0,
+      "singer": "Uxía"
+    },
+    "manifest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "duration": 214.5
+  },
+  "anchor": {
+    "position": 1.5,
+    "instant": 1732280000000000,
+    "rate": 1.0
+  },
+  "upcoming": [
+    {
+      "item": {
+        "id": "i2",
+        "content_id": "laverca",
+        "manifest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "start": null,
+        "end": null,
+        "semitones": 0.0,
+        "singer": null
+      },
+      "manifest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "duration": 187.0
+    }
+  ],
+  "semitones": -2.0,
+  "volume": 1.0
+}

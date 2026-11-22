@@ -55,7 +55,8 @@ Installed by uv and pnpm from PyPI and npm. The main ones:
 | FastAPI, Starlette, Uvicorn | MIT, BSD-3-Clause, BSD-3-Clause | the server |
 | NVIDIA CUDA libraries (`nvidia-*`) | NVIDIA's proprietary licence | the GPU runtime |
 | Svelte, SvelteKit, Vite | MIT | the web app |
-| [signalsmith-stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch) | MIT | changing the pitch in the browser |
+| [signalsmith-stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch) | MIT | changing the pitch in the editor and in kp-audio |
+| [libopus](https://opus-codec.org/) (through the `opus` and `ogg` crates) | BSD-3-Clause (the crates: MIT, Apache-2.0) | decoding the stems in kp-audio |
 | [lean-qr](https://github.com/davidje13/lean-qr) | MIT | the party QR code |
 
 audio-separator asks for `diffq`, which is licensed for non-commercial use only (CC BY-NC 4.0),

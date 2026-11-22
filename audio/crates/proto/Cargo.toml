@@ -1,0 +1,16 @@
+[package]
+name = "kp-proto"
+description = "Contracts v2 in Rust: manifest, queue, the stage's session, routing and kp-audio's status."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kp-clock = { path = "../clock" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

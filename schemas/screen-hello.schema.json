@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/screen-hello.schema.json",
+  "additionalProperties": false,
+  "description": "The first thing a screen says: who it is and what it can show.",
+  "properties": {
+    "screen_id": {
+      "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+      "type": "string"
+    },
+    "agent": {
+      "default": "",
+      "description": "The browser's user agent.",
+      "maxLength": 300,
+      "type": "string"
+    },
+    "width": {
+      "exclusiveMinimum": 0,
+      "type": "integer"
+    },
+    "height": {
+      "exclusiveMinimum": 0,
+      "type": "integer"
+    },
+    "refresh_hz": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "codecs": {
+      "items": {
+        "enum": [
+          "h264",
+          "hevc",
+          "av1"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "preview": {
+      "default": false,
+      "description": "The console's monitor: shown, never waited for.",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "screen_id",
+    "agent",
+    "width",
+    "height",
+    "refresh_hz",
+    "codecs",
+    "preview"
+  ],
+  "title": "ScreenHello",
+  "type": "object"
+}

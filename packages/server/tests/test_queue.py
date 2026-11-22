@@ -353,8 +353,11 @@ def test_capabilities_filter_tasks(clients: Clients) -> None:
     assert _lease(small) is None, "make needs 3.2 GB"
     _, cpu = clients.enrol("worker", name="cpu", gpus=[])
     assert _lease(cpu) is None
-    _, big = clients.enrol("worker", name="big")
-    assert _lease(big, busy_playing=True) is None, "a player is playing on that machine"
+    _, big = clients.enrol("worker", name="big", same_host_as_server=True)
+    stage = clients.services.stage
+    stage.session = stage.session.model_copy(update={"state": "playing"})
+    assert _lease(big) is None, "a song plays on that machine"
+    stage.session = stage.session.model_copy(update={"state": "paused"})
     assert _lease(big) is not None
 
 
@@ -436,24 +439,16 @@ def test_render_job_exports_the_current_version(clients: Clients, demo_manifest:
     assert op.get(f"/api/jobs/{job['id']}").json()["result"]["outputs"] == {"video": video}
 
 
-def test_a_confirmed_song_can_go_straight_to_a_screens_queue(
+def test_a_confirmed_song_can_go_straight_to_the_queue(
     clients: Clients, demo_manifest: str
 ) -> None:
     op = clients.operator()
-    player_id, _ = clients.enrol("player", name="sala")
     job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
     _, worker = clients.enrol("worker")
     _analyse(worker)
-    assert (
-        op.post(
-            f"/api/jobs/{job['id']}/confirm",
-            json={"title": "x", "language": "gl", "queue_on": "nobody"},
-        ).status_code
-        == 404
-    )
-    _reviewed(op, job["id"], queue_on=player_id)
+    _reviewed(op, job["id"], add_to_queue=True)
     make = _lease(worker)
     assert make is not None
     _finish(worker, make, {"manifest": demo_manifest})
-    queue = op.get(f"/api/players/{player_id}/queue").json()
+    queue = op.get("/api/stage/queue").json()
     assert [i["content_id"] for i in queue["items"]] == ["demo"]

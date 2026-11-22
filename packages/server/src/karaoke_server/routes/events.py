@@ -1,4 +1,4 @@
-"""The control UI's live line: a snapshot on connect, then every change as it happens."""
+"""The console's live line: a snapshot on connect, then every change as it happens."""
 
 import asyncio
 import contextlib
@@ -22,8 +22,8 @@ def snapshot(found: Services) -> dict[str, Any]:
         "now": now_us(),
         "jobs": found.queue.jobs(limit=100),
         "contents": found.library.contents(),
-        "queues": [q.model_dump(mode="json") for q in found.queues.all()],
-        "players": found.players.players(),
+        "queue": found.queues.get().model_dump(mode="json"),
+        **found.stage.view(),
         "nodes": nodes(found),
     }
 

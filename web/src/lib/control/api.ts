@@ -1,6 +1,6 @@
 /** The v4 server's HTTP API, with the operator's session cookie. */
-import type { Lyrics, Manifest, PlayerCommand, PlayerConfig, Queue } from '#lib/contracts';
-import type { Content, Job, LyricsCandidate, Session } from './types';
+import type { AudioConfig, Lyrics, Manifest, Queue, ScreenConfig, Session } from '#lib/contracts';
+import type { Content, Job, LyricsCandidate, OperatorSession } from './types';
 
 export class ApiError extends Error {
 	constructor(
@@ -73,13 +73,22 @@ export interface Confirmation {
 	artist: string | null;
 	language: string;
 	lyrics: string | null;
-	/** A screen whose queue gets the song once it is made. */
-	queue_on?: string | null;
+	/** Put the song at the end of the queue once it is made. */
+	add_to_queue?: boolean;
+}
+
+export interface StageOrder {
+	command: 'cue' | 'start' | 'pause' | 'seek' | 'next' | 'previous' | 'stop' | 'volume' | 'pitch';
+	item_id?: string;
+	position?: number;
+	value?: number;
+	/** Start although some screens are not ready (the operator said so). */
+	force?: boolean;
 }
 
 export const api = {
-	signIn: (token: string) => call<Session>('POST', '/api/session', { token }),
-	session: () => call<Session>('GET', '/api/session'),
+	signIn: (token: string) => call<OperatorSession>('POST', '/api/session', { token }),
+	session: () => call<OperatorSession>('GET', '/api/session'),
 	signOut: () => call<void>('DELETE', '/api/session'),
 	savePreferences: (preferences: Record<string, unknown>) =>
 		call<Record<string, unknown>>('PUT', '/api/session/preferences', preferences),
@@ -110,26 +119,21 @@ export const api = {
 			`/api/lyrics/search?q=${encodeURIComponent(q)}${duration ? `&duration=${Math.round(duration)}` : ''}`
 		),
 
-	enrollment: (kind: 'worker' | 'player') =>
+	enrollment: () =>
 		call<{ token: string; kind: string; expires_in_hours: number }>('POST', '/api/enrollments', {
-			kind
+			kind: 'worker'
 		}),
 	revoke: (id: string) => call<void>('DELETE', `/api/nodes/${id}`),
-	server: () =>
-		call<{ version: string; fingerprint: string; now: number; tls: boolean }>('GET', '/api/server'),
+	server: () => call<{ version: string; now: number }>('GET', '/api/server'),
 
-	setConfig: (id: string, config: PlayerConfig) =>
-		call<PlayerConfig>('PUT', `/api/players/${id}/config`, config),
-	command: (
-		id: string,
-		order: { command: string; item_id?: string; position?: number; value?: number }
-	) => call<PlayerCommand>('POST', `/api/players/${id}/commands`, order),
-	saveQueue: (queue: Queue) => call<Queue>('PUT', `/api/players/${queue.player_id}/queue`, queue),
-	addToQueue: (
-		playerId: string,
-		items: { content_id: string; singer?: string | null }[],
-		first = false
-	) => call<Queue>('POST', `/api/players/${playerId}/queue/items`, { items, first }),
+	command: (order: StageOrder) => call<Session>('POST', '/api/stage/commands', order),
+	setAudio: (config: AudioConfig) => call<AudioConfig>('PUT', '/api/stage/audio', config),
+	setScreen: (id: string, config: ScreenConfig) =>
+		call<ScreenConfig>('PUT', `/api/screens/${encodeURIComponent(id)}/config`, config),
+	forgetScreen: (id: string) => call<void>('DELETE', `/api/screens/${encodeURIComponent(id)}`),
+	saveQueue: (queue: Queue) => call<Queue>('PUT', '/api/stage/queue', queue),
+	addToQueue: (items: { content_id: string; singer?: string | null }[], first = false) =>
+		call<Queue>('POST', '/api/stage/queue/items', { items, first }),
 
 	createUpload: (filename: string, size: number) =>
 		call<{ id: string; offset: number; size: number; blob: string | null }>(

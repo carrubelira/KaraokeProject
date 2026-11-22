@@ -1,10 +1,9 @@
-"""A v4 server with a fake worker and a screen for the browser tests (`pnpm test:e2e`,
-project `control`).
+"""A v4 server with a fake worker for the browser tests (`pnpm test:e2e`, project `control`).
 
-It writes the operator token to e2e/control/.token, then runs until stopped.
+It runs without sound (`--audio off`): the stage keeps time alone, and the queue is what the
+tests fill. It writes the operator token to e2e/control/.token, then runs until stopped.
 """
 
-import json
 import os
 import shutil
 import signal
@@ -28,8 +27,8 @@ def main() -> int:
     (HERE / ".token").write_text(token, encoding="utf-8")
     env = {**os.environ, "KARAOKE_FAKE_STAGE_SECONDS": "0.2"}
     server = subprocess.Popen(
-        ["karaoke-server", "--data", str(server_data), "serve", "--no-tls", "--host", "127.0.0.1",
-         "--port", str(PORT), "--web", str(data / "noweb")]
+        ["karaoke-server", "--data", str(server_data), "serve", "--audio", "off",
+         "--host", "127.0.0.1", "--port", str(PORT), "--web", str(data / "noweb")]
     )  # fmt: skip
     for _ in range(100):
         try:
@@ -40,15 +39,6 @@ def main() -> int:
     enrol = run("karaoke-server", "--data", str(server_data), "enroll", "worker")
     run("karaoke-worker", "--data", str(worker_data), "enroll", base, enrol, "--name", "gpu-1")
     worker = subprocess.Popen(["karaoke-worker", "--data", str(worker_data), "run", "--fake"], env=env)
-    # A screen (never connected): its queue is what the tests fill.
-    screen = run("karaoke-server", "--data", str(server_data), "enroll", "player")
-    body = {"token": screen, "kind": "player", "name": "sala", "capabilities": {"os": "linux"}}
-    request = urllib.request.Request(
-        f"{base}/api/nodes/enroll",
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    urllib.request.urlopen(request, timeout=5)  # noqa: S310 - local
     stop = lambda *_: (_ for _ in ()).throw(KeyboardInterrupt)  # noqa: E731
     signal.signal(signal.SIGTERM, stop)
     try:

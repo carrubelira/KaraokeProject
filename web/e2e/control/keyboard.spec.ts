@@ -1,6 +1,6 @@
 /**
  * The console from the keyboard (plan v4 §7): sign in, add a song (analysed, then reviewed),
- * follow it in Jobs, queue it twice on a screen, remove and undo, the palette and the cheat
+ * follow it in Jobs, queue it twice, remove and undo, the palette and the cheat
  * sheet, and the time from a key to what it changes on screen (< 100 ms).
  */
 import AxeBuilder from '@axe-core/playwright';
@@ -50,7 +50,7 @@ async function signIn(page: Page) {
 	await expect(page.getByRole('navigation', { name: 'Menú principal' })).toBeVisible();
 }
 
-test('a song from upload to a screen queue, from the keyboard', async ({ page }) => {
+test('a song from upload to the queue, from the keyboard', async ({ page }) => {
 	await signIn(page);
 
 	// Add: the file comes from the file picker; it is analysed at once.
@@ -84,13 +84,13 @@ test('a song from upload to a screen queue, from the keyboard', async ({ page })
 	const job = page.locator('tr.job').filter({ hasText: 'Proba de teclado' });
 	await expect(job.getByText('Rematado')).toBeVisible({ timeout: 60_000 });
 
-	// The library: A puts it in the screen's queue, twice.
+	// The library: A puts it in the queue, twice.
 	await page.keyboard.press('g');
 	await page.keyboard.press('b');
 	await expect(page.getByRole('heading', { name: 'Biblioteca' })).toBeVisible();
 	await expect(page.locator('tbody tr').filter({ hasText: 'Proba de teclado' })).toBeVisible();
 	await page.keyboard.press('a');
-	await expect(page.getByText('«Proba de teclado» engadida á cola de sala')).toBeVisible();
+	await expect(page.getByText('«Proba de teclado» engadida á cola')).toBeVisible();
 	await page.keyboard.press('a');
 
 	// Playback: the queue, Delete removes, Mod+Z puts it back.

@@ -1,0 +1,12 @@
+[package]
+name = "kp-mix"
+description = "Tracks, routing matrix, gain, delay, pitch and adaptive resampling for every output."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[lints]
+workspace = true

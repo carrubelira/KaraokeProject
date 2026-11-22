@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { api, ApiError } from '#lib/control/api.js';
-	import type { Session } from '#lib/control/types.js';
+	import type { OperatorSession } from '#lib/control/types.js';
 	import { i18n } from '#lib/i18n';
 	import Coast from '#lib/ui/Coast.svelte';
 
-	let { onsession }: { onsession: (session: Session) => void } = $props();
+	let { onsession }: { onsession: (session: OperatorSession) => void } = $props();
 	let token = $state('');
 	let error = $state<string | null>(null);
 

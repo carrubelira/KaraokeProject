@@ -1,10 +1,9 @@
 /* Generated from schemas/ by `pnpm gen:contracts`. Do not edit by hand. */
 
 /**
- * What a player will play, in order: one per player, made when it is enrolled.
+ * What the stage will play, in order: one per backend, with an optimistic version.
  */
 export interface Queue {
-	player_id: string;
 	version: number;
 	items: QueueItem[];
 }

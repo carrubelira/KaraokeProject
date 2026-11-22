@@ -116,17 +116,11 @@
         "type": "string"
       },
       "type": "array"
-    },
-    "busy_playing": {
-      "default": false,
-      "description": "A player on this machine is playing: go easy on the GPU.",
-      "type": "boolean"
     }
   },
   "required": [
     "telemetry",
-    "running",
-    "busy_playing"
+    "running"
   ],
   "title": "Heartbeat",
   "type": "object"

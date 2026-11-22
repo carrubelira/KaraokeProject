@@ -1,7 +1,7 @@
 {
   "token": "one-time",
-  "kind": "player",
-  "name": "sala",
+  "kind": "worker",
+  "name": "gpu-1",
   "capabilities": {
     "os": "windows",
     "cpus": 8,
@@ -13,12 +13,10 @@
       }
     ],
     "internet": false,
-    "tasks": [],
-    "models": {},
-    "decoders": [
-      "h264",
-      "hevc"
+    "tasks": [
+      "make"
     ],
+    "models": {},
     "same_host_as_server": false
   }
 }

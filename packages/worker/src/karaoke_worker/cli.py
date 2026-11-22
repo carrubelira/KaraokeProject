@@ -14,8 +14,6 @@ from karaoke_contracts.nodes import Enrollment, Gpu
 from karaoke_worker import system
 from karaoke_worker.config import WorkerConfig, default_data_dir
 
-CERT = "server.crt"
-
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="karaoke-worker", description="Karaoke worker (v4).")
@@ -27,13 +25,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--data", type=Path, default=None, help="data folder")
     commands = parser.add_subparsers(dest="command", required=True)
     enrol = commands.add_parser("enroll", help="enrol with a server using a one-time token")
-    enrol.add_argument("server", help="e.g. https://192.168.1.20:8765")
+    enrol.add_argument("server", help="e.g. http://192.168.1.20:8765")
     enrol.add_argument("token")
     enrol.add_argument("--name", default=None, help="how the control shows it")
-    enrol.add_argument("--fingerprint", help="the server's (karaoke-server fingerprint)")
     enrol.add_argument("--no-internet", action="store_true", help="do not take downloads")
     enrol.add_argument("--same-host", action="store_true", help="it runs on the server's machine")
-    enrol.add_argument("--player-lock", help="file a player on this machine touches while playing")
     run = commands.add_parser("run", help="take and run tasks until stopped")
     run.add_argument("--fake", action="store_true", help="pretend (tests, trying the system)")
     run.add_argument("-v", "--verbose", action="store_true")
@@ -71,7 +67,7 @@ def _enrol(args: argparse.Namespace, data: Path) -> int:
     )
     request = Enrollment(token=args.token, kind="worker", name=name, capabilities=caps)
     try:
-        enrolled = enrol(args.server, args.token, request, data / CERT, args.fingerprint)
+        enrolled = enrol(args.server, args.token, request)
     except Exception as exc:  # noqa: BLE001 - shown to the person typing the command
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -79,10 +75,9 @@ def _enrol(args: argparse.Namespace, data: Path) -> int:
         server=args.server.rstrip("/"),
         node_id=enrolled.node_id,
         credential=enrolled.credential,
-        fingerprint=enrolled.server_fingerprint,
         name=name,
         internet=not args.no_internet,
-        player_lock=args.player_lock,
+        same_host=args.same_host,
     )
     print(f"enrolled as {enrolled.node_id}; settings in {config.save(data)}")
     return 0
@@ -100,7 +95,7 @@ def _run(args: argparse.Namespace, data: Path) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     config = WorkerConfig.load(data)
-    client = ServerClient(config.server, config.credential, data / CERT)
+    client = ServerClient(config.server, config.credential)
     ctx = Context(
         client=client,
         store=BlobStore(data / "blobs"),
@@ -110,7 +105,7 @@ def _run(args: argparse.Namespace, data: Path) -> int:
         fake=args.fake or config.fake_engine,
         acoustid_key=os.environ.get("KARAOKE_ACOUSTID_KEY") or config.acoustid_key,
     )
-    capabilities = system.capabilities(config.tasks, config.internet)
+    capabilities = system.capabilities(config.tasks, config.internet, config.same_host)
     if ctx.fake and not capabilities.gpus:
         # The fake engine needs no GPU; it says it has one so it gets GPU tasks.
         capabilities = capabilities.model_copy(
@@ -120,7 +115,7 @@ def _run(args: argparse.Namespace, data: Path) -> int:
             }
         )
     client.update_capabilities(capabilities)
-    agent = Agent(ctx, player_lock=Path(config.player_lock) if config.player_lock else None)
+    agent = Agent(ctx)
     try:
         asyncio.run(agent.run_forever())
     except KeyboardInterrupt:

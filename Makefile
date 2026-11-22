@@ -1,4 +1,4 @@
-.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve player e2e-v4
+.PHONY: install setup lint format typecheck test test-models contracts web check-env ci serve start audio e2e-v4
 
 # Everything a person needs to run the karaoke on this machine (docs/development.md). Developers also
 # run `make setup` for the git hooks.
@@ -71,20 +71,24 @@ check-env:
 	uv run python scripts/check_env.py
 
 # Regenerates the contracts first so a stale schema or TS type shows up locally, as in CI.
-ci: contracts lint typecheck test web player
+ci: contracts lint typecheck test web audio
 
-# The native player's platform-free crates and the software sync bench (docs/plan-v4/decisiones/002).
-player:
-	cd player && cargo fmt --check && cargo clippy -q --workspace --all-targets -- -D warnings && cargo test -q --workspace
+# kp-audio, the backend's audio engine, and the software sync bench (decisions 002 and 011).
+audio:
+	cd audio && cargo fmt --check && cargo clippy -q --workspace --all-targets -- -D warnings && cargo test -q --workspace
 
-# Server, a worker with the fake engine and the player headless, end to end (player/tests/e2e.py).
+# Server, a worker with the fake engine and kp-audio with two virtual outputs, end to end
+# (audio/tests/e2e.py).
 e2e-v4:
-	cd player && cargo build -q -p kp-player
-	uv run python player/tests/e2e.py
+	cd audio && cargo build -q -p kp-audio
+	uv run python audio/tests/e2e.py
+
+# The server (with kp-audio, its sound) and a worker on this machine, building what is missing
+# first (scripts/start.py; scripts/start.ps1 on Windows).
+start:
+	scripts/start.sh
 
 # The server with the built web app (built once if missing). Not `uv run`: it would sync the
 # environment without the GPU extras.
 serve:
-	@if [ ! -f web/build/index.html ] || [ -n "$$(find web/src web/static -newer web/build/index.html -print -quit)" ]; then \
-		pnpm --dir web build; fi
-	.venv/bin/karaoke-server serve
+	scripts/start.sh --no-worker

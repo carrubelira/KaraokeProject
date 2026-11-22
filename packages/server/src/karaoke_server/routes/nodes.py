@@ -1,4 +1,4 @@
-"""Enrolling nodes, and what workers ask for: leases, heartbeats, progress and results."""
+"""Enrolling workers, and what they ask for: leases, heartbeats, progress and results."""
 
 import time
 from typing import Any, Literal
@@ -20,14 +20,14 @@ from karaoke_contracts.nodes import (
 )
 from karaoke_server.auth import Node, Operator, node, operator, worker
 from karaoke_server.errors import ApiError
-from karaoke_server.fleet import nodes, publish_node
+from karaoke_server.fleet import busy_playing, nodes, publish_node
 from karaoke_server.routes._deps import services
 
 router = APIRouter(prefix="/api", tags=["nodes"])
 
 
 class NewEnrollment(BaseModel):
-    kind: Literal["worker", "player"]
+    kind: Literal["worker"] = "worker"
 
 
 class EnrollmentToken(BaseModel):
@@ -53,7 +53,7 @@ async def enroll(body: Enrollment, request: Request) -> Enrolled:
     found = services(request)
     new, credential = found.auth.enrol(body)
     publish_node(found, new.id)
-    return Enrolled(node_id=new.id, credential=credential, server_fingerprint=found.fingerprint)
+    return Enrolled(node_id=new.id, credential=credential)
 
 
 @router.get("/nodes")
@@ -102,7 +102,7 @@ async def heartbeat(
     from karaoke_server.clock import now_us
 
     found = services(request)
-    found.telemetry[who.id] = (time.time(), body.telemetry, body.busy_playing)
+    found.telemetry[who.id] = (time.time(), body.telemetry)
     found.db.execute("UPDATE nodes SET last_seen = ? WHERE id = ?", (time.time(), who.id))
     stop = found.queue.renew(who, body.running)
     publish_node(found, who.id)
@@ -111,7 +111,6 @@ async def heartbeat(
 
 class LeaseRequest(BaseModel):
     free_vram_mb: int | None = None
-    busy_playing: bool = False
     wait: bool = True
 
 
@@ -120,11 +119,10 @@ async def lease(
     body: LeaseRequest, request: Request, who: Node = Depends(worker)
 ) -> Lease | Response:
     found = services(request)
-    found.telemetry.setdefault(who.id, (time.time(), Telemetry(), body.busy_playing))
+    found.telemetry.setdefault(who.id, (time.time(), Telemetry()))
     timeout = found.settings.lease_wait_seconds if body.wait else 0.0
-    granted = await found.queue.wait_lease(
-        who, body.free_vram_mb, timeout, busy_playing=body.busy_playing
-    )
+    busy = busy_playing(found, who.capabilities.same_host_as_server)
+    granted = await found.queue.wait_lease(who, body.free_vram_mb, timeout, busy_playing=busy)
     if granted is None:
         return Response(status_code=204)
     return granted

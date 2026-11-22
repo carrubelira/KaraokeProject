@@ -46,7 +46,7 @@
 			list.push({
 				id: `node:${n.id}`,
 				title: n.name,
-				detail: n.kind === 'worker' ? t.palette.worker : t.palette.player,
+				detail: t.palette.worker,
 				run: () => goto(resolve('/equipos'))
 			});
 		}

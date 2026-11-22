@@ -3,9 +3,11 @@
 - **Operators** use the control UI: each has a token, made with `karaoke-server operator add`
   on the server's own console and typed once in the browser, which keeps it in an HttpOnly
   cookie. A token sent as `Authorization: Bearer` works too (scripts).
-- **Nodes** (workers and players) enrol with a one-time token an operator makes; the answer is
-  the node's own credential, kept by the node and sent as `Authorization: Bearer` on every
-  request. A node can be revoked.
+- **Workers** enrol with a one-time token an operator makes; the answer is the worker's own
+  credential, kept by it and sent as `Authorization: Bearer` on every request. A worker can
+  be revoked.
+- **Screens** need nothing: they only show what is on (decision 011). **kp-audio** is the
+  server's own process and connects with a secret made at every start.
 
 Only hashes are stored: a copied database gives no access.
 """
@@ -26,7 +28,7 @@ from karaoke_server.db import Database
 from karaoke_server.errors import ApiError
 
 COOKIE = "karaoke_session"
-NodeKind = Literal["worker", "player"]
+NodeKind = Literal["worker"]
 
 
 def _hash(token: str) -> str:
@@ -145,7 +147,7 @@ class Auth:
         return self.db.execute("UPDATE nodes SET revoked = 1 WHERE id = ?", (node_id,)) > 0
 
 
-def _bearer(header: str | None) -> str | None:
+def bearer(header: str | None) -> str | None:
     if header and header.lower().startswith("bearer "):
         return header[7:].strip()
     return None
@@ -159,7 +161,7 @@ def _auth(request: Request | WebSocket) -> Auth:
 async def operator(request: Request) -> Operator:
     """Dependency: the operator behind a request, or 401."""
     auth = _auth(request)
-    found = auth.operator(_bearer(request.headers.get("authorization"))) or auth.operator(
+    found = auth.operator(bearer(request.headers.get("authorization"))) or auth.operator(
         request.cookies.get(COOKIE)
     )
     if found is None:
@@ -168,7 +170,7 @@ async def operator(request: Request) -> Operator:
 
 
 async def node(request: Request) -> Node:
-    found = _auth(request).node(_bearer(request.headers.get("authorization")))
+    found = _auth(request).node(bearer(request.headers.get("authorization")))
     if found is None:
         raise ApiError(401, "unauthorized", "Unknown or revoked node")
     return found
@@ -181,17 +183,10 @@ async def worker(request: Request) -> Node:
     return found
 
 
-async def player(request: Request) -> Node:
-    found = await node(request)
-    if found.kind != "player":
-        raise ApiError(403, "forbidden", "Only players may do this")
-    return found
-
-
 async def anyone(request: Request) -> Operator | Node:
     """An operator or a node: reading blobs."""
     auth = _auth(request)
-    token = _bearer(request.headers.get("authorization"))
+    token = bearer(request.headers.get("authorization"))
     found = auth.node(token) or auth.operator(token) or auth.operator(request.cookies.get(COOKIE))
     if found is None:
         raise ApiError(401, "unauthorized", "Sign in first")
@@ -200,7 +195,7 @@ async def anyone(request: Request) -> Operator | Node:
 
 def websocket_identity(websocket: WebSocket) -> Operator | Node | None:
     auth = _auth(websocket)
-    token = _bearer(websocket.headers.get("authorization")) or websocket.query_params.get("token")
+    token = bearer(websocket.headers.get("authorization")) or websocket.query_params.get("token")
     return auth.node(token) or auth.operator(token) or auth.operator(websocket.cookies.get(COOKIE))
 
 

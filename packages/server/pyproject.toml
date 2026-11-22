@@ -1,7 +1,7 @@
 [project]
 name = "karaoke-server"
 version = "3.0.0"
-description = "Karaoke server (v4): content store, task queue, nodes, playlists and the control UI"
+description = "Karaoke server (v4): content store, task queue, workers, the stage and the console"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "karaoke-contracts",
@@ -10,7 +10,6 @@ dependencies = [
     "fastapi>=0.162,<0.163",
     "starlette>=1.0",
     "uvicorn>=0.54",
-    "cryptography>=46",
     "websockets>=15",
 ]
 

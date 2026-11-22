@@ -26,14 +26,10 @@ export type {
 } from './generated/manifest';
 export type { Lyrics } from './generated/lyrics';
 export type { Queue, QueueItem } from './generated/queue';
-export type { PlayerCommand, Anchor } from './generated/player-command';
-export type { PlayerConfig, Routing, Route, Screen, Calibration } from './generated/player-config';
-export type {
-	PlayerStatus,
-	PlayerOutputs,
-	Display,
-	AudioDevice,
-	ContentCache,
-	PlayerError
-} from './generated/player-status';
+export type { Session, Program, Anchor } from './generated/session';
+export type { ScreenHello } from './generated/screen-hello';
+export type { ScreenStatus, ScreenSync, ContentCache } from './generated/screen-status';
+export type { ScreenConfig } from './generated/screen-config';
+export type { AudioStatus, AudioDevice, AudioError } from './generated/audio-status';
+export type { AudioConfig, Routing, Route } from './generated/audio-config';
 export type { PlaybackClock } from './clock';

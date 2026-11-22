@@ -6,10 +6,6 @@ export interface Heartbeat {
 	 * Task ids it holds.
 	 */
 	running: string[];
-	/**
-	 * A player on this machine is playing: go easy on the GPU.
-	 */
-	busy_playing: boolean;
 }
 export interface Telemetry {
 	gpu_util: number | null;

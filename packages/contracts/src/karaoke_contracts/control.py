@@ -1,4 +1,4 @@
-"""Contracts v2: player queues, orders, routing and calibration (plan v4 §6 and §7)."""
+"""Contracts v2: the queue, and how the backend's audio is routed and calibrated (decision 011)."""
 
 from typing import Annotated, Literal
 
@@ -11,7 +11,8 @@ OutputPolicy = Literal["pause", "continue"]
 
 
 class Anchor(Model):
-    """A song position that holds at an instant (µs on the server's clock) and moves at a rate."""
+    """A song position that holds at an instant (µs on the server's monotonic clock) and moves
+    at a rate (0 paused, 1 playing)."""
 
     position: float
     instant: int
@@ -35,25 +36,10 @@ class QueueItem(Model):
 
 
 class Queue(Model):
-    """What a player will play, in order: one per player, made when it is enrolled."""
+    """What the stage will play, in order: one per backend, with an optimistic version."""
 
-    player_id: NonEmptyStr
     version: Annotated[int, Field(ge=0)] = 0
     items: list[QueueItem] = Field(default_factory=list)
-
-
-Command = Literal[
-    "load", "play", "pause", "seek", "next", "previous", "stop", "volume", "pitch", "reload"
-]
-
-
-class PlayerCommand(Model):
-    id: NonEmptyStr
-    command: Command
-    item_id: str | None = None
-    anchor: Anchor | None = Field(default=None, description="Where and when, for play/seek.")
-    value: float | None = Field(default=None, description="Volume (0 to 2) or semitones.")
-    issued_at: int = Field(description="µs on the server's clock.")
 
 
 class Route(Model):
@@ -63,16 +49,9 @@ class Route(Model):
     delay_ms: Annotated[float, Field(ge=0, le=2000)] = 0.0
 
 
-class Screen(Model):
-    display: NonEmptyStr
-    layout: Literal["video-lyrics", "lyrics", "video", "off"] = "video-lyrics"
-    theme: str = "clasico"
-
-
 class Routing(Model):
     master: str | None = Field(default=None, description="Audio device whose clock rules.")
     routes: list[Route] = Field(default_factory=list)
-    screens: list[Screen] = Field(default_factory=list)
     policies: dict[str, OutputPolicy] = Field(
         default_factory=dict,
         description="What happens when an output disappears; default: pause if it is the "
@@ -80,13 +59,11 @@ class Routing(Model):
     )
 
 
-class Calibration(Model):
-    """Per stable device id: how late it really is, beyond what the OS reports."""
+class AudioConfig(Model):
+    """How `kp-audio` sends the stems to the backend's sound cards."""
 
-    audio_ms: dict[str, float] = Field(default_factory=dict)
-    display_ms: dict[str, float] = Field(default_factory=dict)
-
-
-class PlayerConfig(Model):
     routing: Routing = Field(default_factory=Routing)
-    calibration: Calibration = Field(default_factory=Calibration)
+    calibration_ms: dict[str, float] = Field(
+        default_factory=dict,
+        description="Per stable device id: how late it really is, beyond what the OS reports.",
+    )

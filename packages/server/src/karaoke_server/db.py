@@ -1,8 +1,9 @@
-"""The server's SQLite database (plan v4 §3): contents, the task queue, nodes and their queues.
+"""The server's SQLite database (plan v4 §3): contents, the task queue, workers and the stage.
 
 Blobs live on disk in the content store; the database knows which manifests exist, which tasks
-are waiting, leased or done, which nodes are enrolled and what each player is set to. Every call
-runs on the event loop's thread and takes well under a millisecond, so one connection is enough.
+are waiting, leased or done, which workers are enrolled, the queue and each screen's settings.
+Every call runs on the event loop's thread and takes well under a millisecond, so one connection
+is enough.
 """
 
 import sqlite3
@@ -138,6 +139,45 @@ MIGRATIONS: list[str] = [
         WHERE n.kind = 'player';
     UPDATE nodes SET config = json_remove(config, '$.playlist_id') WHERE kind = 'player';
     DROP TABLE playlists;
+    """,
+    # Decision 011: one stage per backend. The busiest player's queue becomes the queue, its
+    # audio routing the stage's; players stop being nodes (kp-audio is the server's own
+    # process) and screens are kept by the id their browser made up.
+    """
+    CREATE TABLE queue (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    INSERT INTO queue (id, version, items, updated_at)
+        SELECT 1, version, items, updated_at FROM queues
+        ORDER BY json_array_length(items) DESC, updated_at DESC LIMIT 1;
+    CREATE TABLE stage_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    INSERT INTO stage_settings (key, value)
+        SELECT 'audio', json_object(
+            'routing', json_object(
+                'master', json_extract(config, '$.routing.master'),
+                'routes', json(COALESCE(json_extract(config, '$.routing.routes'), '[]')),
+                'policies', json(COALESCE(json_extract(config, '$.routing.policies'), '{}'))
+            ),
+            'calibration_ms', json(COALESCE(json_extract(config, '$.calibration.audio_ms'), '{}'))
+        )
+        FROM nodes WHERE kind = 'player' AND revoked = 0 AND config != '{}'
+        ORDER BY last_seen DESC LIMIT 1;
+    DROP TABLE queues;
+    DELETE FROM nodes WHERE kind = 'player';
+    DELETE FROM enrollments WHERE kind = 'player';
+    CREATE TABLE screens (
+        id TEXT PRIMARY KEY,
+        config TEXT NOT NULL DEFAULT '{}',
+        hello TEXT NOT NULL DEFAULT '{}',
+        first_seen REAL NOT NULL,
+        last_seen REAL NOT NULL
+    );
     """,
 ]
 

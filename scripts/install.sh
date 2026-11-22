@@ -124,6 +124,7 @@ Proxecto Karaoke en Galego (v4) is installed. Make yourself an operator and star
     .venv/bin/karaoke-server operator add "Your name"
     make serve
 
-then open https://localhost:8765 and sign in with that token. Enrol a worker on a GPU machine
-(docs/worker.md) and the native player on the karaoke computer (docs/player.md).
+then open http://localhost:8765 and sign in with that token. Enrol a worker on a GPU machine
+(docs/worker.md), put kp-audio next to the server for the sound (docs/kp-audio.md) and open
+http://THIS-COMPUTER:8765/pantalla on every screen (docs/screens.md).
 EOF

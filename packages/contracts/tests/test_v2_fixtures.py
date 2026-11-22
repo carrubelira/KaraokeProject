@@ -1,4 +1,4 @@
-"""The v2 examples in fixtures/contracts-v2 validate here and parse in the player (kp-proto)."""
+"""The v2 examples in fixtures/contracts-v2 validate here and parse in kp-audio (kp-proto)."""
 
 import json
 from pathlib import Path
@@ -7,17 +7,27 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from karaoke_contracts import Lyrics, Manifest
-from karaoke_contracts.control import PlayerCommand, PlayerConfig, Queue, QueueItem
-from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease, PlayerStatus
+from karaoke_contracts.control import AudioConfig, Queue, QueueItem
+from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease
+from karaoke_contracts.stage import (
+    AudioStatus,
+    ScreenConfig,
+    ScreenHello,
+    ScreenStatus,
+    Session,
+)
 
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures" / "contracts-v2"
 MODELS: dict[str, type[BaseModel]] = {
     "manifest": Manifest,
     "lyrics": Lyrics,
     "queue": Queue,
-    "player-command": PlayerCommand,
-    "player-config": PlayerConfig,
-    "player-status": PlayerStatus,
+    "session": Session,
+    "screen-hello": ScreenHello,
+    "screen-status": ScreenStatus,
+    "screen-config": ScreenConfig,
+    "audio-status": AudioStatus,
+    "audio-config": AudioConfig,
     "lease": Lease,
     "heartbeat": Heartbeat,
     "enrollment": Enrollment,
@@ -56,3 +66,14 @@ def test_audio_tracks_carry_audio_info() -> None:
 def test_entry_point_before_exit_point() -> None:
     with pytest.raises(ValidationError, match="entry point"):
         QueueItem(id="x", content_id="song", start=10, end=5)
+
+
+def test_every_fixture_is_tested() -> None:
+    assert {p.stem for p in FIXTURES.glob("*.json")} == set(MODELS)
+
+
+def test_a_screen_id_is_plain() -> None:
+    data = json.loads((FIXTURES / "screen-hello.json").read_text(encoding="utf-8"))
+    data["screen_id"] = "../../etc"
+    with pytest.raises(ValidationError):
+        ScreenHello.model_validate(data)

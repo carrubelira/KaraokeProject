@@ -84,12 +84,8 @@
     }
   },
   "additionalProperties": false,
-  "description": "What a player will play, in order: one per player, made when it is enrolled.",
+  "description": "What the stage will play, in order: one per backend, with an optimistic version.",
   "properties": {
-    "player_id": {
-      "minLength": 1,
-      "type": "string"
-    },
     "version": {
       "default": 0,
       "minimum": 0,
@@ -103,7 +99,6 @@
     }
   },
   "required": [
-    "player_id",
     "version",
     "items"
   ],

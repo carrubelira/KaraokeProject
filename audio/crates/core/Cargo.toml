@@ -1,0 +1,13 @@
+[package]
+name = "kp-core"
+description = "kp-audio's logic: server clock, timeline of anchors and following the stage's session."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kp-clock = { path = "../clock" }
+kp-proto = { path = "../proto" }
+
+[lints]
+workspace = true

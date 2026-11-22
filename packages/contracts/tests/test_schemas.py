@@ -19,10 +19,13 @@ def test_committed_schemas_are_up_to_date(tmp_path: Path) -> None:
             "enrollment",
             "heartbeat",
             "lease",
-            "player-status",
-            "player-command",
-            "player-config",
             "queue",
+            "session",
+            "screen-hello",
+            "screen-status",
+            "screen-config",
+            "audio-status",
+            "audio-config",
         )
     )
     for path in written:

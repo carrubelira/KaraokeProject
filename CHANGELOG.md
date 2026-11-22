@@ -7,6 +7,42 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **One stage per backend, its sound on the backend, its picture on web screens** (decision 011).
+  The native player is gone: `kp-audio` (the same audio engine, without windows, video or
+  FFmpeg: it decodes the stems with libopus) runs next to the server, which starts it, and sends each stem to the
+  sound cards and DACs there. Any browser on the LAN that opens `/pantalla` is a screen (laptops,
+  Tauri or Chromium kiosks): a state machine that downloads the song, waits on its first frame
+  and follows the server's timeline with its video and lyrics. The server publishes a versioned
+  session; nothing plays until the operator starts it, and the console says which screens are
+  ready. Two Edge screens on one laptop measured 1 ms apart.
+- One queue instead of one per player; the Outputs page is the backend's sound, and what each
+  screen shows is set in Devices.
+- Plain HTTP everywhere on the LAN: no certificate, no fingerprint to pin.
+- The stage's clock is the system's fine counter (`perf_counter`): on Windows, Python's
+  `monotonic` ticks every 15.6 ms and drifted 350 ppm from the screens' clocks.
+
+### Added
+
+- `scripts/start.ps1` (Windows) and `scripts/start.sh` (Linux, `make start`): one command
+  prepares what is missing (the environment, the web app, kp-audio) and runs the server,
+  kp-audio and a worker, restarting what stops. On Windows the worker runs in WSL.
+
+### Fixed
+
+- A worker enrolled with `--same-host` said it was not on the server's machine once it ran.
+- `karaoke-server openapi` opened (and migrated) the real database; it uses an empty folder.
+- kp-audio stops with the server even when the server is killed, and its secret goes in a
+  header, not in the address the access log writes down.
+
+### Removed
+
+- The native player's screens, video decoding and its own copy of the lyrics layout (`kp-layout`),
+  `kp-media`, `kp-cache` and `kp-net`; player enrolment; TLS (`--no-tls`, `fingerprint`,
+  `--fingerprint`); the worker's `--player-lock` (the server knows when the stage plays);
+  `scripts/serve-forever.sh` (the launcher restarts what stops).
+
 ### Fixed
 
 - A progress report arriving after a task was complete brought it back to life: its lease

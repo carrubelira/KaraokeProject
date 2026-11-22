@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from './api';
-import { apply, currentTask, empty, jobProgress, missed, positionNow } from './state';
-import type { Job, NodeView, PlayerView, Snapshot } from './types';
+import {
+	apply,
+	currentTask,
+	empty,
+	emptySession,
+	jobProgress,
+	missed,
+	notReady,
+	positionNow
+} from './state';
+import type { Job, NodeView, ScreenView, Snapshot } from './types';
 import { Upload } from './upload.svelte';
 
 const job = (id: string, tasks: Partial<Job['tasks'][number]>[] = []): Job => ({
@@ -38,9 +47,9 @@ const job = (id: string, tasks: Partial<Job['tasks'][number]>[] = []): Job => ({
 	}))
 });
 
-const node = (id: string, kind: 'worker' | 'player'): NodeView => ({
+const node = (id: string): NodeView => ({
 	id,
-	kind,
+	kind: 'worker',
 	name: id,
 	capabilities: {
 		os: 'windows',
@@ -50,7 +59,6 @@ const node = (id: string, kind: 'worker' | 'player'): NodeView => ({
 		internet: true,
 		tasks: [],
 		models: {},
-		decoders: [],
 		same_host_as_server: false
 	},
 	last_seen: 0,
@@ -69,14 +77,36 @@ const node = (id: string, kind: 'worker' | 'player'): NodeView => ({
 });
 
 const snapshot = (seq: number): Snapshot => ({
+	...empty(),
 	type: 'snapshot',
 	seq,
 	now: 0,
-	jobs: [job('a')],
-	contents: [],
-	queues: [],
-	players: [],
-	nodes: []
+	jobs: [job('a')]
+});
+
+const screen = (id: string, over: Partial<ScreenView> = {}): ScreenView => ({
+	id,
+	online: true,
+	last_seen: 0,
+	hello: null,
+	config: {
+		name: null,
+		layout: 'video-lyrics',
+		theme: 'clasico',
+		display_ms: 0,
+		video_max_height: null
+	},
+	status: {
+		state: 'provisioning',
+		epoch: null,
+		ready: false,
+		flags: [],
+		cache: [],
+		sync: { error_ms: null, rtt_ms: null, drift_ppm: null, dropped_frames: 0 },
+		error: null
+	},
+	counts: true,
+	...over
 });
 
 describe('live state', () => {
@@ -102,17 +132,27 @@ describe('live state', () => {
 		expect(missed(state, snapshot(40))).toBe(false);
 	});
 
-	it('keeps one queue per player, and shows a new player at once', () => {
+	it('keeps the newest queue and session, and every screen', () => {
 		let state = apply(empty(), snapshot(1));
-		state = apply(state, { type: 'node', seq: 2, node: node('p1', 'player') });
-		expect(state.players.map((p) => p.id)).toEqual(['p1']);
-		const queue = { player_id: 'p1', version: 1, items: [] };
-		state = apply(state, { type: 'queue', seq: 3, queue });
-		state = apply(state, { type: 'queue', seq: 4, queue: { ...queue, version: 2 } });
-		expect(state.queues).toEqual([{ ...queue, version: 2 }]);
-		state = apply(state, { type: 'node-removed', seq: 5, id: 'p1' });
-		expect(state.players).toEqual([]);
-		expect(state.queues).toEqual([]);
+		const queue = { version: 2, items: [] };
+		state = apply(state, { type: 'queue', seq: 2, queue });
+		state = apply(state, { type: 'queue', seq: 3, queue: { ...queue, version: 1 } });
+		expect(state.queue.version).toBe(2);
+		const cued = { ...emptySession(), version: 4, epoch: 2, state: 'cued' as const };
+		state = apply(state, { type: 'session', seq: 4, session: cued });
+		state = apply(state, { type: 'session', seq: 5, session: { ...cued, version: 3 } });
+		expect(state.session.state).toBe('cued');
+		state = apply(state, { type: 'screen', seq: 6, screen: screen('tv') });
+		state = apply(state, { type: 'screen', seq: 7, screen: screen('portatil') });
+		expect(notReady(state).map((s) => s.id)).toEqual(['tv', 'portatil']);
+		const ready = { ...screen('tv').status!, state: 'waiting' as const, epoch: 2, ready: true };
+		state = apply(state, { type: 'screen-status', seq: 8, id: 'tv', status: ready });
+		expect(notReady(state).map((s) => s.id)).toEqual(['portatil']);
+		state = apply(state, { type: 'screen-removed', seq: 9, id: 'portatil' });
+		expect(notReady(state)).toEqual([]);
+		state = apply(state, { type: 'node', seq: 10, node: node('w1') });
+		state = apply(state, { type: 'node-removed', seq: 11, id: 'w1' });
+		expect(state.nodes).toEqual([]);
 	});
 
 	it('streams task logs and drops them when the job ends', () => {
@@ -126,17 +166,29 @@ describe('live state', () => {
 		expect(state.logs['a:0']).toBeUndefined();
 	});
 
-	it('moves a playing player on from its last status', () => {
-		const player = {
-			id: 'x',
-			status: { state: 'playing', position: 10 },
-			online: true
-		} as unknown as PlayerView;
-		const state = { ...empty(), players: [player], statusAt: { x: 1000 } };
-		expect(positionNow(state, player, 3000)).toBe(12);
-		expect(
-			positionNow(state, { ...player, status: { ...player.status, state: 'paused' } }, 3000)
-		).toBe(10);
+	it('moves the song on from the session anchor', () => {
+		const program = {
+			item: {
+				id: 'a',
+				content_id: 'a',
+				manifest: null,
+				start: null,
+				end: 60,
+				semitones: 0,
+				singer: null
+			},
+			manifest: 'm',
+			duration: 200
+		};
+		const playing = {
+			...emptySession(),
+			state: 'playing' as const,
+			current: program,
+			anchor: { position: 10, instant: 1_000_000, rate: 1 }
+		};
+		expect(positionNow(playing, 3_000_000)).toBe(12);
+		expect(positionNow(playing, 900e6)).toBe(60);
+		expect(positionNow(emptySession(), 3_000_000)).toBeNull();
 	});
 });
 

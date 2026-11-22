@@ -1,4 +1,4 @@
-"""How the control sees the enrolled nodes: what each offers, whether it answers, what it runs."""
+"""How the console sees the enrolled workers: what each offers, whether it answers, what it runs."""
 
 import json
 import time
@@ -9,7 +9,7 @@ from karaoke_server.services import Services
 
 
 def node_view(found: Services, row: Any) -> dict[str, Any]:
-    seen, telemetry, busy = found.telemetry.get(row["id"], (row["last_seen"], Telemetry(), False))
+    seen, telemetry = found.telemetry.get(row["id"], (row["last_seen"], Telemetry()))
     running = [
         t["id"]
         for t in found.db.query(
@@ -17,21 +17,24 @@ def node_view(found: Services, row: Any) -> dict[str, Any]:
             (row["id"],),
         )
     ]
-    if row["kind"] == "player":
-        online = found.players.state(row["id"]).online
-    else:
-        online = time.time() - seen < 3 * found.settings.lease_seconds
+    online = time.time() - seen < 3 * found.settings.lease_seconds
+    capabilities = json.loads(row["capabilities"])
     return {
         "id": row["id"],
         "kind": row["kind"],
         "name": row["name"],
-        "capabilities": json.loads(row["capabilities"]),
+        "capabilities": capabilities,
         "last_seen": seen,
         "online": online,
         "telemetry": telemetry.model_dump(mode="json"),
-        "busy_playing": busy,
+        "busy_playing": busy_playing(found, capabilities.get("same_host_as_server", False)),
         "running": running,
     }
+
+
+def busy_playing(found: Services, same_host: bool) -> bool:
+    """A worker on the stage's machine goes easy on the GPU while a song plays there."""
+    return same_host and found.stage.playing
 
 
 def nodes(found: Services) -> list[dict[str, Any]]:

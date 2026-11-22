@@ -1,0 +1,7 @@
+{
+  "name": "Tele da sala",
+  "layout": "video-lyrics",
+  "theme": "clasico",
+  "display_ms": 35.0,
+  "video_max_height": 720
+}

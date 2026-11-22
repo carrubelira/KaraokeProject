@@ -15,7 +15,7 @@
 	const t = $derived(i18n.t);
 	let capturing = $state<string | null>(null);
 	let first = $state<string | null>(null);
-	let server = $state<{ version: string; fingerprint: string; tls: boolean } | null>(null);
+	let server = $state<{ version: string } | null>(null);
 	const conflicts = $derived(new SvelteSet([...commands.conflicts().values()].flat()));
 	const groups = $derived.by(() => {
 		const map = new SvelteMap<string, typeof commands.commands>();
@@ -86,8 +86,6 @@
 			<dl class="panel-body details">
 				<dt>{t.settings.version}</dt>
 				<dd class="mono">{server?.version ?? '—'}</dd>
-				<dt>{t.devices.fingerprint}</dt>
-				<dd class="mono small">{server?.fingerprint || '—'}</dd>
 			</dl>
 		</section>
 		<section class="panel">

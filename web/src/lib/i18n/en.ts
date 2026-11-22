@@ -45,6 +45,7 @@ export const en: Messages = {
 		undo: 'Undo',
 		redo: 'Redo',
 		toggle: 'Play or pause',
+		start: 'Start',
 		play: 'Play',
 		pause: 'Pause',
 		next: 'Next song',
@@ -59,7 +60,6 @@ export const en: Messages = {
 		pitchReset: 'Original key',
 		stop: 'Stop',
 		search: 'Search',
-		nextScreen: 'Next screen',
 		add: 'Add a song',
 		down: 'Down',
 		up: 'Up',
@@ -83,8 +83,7 @@ export const en: Messages = {
 		export: 'Export video',
 		edit: 'Fix the lyrics',
 		trash: 'Move to trash',
-		enrolWorker: 'Add a processing computer',
-		enrolPlayer: 'Add a screen'
+		enrolWorker: 'Add a processing computer'
 	},
 	palette: {
 		label: 'Search commands',
@@ -92,7 +91,6 @@ export const en: Messages = {
 		empty: 'No results',
 		song: 'Song',
 		worker: 'Processing computer',
-		player: 'Screen',
 		hint: '↑ ↓ to move · Enter to choose · Esc to close'
 	},
 	cheatsheet: {
@@ -103,18 +101,33 @@ export const en: Messages = {
 		connected: 'Server connected',
 		reconnecting: 'Reconnecting…'
 	},
+	screen: {
+		connecting: 'Connecting to the server…',
+		nothing: 'No song is cued yet',
+		upNow: 'Now singing',
+		next: 'Next',
+		downloading: 'Downloading the song',
+		preparing: 'Getting ready…',
+		ready: 'Ready to start',
+		paused: 'Paused',
+		offline: 'No connection to the server',
+		fullscreen: 'Full screen',
+		error: 'This screen cannot show the song',
+		reload: 'Reload'
+	},
 	player: {
-		screen: 'Screen',
-		noScreens: 'No screens',
 		nothing: 'Nothing is playing',
 		states: {
 			idle: 'Stopped',
-			loading: 'Loading',
-			waiting: 'Downloading the song',
+			cueing: 'Getting ready',
+			cued: 'Ready to start',
+			playing: 'Playing',
 			paused: 'Paused',
-			playing: 'Playing'
+			ended: 'Ended',
+			fault: 'No sound'
 		},
-		offline: 'Disconnected',
+		audioDown: 'No audio engine',
+		screensReady: (ready: number, total: number) => `${ready}/${total} screens ready`,
 		next: 'Next',
 		key: 'Key',
 		semitones: (n: number) => `${n > 0 ? '+' : ''}${n}`,
@@ -122,7 +135,7 @@ export const en: Messages = {
 	},
 	playback: {
 		title: 'Playback',
-		description: 'What plays on the chosen screen, and its queue.',
+		description: 'What is on now, the screens and the queue.',
 		queue: 'Queue',
 		queueEmpty: 'The queue is empty. Search for a song above or add it from the Library.',
 		addPlaceholder: 'Search for a song to add it to the queue',
@@ -134,9 +147,9 @@ export const en: Messages = {
 		played: 'Played',
 		onNow: 'Playing',
 		dragHint: 'Drag the rows to change the order',
-		noScreens: 'There is no screen yet.',
-		noScreensHint: 'Add one in Devices and it will appear here.',
-		alerts: 'Alerts on this screen',
+		noScreens: 'No screen is open. Open /pantalla in a browser on the network.',
+		onScreens: (ready: number, total: number) => `${ready}/${total} screens`,
+		alerts: 'Sound alerts',
 		lyrics: 'Lyrics',
 		cache: {
 			absent: 'Not downloaded',
@@ -197,7 +210,7 @@ export const en: Messages = {
 		gap: (s: string) => `${s} s apart`,
 		show: 'View',
 		process: 'Make the karaoke',
-		processTo: (screen: string) => `Make it and queue it on ${screen}`,
+		processToQueue: 'Make it and queue it',
 		discard: 'Discard',
 		queued: (title: string) => `Making the karaoke of “${title}”`
 	},
@@ -308,11 +321,11 @@ export const en: Messages = {
 	},
 	devices: {
 		title: 'Devices',
-		description: 'The computers that make the karaokes and the screens that play them.',
+		description: 'The computers that make the karaokes and the screens that show them.',
 		workers: 'Processing computers',
 		screens: 'Screens',
 		emptyWorkers: 'There is no processing computer. Add one to make karaokes.',
-		emptyScreens: 'There is no screen. Add one to play.',
+		emptyScreens: 'No screen has been opened yet.',
 		name: 'Name',
 		status: 'Status',
 		disconnected: 'Disconnected',
@@ -327,22 +340,42 @@ export const en: Messages = {
 		current: 'Current work',
 		song: 'Song',
 		outputs: 'Outputs',
-		busyPlaying: 'Takes no work while this computer’s screen is playing.',
+		busyPlaying: 'Takes no work while a song plays on this computer.',
 		token: 'Enrolment key (valid once for 24 h)',
 		howWorker: 'Run this on the processing computer:',
-		howPlayer: 'Run this on the screen’s computer:',
-		fingerprint: 'Certificate fingerprint',
+		howScreen: 'Any browser on the network is a screen: open this in it (or in the kiosk).',
+		sync: 'Sync',
+		maxHeight: 'Largest video',
+		preview: 'preview',
+		forget: 'Forget',
 		revoke: 'Remove',
 		revoked: (name: string) => `${name} removed`,
-		lastSeen: (time: string) => `seen ${time} ago`,
-		displays: (n: number) => plural(n, 'en', { one: '# monitor', other: '# monitors' }),
-		soundOutputs: (n: number) =>
-			plural(n, 'en', { one: '# sound output', other: '# sound outputs' })
+		lastSeen: (time: string) => `seen ${time} ago`
 	},
-	playerErrors: {
+	screenStates: {
+		connecting: 'Connecting',
+		idle: 'No song',
+		provisioning: 'Downloading',
+		syncing: 'Syncing',
+		waiting: 'Ready',
+		playing: 'Playing',
+		paused: 'Paused',
+		error: 'Error'
+	},
+	screenFlags: {
+		offline: 'No connection',
+		hidden: 'The tab is hidden',
+		degraded: 'The video cannot keep up',
+		fullscreen: 'Full screen'
+	},
+	stage: {
+		startAnyway: (names: string) =>
+			`These screens are not ready yet: ${names}. Start anyway? They will join as soon as they can.`,
+		stillCueing: 'The sound is still getting the song ready'
+	},
+	audioErrors: {
 		output_failed: 'A sound output could not be opened',
 		output_lost: 'A sound output was disconnected',
-		display_failed: 'A monitor could not be opened',
 		load_failed: 'The song could not be loaded',
 		master_lost: 'The main output was disconnected; playback is paused'
 	},
@@ -357,16 +390,16 @@ export const en: Messages = {
 		duration: 'Length',
 		version: 'Version',
 		inQueue: 'In the queue',
-		added: (title: string, screen: string) => `“${title}” added to the queue of ${screen}`,
+		added: (title: string) => `“${title}” added to the queue`,
 		exporting: (title: string) => `Exporting the video of “${title}”`,
 		trashed: (n: number) =>
 			plural(n, 'en', { one: '# song moved to trash', other: '# songs moved to trash' })
 	},
 	outputs: {
 		title: 'Outputs',
-		description: 'Where the sound goes and what each monitor of the chosen screen shows.',
-		noPlayer: 'Choose a screen in the bottom bar.',
-		displays: 'Monitors',
+		description: 'Where the stage’s sound goes: the sound cards and DACs of this computer.',
+		engineOffline: 'The audio engine (kp-audio) is not running.',
+		screensElsewhere: 'What each screen shows is set in',
 		audio: 'Sound outputs',
 		master: 'Main',
 		matrix: 'Sound',
@@ -384,14 +417,12 @@ export const en: Messages = {
 			video: 'Video only',
 			off: 'Off'
 		},
-		primary: 'primary',
 		shows: 'Shows',
 		theme: 'Lyrics style',
 		save: 'Save',
 		saved: 'Changes saved',
 		unsaved: 'There are unsaved changes',
-		bluetooth: 'Bluetooth: its delay may vary',
-		disconnected: 'disconnected'
+		bluetooth: 'Bluetooth: its delay may vary'
 	},
 	settings: {
 		title: 'Settings',

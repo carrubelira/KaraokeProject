@@ -1,8 +1,10 @@
-"""The FastAPI app (plan v4 §3): API, WebSockets, blobs and the control UI, on one port."""
+"""The FastAPI app (plan v4 §3, decision 011): API, WebSockets, blobs, the console and the
+screens, on one plain HTTP port."""
 
 import asyncio
 import contextlib
 import logging
+import secrets
 from collections.abc import AsyncIterator, Awaitable, Callable
 from importlib import metadata
 from typing import Any
@@ -13,6 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from karaoke_contracts.cas import BlobStore
 from karaoke_contracts.control import QueueItem
+from karaoke_server.audio import AudioEngine, find_engine
 from karaoke_server.auth import Auth
 from karaoke_server.config import Settings
 from karaoke_server.db import Database
@@ -24,7 +27,6 @@ from karaoke_server.errors import (
 )
 from karaoke_server.events import EventHub
 from karaoke_server.library import Library
-from karaoke_server.players import PlayerHub
 from karaoke_server.queue import TaskQueue
 from karaoke_server.queues import Queues, new_item_id
 from karaoke_server.routes import (
@@ -33,23 +35,20 @@ from karaoke_server.routes import (
     jobs,
     library,
     nodes,
-    players,
     server,
     session,
+    stage,
     uploads,
     web,
 )
 from karaoke_server.services import Services
+from karaoke_server.stage import Stage
 from karaoke_server.uploads import Uploads
 
 logger = logging.getLogger(__name__)
-# Messages sent after the request that caused them; kept so none is collected half-way.
-_BACKGROUND: set[asyncio.Task[None]] = set()
 
 
-def build_services(
-    settings: Settings, *, db: Database | None = None, fingerprint: str = ""
-) -> Services:
+def build_services(settings: Settings, *, db: Database | None = None) -> Services:
     settings.ensure_dirs()
     if db is None:
         db = Database(settings.db_path)
@@ -58,28 +57,27 @@ def build_services(
     store = BlobStore(settings.blobs_dir)
     content = Library(db, store, settings.trash_days)
     queues = Queues(db, hub)
-    players = PlayerHub(db, hub, queues, settings.command_lead_seconds)
+    stage_ = Stage(
+        db,
+        hub,
+        queues,
+        content,
+        audio_required=settings.audio != "off",
+        go_lead_seconds=settings.go_lead_seconds,
+        seek_lead_seconds=settings.seek_lead_seconds,
+        upcoming=settings.upcoming,
+    )
 
     def job_done(job: dict[str, Any]) -> dict[str, Any] | None:
         """A finished karaoke becomes (a new version of) a song in the library, and goes to the
-        queue of the screen the operator chose when confirming it."""
+        end of the queue if the operator asked for it when confirming it."""
         manifest = job["result"]["outputs"].get("manifest")
         if job["kind"] != "create" or manifest is None:
             return None
         registered = content.register(manifest)
         hub.publish("content", content=registered)
-        player_id = job["params"].get("queue_on")
-        if player_id:
-            item = QueueItem(id=new_item_id(), content_id=registered["id"])
-            try:
-                saved = queues.add(player_id, [item])
-            except ApiError:
-                logger.warning("player %s is gone: %s not queued", player_id, registered["id"])
-            else:
-                with contextlib.suppress(RuntimeError):  # no event loop: nobody to tell now
-                    sent = asyncio.get_running_loop().create_task(players.send_queue(saved))
-                    _BACKGROUND.add(sent)
-                    sent.add_done_callback(_BACKGROUND.discard)
+        if job["params"].get("add_to_queue"):
+            queues.add([QueueItem(id=new_item_id(), content_id=registered["id"])])
         return {"content_id": registered["id"], "manifest": registered["manifest"]}
 
     return Services(
@@ -98,8 +96,8 @@ def build_services(
         ),
         uploads=Uploads(db, settings.uploads_dir, store, settings.max_upload_bytes),
         queues=queues,
-        players=players,
-        fingerprint=fingerprint,
+        stage=stage_,
+        audio_token=settings.audio_token or "audio_" + secrets.token_urlsafe(24),
     )
 
 
@@ -118,6 +116,26 @@ async def _tidy_daily(found: Services) -> None:
         await asyncio.sleep(86400)
 
 
+def _audio_engine(found: Services) -> AudioEngine | None:
+    """The kp-audio the server keeps running, unless there is to be none (`off`) or someone
+    else starts it (`external`)."""
+    settings = found.settings
+    if settings.audio in ("off", "external"):
+        return None
+    executable = find_engine(settings.audio)
+    if executable is None:
+        found.stage.set_audio_fault(f"kp-audio not found ({settings.audio})")
+        logger.warning("no kp-audio (%s): the stage cannot sound", settings.audio)
+        return None
+    return AudioEngine(
+        executable,
+        server=f"http://127.0.0.1:{settings.port}",
+        token=found.audio_token,
+        store=settings.blobs_dir,
+        on_fault=found.stage.set_audio_fault,
+    )
+
+
 def create_app(settings: Settings, *, services: Services | None = None) -> FastAPI:
     found = services or build_services(settings)
 
@@ -125,10 +143,16 @@ def create_app(settings: Settings, *, services: Services | None = None) -> FastA
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         found.queue.start()
         tidy = asyncio.create_task(_tidy_daily(found))
+        engine = _audio_engine(found)
+        if engine is not None:
+            engine.start()
         try:
             yield
         finally:
             tidy.cancel()
+            if engine is not None:
+                await engine.stop()
+            await found.stage.close()
             await found.queue.stop()
 
     app = FastAPI(
@@ -160,7 +184,7 @@ def create_app(settings: Settings, *, services: Services | None = None) -> FastA
         uploads,
         library,
         jobs,
-        players,
+        stage,
         events,
         server,
     ):

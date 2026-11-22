@@ -12,19 +12,18 @@
 	import Icon from '#lib/console/Icon.svelte';
 	import { live } from '#lib/control/live.svelte.js';
 	import { i18n } from '#lib/i18n';
-	import { addToQueue, library, player, queueOf } from '#lib/shell/actions.svelte.js';
+	import { addToQueue, library } from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
 	import Kbd from '#lib/shell/Kbd.svelte';
 	import { Selection } from '#lib/shell/selection.svelte.js';
 
 	let query = $state('');
 	const t = $derived(i18n.t);
-	const target = $derived(player());
 	const songs = $derived(
 		rank(query, live.state.contents, (c) => `${c.title} ${c.artist ?? ''} ${c.language}`, 5000)
 	);
 	const selection = new Selection(() => songs.map((s) => s.id));
-	const queued = $derived(new Set(queueOf(target?.id)?.items.map((i) => i.content_id) ?? []));
+	const queued = $derived(new Set(live.state.queue.items.map((i) => i.content_id)));
 
 	$effect(() => {
 		void songs.length;
@@ -197,7 +196,7 @@
 								<span class="title">
 									<strong class="truncate">{song.title}</strong>
 									{#if queued.has(song.id)}
-										<span class="badge ok plain" title={target?.name}>{t.library.inQueue}</span>
+										<span class="badge ok plain">{t.library.inQueue}</span>
 									{/if}
 								</span>
 							</td>

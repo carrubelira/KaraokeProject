@@ -1,28 +1,30 @@
 <script lang="ts">
 	/**
-	 * Devices: the computers that make the karaokes and the screens that play them, each one a
+	 * Devices: the computers that make the karaokes and the screens that show them, each one a
 	 * row. Processing computers show their GPU, its memory, CPU, memory and temperature (every
-	 * heartbeat) and what they are making; screens show what they play, their monitors and sound
-	 * outputs and whatever does not work on them. New ones are added from here, with the exact
-	 * command to paste.
+	 * heartbeat) and what they are making; new ones are added from here, with the exact command
+	 * to paste. Screens are any browser on the LAN that opens /pantalla (decision 011): each shows
+	 * its state, how well it keeps time and what it downloads, and here it is named and told
+	 * what to show.
 	 */
 	import { onMount } from 'svelte';
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import Icon from '#lib/console/Icon.svelte';
-	import { onScreen, toneOf } from '#lib/console/screen.js';
+	import { screenName, screenTone } from '#lib/console/stage.js';
+	import type { ScreenConfig } from '#lib/contracts';
 	import { api } from '#lib/control/api.js';
 	import { live } from '#lib/control/live.svelte.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
-	import type { NodeView } from '#lib/control/types.js';
+	import type { NodeView, ScreenView } from '#lib/control/types.js';
 	import { i18n } from '#lib/i18n';
 	import { fail } from '#lib/shell/actions.svelte.js';
 	import { ago, megabytes } from '#lib/shell/format.js';
 
 	const t = $derived(i18n.t);
 	const workers = $derived(live.state.nodes.filter((n) => n.kind === 'worker'));
-	const screens = $derived(live.state.players);
-	let token = $state<{ kind: 'worker' | 'player'; token: string } | null>(null);
-	let server = $state<{ fingerprint: string; version: string } | null>(null);
+	const screens = $derived(live.state.screens);
+	const THEMES = ['clasico', 'moderno', 'contraste'];
+	let token = $state<string | null>(null);
 
 	function tasksOf(node: NodeView) {
 		return node.running
@@ -34,11 +36,25 @@
 			.filter((x) => x !== null);
 	}
 
-	async function enrol(kind: 'worker' | 'player') {
+	async function enrol() {
 		try {
-			const made = await api.enrollment(kind);
-			token = { kind, token: made.token };
-			server ??= await api.server();
+			token = (await api.enrollment()).token;
+		} catch (error) {
+			fail(error);
+		}
+	}
+
+	async function configure(screen: ScreenView, change: Partial<ScreenConfig>) {
+		try {
+			await api.setScreen(screen.id, { ...screen.config, ...change });
+		} catch (error) {
+			fail(error);
+		}
+	}
+
+	async function forget(screen: ScreenView) {
+		try {
+			await api.forgetScreen(screen.id);
 		} catch (error) {
 			fail(error);
 		}
@@ -53,13 +69,8 @@
 		}
 	}
 
-	const command = $derived.by(() => {
-		if (!token || !server) return '';
-		const base = location.origin;
-		return token.kind === 'worker'
-			? `karaoke-worker enroll ${base} ${token.token} --fingerprint ${server.fingerprint}`
-			: `kp-player enroll ${base} ${token.token} --fingerprint ${server.fingerprint} --name sala`;
-	});
+	const command = $derived(token ? `karaoke-worker enroll ${location.origin} ${token}` : '');
+	const screenUrl = $derived(`${location.origin}/pantalla`);
 
 	const ratio = (used: number | null | undefined, total: number | null | undefined) =>
 		used === null || used === undefined || !total ? null : used / total;
@@ -88,9 +99,9 @@
 				</div>
 			</header>
 			<div class="panel-body enrol">
-				<p class="muted">{token.kind === 'worker' ? t.devices.howWorker : t.devices.howPlayer}</p>
+				<p class="muted">{t.devices.howWorker}</p>
 				<div class="code-row">
-					<code class="code">{command || token.token}</code>
+					<code class="code">{command}</code>
 					<button
 						class="btn"
 						onclick={() =>
@@ -99,11 +110,6 @@
 						{t.common.copy}
 					</button>
 				</div>
-				{#if server}
-					<p class="faint small">
-						{t.devices.fingerprint}: <span class="mono">{server.fingerprint}</span>
-					</p>
-				{/if}
 			</div>
 		</section>
 	{/if}
@@ -113,7 +119,7 @@
 			<h2>{t.devices.workers}</h2>
 			<span class="muted small">{workers.filter((w) => w.online).length} / {workers.length}</span>
 			<div class="actions">
-				<button class="btn" onclick={() => enrol('worker')}>
+				<button class="btn" onclick={enrol}>
 					<Icon name="add" size={16} />
 					{t.cmd.enrolWorker}
 				</button>
@@ -216,44 +222,64 @@
 	<section class="panel">
 		<header class="panel-header">
 			<h2>{t.devices.screens}</h2>
-			<span class="muted small">{screens.filter((p) => p.online).length} / {screens.length}</span>
-			<div class="actions">
-				<button class="btn" onclick={() => enrol('player')}>
-					<Icon name="add" size={16} />
-					{t.cmd.enrolPlayer}
+			<span class="muted small">{screens.filter((x) => x.online).length} / {screens.length}</span>
+		</header>
+		<div class="panel-body enrol">
+			<p class="muted">{t.devices.howScreen}</p>
+			<div class="code-row">
+				<code class="code">{screenUrl}</code>
+				<button
+					class="btn"
+					onclick={() =>
+						navigator.clipboard.writeText(screenUrl).then(() => toasts.show(t.common.copied))}
+				>
+					{t.common.copy}
 				</button>
 			</div>
-		</header>
+		</div>
 		{#if screens.length}
 			<table class="table">
 				<thead>
 					<tr>
 						<th>{t.devices.name}</th>
 						<th>{t.devices.status}</th>
-						<th>{t.devices.song}</th>
-						<th>{t.devices.outputs}</th>
+						<th>{t.devices.sync}</th>
+						<th>{t.outputs.shows}</th>
+						<th>{t.outputs.theme}</th>
+						<th>{t.outputs.calibration}</th>
+						<th>{t.devices.maxHeight}</th>
 						<th><span class="sr-only">{t.common.more}</span></th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each screens as p (p.id)}
-						{@const on = onScreen(live.state, p)}
-						{@const downloads = p.status.cache.filter((c) => c.state !== 'ready')}
-						<tr class:off={!p.online}>
-							<td><strong>{p.name}</strong></td>
+					{#each screens as screen (screen.id)}
+						{@const status = screen.status}
+						{@const downloads = (status?.cache ?? []).filter((c) => c.state !== 'ready')}
+						<tr class:off={!screen.online}>
 							<td>
-								<span class="badge {toneOf(p)}">
-									{p.online ? t.player.states[p.status.state] : t.devices.disconnected}
-								</span>
+								<input
+									class="field name"
+									value={screen.config.name ?? ''}
+									placeholder={screen.id}
+									aria-label={t.devices.name}
+									onchange={(e) => configure(screen, { name: e.currentTarget.value || null })}
+								/>
+								<div class="faint small mono truncate">
+									{screen.hello ? `${screen.hello.width}×${screen.hello.height}` : ''}
+									{screen.hello?.preview ? ` · ${t.devices.preview}` : ''}
+								</div>
 							</td>
 							<td>
-								{#if on.song}
-									<div class="truncate">{on.song.title}</div>
-									<div class="muted small truncate">{on.song.artist ?? ''}</div>
-								{:else}
-									<span class="faint">—</span>
-								{/if}
-								{#each downloads as c (c.content_id)}
+								<span class="badge {screenTone(screen)}">
+									{screen.online && status ? t.screenStates[status.state] : t.devices.disconnected}
+								</span>
+								{#each status?.flags ?? [] as flag (flag)}
+									{#if flag !== 'fullscreen'}
+										<div class="warn-text small">{t.screenFlags[flag]}</div>
+									{/if}
+								{/each}
+								{#if status?.error}<div class="warn-text small">{status.error}</div>{/if}
+								{#each downloads as c (c.manifest)}
 									<div class="small muted">
 										{t.playback.cache[c.state]} ·
 										{live.state.contents.find((x) => x.id === c.content_id)?.title ?? c.content_id}
@@ -261,23 +287,69 @@
 									</div>
 								{/each}
 							</td>
+							<td class="mono small muted">
+								{#if status && status.sync.error_ms !== null}
+									±{status.sync.error_ms.toFixed(1)} ms
+								{/if}
+								{#if status?.sync.rtt_ms}<div>RTT {status.sync.rtt_ms.toFixed(1)} ms</div>{/if}
+							</td>
 							<td>
-								<div class="muted">
-									{t.devices.displays(p.status.outputs.displays.length)} ·
-									{t.devices.soundOutputs(p.status.outputs.audio.length)}
-								</div>
-								{#each p.status.errors ?? [] as error, i (i)}
-									<div class="warn-text small">
-										{t.playerErrors[error.code] ?? error.code}{error.device
-											? ` · ${error.device}`
-											: ''}
-									</div>
-								{/each}
+								<select
+									class="field"
+									value={screen.config.layout}
+									aria-label={`${t.outputs.shows}: ${screenName(screen)}`}
+									onchange={(e) =>
+										configure(screen, {
+											layout: e.currentTarget.value as ScreenConfig['layout']
+										})}
+								>
+									{#each Object.entries(t.outputs.layout) as [value, name] (value)}
+										<option {value}>{name}</option>
+									{/each}
+								</select>
+							</td>
+							<td>
+								<select
+									class="field"
+									value={screen.config.theme}
+									aria-label={`${t.outputs.theme}: ${screenName(screen)}`}
+									onchange={(e) => configure(screen, { theme: e.currentTarget.value })}
+								>
+									{#each THEMES as theme (theme)}<option value={theme}>{theme}</option>{/each}
+								</select>
+							</td>
+							<td>
+								<input
+									class="field num"
+									type="number"
+									step="1"
+									value={screen.config.display_ms}
+									aria-label={`${t.outputs.calibration}: ${screenName(screen)}`}
+									onchange={(e) =>
+										configure(screen, { display_ms: Number(e.currentTarget.value) || 0 })}
+								/>
+							</td>
+							<td>
+								<select
+									class="field"
+									value={String(screen.config.video_max_height ?? '')}
+									aria-label={`${t.devices.maxHeight}: ${screenName(screen)}`}
+									onchange={(e) =>
+										configure(screen, {
+											video_max_height: e.currentTarget.value ? Number(e.currentTarget.value) : null
+										})}
+								>
+									<option value="">—</option>
+									<option value="720">720p</option>
+									<option value="1080">1080p</option>
+								</select>
 							</td>
 							<td class="row-actions">
-								<button class="btn subtle danger" onclick={() => revoke(p)}>
-									{t.devices.revoke}
-								</button>
+								{#if !screen.online}
+									<button class="btn subtle danger" onclick={() => forget(screen)}>
+										{t.devices.forget}
+									</button>
+								{/if}
 							</td>
 						</tr>
 					{/each}
@@ -338,6 +410,15 @@
 	}
 	.current {
 		max-width: 260px;
+	}
+	.name {
+		width: 11rem;
+		height: 30px;
+	}
+	.num {
+		width: 5rem;
+		height: 30px;
+		font: 12.5px var(--mono);
 	}
 	.warn-text {
 		color: var(--warn);

@@ -595,7 +595,7 @@ class TaskQueue:
         if row is None:
             raise ApiError(409, "bad_state", "Nothing is waiting for a review")
         params = json.loads(row["params"])
-        queue_on = choice.pop("queue_on", None)
+        add_to_queue = bool(choice.pop("add_to_queue", False))
         params.update({k: v for k, v in choice.items() if k != "lyrics" and v is not None})
         params["lyrics"] = choice.get("lyrics")  # None: the engine transcribes the song
         params["lrclib"] = False  # the review already chose the lyrics
@@ -607,8 +607,8 @@ class TaskQueue:
             )
             self.db.execute(
                 "UPDATE jobs SET state = 'active', title = COALESCE(?, title),"
-                " params = json_set(params, '$.queue_on', ?) WHERE id = ?",
-                (choice.get("title"), queue_on, job_id),
+                " params = json_set(params, '$.add_to_queue', json(?)) WHERE id = ?",
+                (choice.get("title"), "true" if add_to_queue else "false", job_id),
             )
         self._wake()
         self._touch_job(job_id)

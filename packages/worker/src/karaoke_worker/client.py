@@ -1,17 +1,8 @@
-"""The worker's line to the server: HTTPS pinned to the server's certificate, and blobs.
+"""The worker's line to the server: plain HTTP on the LAN (decision 011), and blobs."""
 
-The server's certificate is self-signed. When the worker enrols it fetches it and checks its
-SHA-256 against the fingerprint the operator copied from the server (`karaoke-server
-fingerprint`); from then on it trusts that one certificate and nothing else, whatever name or
-address the server is reached at (LAN or Tailscale).
-"""
-
-import hashlib
 import logging
-import ssl
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
 
 import httpx
 
@@ -33,50 +24,10 @@ logger = logging.getLogger(__name__)
 CHUNK = 1 << 20
 
 
-class FingerprintMismatchError(ConnectionError):
-    pass
-
-
-def fetch_certificate(server: str) -> str:
-    """The PEM certificate the server presents (no trust involved: it is checked next)."""
-    parts = urlsplit(server)
-    return ssl.get_server_certificate((parts.hostname or "localhost", parts.port or 443))
-
-
-def pem_fingerprint(pem: str) -> str:
-    return hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).hexdigest()
-
-
-def pinned_context(cert_file: Path) -> ssl.SSLContext:
-    context = ssl.create_default_context(cafile=str(cert_file))
-    # The name in the URL may be any of the server's (a LAN IP, a Tailscale name): the pinned
-    # certificate is what matters.
-    context.check_hostname = False
-    context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
-    return context
-
-
-def enrol(
-    server: str,
-    token: str,
-    enrollment: Enrollment,
-    cert_file: Path,
-    fingerprint: str | None,
-) -> Enrolled:
-    """Enrols with a one-time token; keeps the server's certificate in `cert_file`."""
-    verify: ssl.SSLContext | bool = True
-    if server.startswith("https://"):
-        pem = fetch_certificate(server)
-        seen = pem_fingerprint(pem)
-        if fingerprint is not None and seen != fingerprint.lower().replace(":", ""):
-            raise FingerprintMismatchError(f"the server presents {seen}, not {fingerprint}")
-        if fingerprint is None:
-            logger.warning("trusting the server's certificate %s on first use", seen)
-        cert_file.parent.mkdir(parents=True, exist_ok=True)
-        cert_file.write_text(pem, encoding="ascii")
-        verify = pinned_context(cert_file)
+def enrol(server: str, token: str, enrollment: Enrollment) -> Enrolled:
+    """Enrols with a one-time token; the answer is this worker's own credential."""
     body = enrollment.model_copy(update={"token": token}).model_dump(mode="json")
-    with httpx.Client(base_url=server, verify=verify, timeout=30) as client:
+    with httpx.Client(base_url=server, timeout=30) as client:
         answer = client.post("/api/nodes/enroll", json=body)
         answer.raise_for_status()
         return Enrolled.model_validate(answer.json())
@@ -87,16 +38,11 @@ class ServerClient:
         self,
         server: str,
         credential: str,
-        cert_file: Path | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
-        verify: ssl.SSLContext | bool = True
-        if cert_file is not None and cert_file.is_file() and server.startswith("https://"):
-            verify = pinned_context(cert_file)
         self.http = httpx.Client(
             base_url=server,
             headers={"Authorization": f"Bearer {credential}"},
-            verify=verify,
             timeout=httpx.Timeout(30, read=60),
             transport=transport,
         )
@@ -118,13 +64,10 @@ class ServerClient:
         ).json()
         return data
 
-    def lease(
-        self, free_vram_mb: int | None, busy_playing: bool, wait: bool = True
-    ) -> Lease | None:
+    def lease(self, free_vram_mb: int | None, wait: bool = True) -> Lease | None:
+        # While a song plays on the server's machine, the server holds GPU work back itself.
         answer = self._json(
-            "POST",
-            "/api/worker/lease",
-            json={"free_vram_mb": free_vram_mb, "busy_playing": busy_playing, "wait": wait},
+            "POST", "/api/worker/lease", json={"free_vram_mb": free_vram_mb, "wait": wait}
         )
         return None if answer.status_code == 204 else Lease.model_validate(answer.json())
 

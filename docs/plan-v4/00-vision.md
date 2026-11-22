@@ -8,21 +8,21 @@
 
 | Tema | Decisión |
 |---|---|
-| Red | Red local y Tailscale. Servidor y reproductor, normalmente en la misma LAN |
-| Topología | Servidor, worker y reproductor **pueden ser el mismo PC**, o estar separados |
-| Reproductores | **Windows (NVIDIA) y macOS**; Linux solo para desarrollo. Caso real: **un** reproductor, **2 pantallas**, **1 o 2 salidas de audio** |
-| Reproductor | Nativo (Rust), sin navegador |
+| Red | Red local: servidor, pantallas y audio siempre en la misma LAN. **HTTP sin TLS** (`decisiones/011`) |
+| Topología | Servidor y worker **pueden ser el mismo PC**, o estar separados; el audio sale del PC del servidor |
+| Reproductor | **Uno por backend** (`decisiones/011`): el audio, en el backend (`kp-audio`, Rust), a 1 o 2 salidas; la imagen, en **pantallas web** sincronizadas (navegadores en Windows, Linux y macOS, y kioscos Tauri en Raspberry Pi) |
+| Arranque | Ningún contenido suena hasta que lo ordena el operador |
 | Workers | Linux y Windows nativos (sin WSL), GPU NVIDIA (CUDA), modelo *pull* |
 | Micrófonos | Fuera del sistema: mezclador o monitor directo de la tarjeta |
 | Tono | Se mantiene, aplicado en el reproductor a la voz guía y a la música |
 | Medición | Solo por software: banco simulado (`decisiones/002`) y diagnóstico en el aparato |
 | Globo de inicio | Se mantiene, de noche, con Galicia en su contexto geográfico real |
 | Se mantienen | Editor de letra y tiempos (con mini reproductor web), exportación MP4 |
-| Se descartan | PWA, reproductor web de uso general, modo fiesta, zonas de red |
+| Se descartan | PWA, modo fiesta, zonas de red, TLS |
 
-La sincronización **entre varios reproductores** no es un requisito: el protocolo la permite
-(órdenes con marca temporal, ancla de posición), pero no se implementa. La prioridad es la sincronía
-**dentro** del reproductor: audio, vídeo y subtítulos en todas sus salidas.
+La sincronía **entre todas las pantallas** y el audio es un requisito (`decisiones/011`): el
+servidor publica la sesión con un ancla en su reloj monótono, `kp-audio` suena en ese instante y
+cada pantalla dibuja cada fotograma para el instante en que se verá.
 
 ## 2. Piezas
 
@@ -30,8 +30,12 @@ La sincronización **entre varios reproductores** no es un requisito: el protoco
  Control (web) ◄──WS/HTTP──► SERVIDOR ◄──pull──► WORKERS (Win/Linux, GPU)
                                │  ▲
                                │  └── CAS + cola + registro de nodos
-                               └──sync de contenidos + órdenes──► REPRODUCTOR
+                               ├──WS local──► kp-audio (DAC 1, DAC 2)
+                               └──WS: hora + sesión──► PANTALLAS WEB × N
 ```
+
+> Desde `decisiones/011`, el «reproductor» es el conjunto de `kp-audio` en el backend y las
+> pantallas web. Donde este documento dice reproductor nativo con ventanas, manda la 011.
 
 - **Servidor** (Python/FastAPI, nativo en Windows y Linux): fuente de verdad. No importa torch ni
   modelos, igual que en v3.
@@ -97,6 +101,10 @@ Se reutiliza: `db.py`, `library.py`, `jobs/intake.py` (subidas en streaming), `j
 - Contratos en Pydantic → JSON Schema → tipos TS y Rust (`typify`). Los esquemas son la fuente.
 
 ## 6. Reproductor
+
+> **Sustituido en parte por `decisiones/011`**: el audio (reloj, salidas, enrutado, tono,
+> calibración de audio) sigue como aquí, en `kp-audio` en el backend. Las pantallas, el vídeo y la
+> letra pasan a la web, y la calibración de pantalla, a la configuración de cada pantalla.
 
 ### Tecnología
 Rust, con pipeline propio (`decisiones/001`): `cpal` (WASAPI y CoreAudio), Opus, ffmpeg con

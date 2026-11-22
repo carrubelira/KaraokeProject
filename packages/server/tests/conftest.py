@@ -19,7 +19,11 @@ DEMO = REPO / "fixtures" / "packages" / "demo-sintetico"
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     s = Settings.from_env(
-        data_dir=tmp_path / "data", web_dir=tmp_path / "web", tls=False, lease_wait_seconds=0.0
+        data_dir=tmp_path / "data",
+        web_dir=tmp_path / "web",
+        audio="external",
+        audio_token="audio-test",
+        lease_wait_seconds=0.0,
     )
     s.ensure_dirs()
     return s
@@ -36,7 +40,7 @@ def db(settings: Settings) -> Database:
 def services(settings: Settings, db: Database) -> Services:
     from karaoke_server.app import build_services
 
-    return build_services(settings, db=db, fingerprint="f" * 64)
+    return build_services(settings, db=db)
 
 
 @pytest.fixture

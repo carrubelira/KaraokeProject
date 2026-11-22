@@ -45,6 +45,7 @@ export const gl = {
 		undo: 'Desfacer',
 		redo: 'Refacer',
 		toggle: 'Reproducir ou pausar',
+		start: 'Comezar',
 		play: 'Reproducir',
 		pause: 'Pausar',
 		next: 'Seguinte canción',
@@ -59,7 +60,6 @@ export const gl = {
 		pitchReset: 'Ton orixinal',
 		stop: 'Parar',
 		search: 'Buscar',
-		nextScreen: 'Seguinte pantalla',
 		add: 'Engadir unha canción',
 		down: 'Abaixo',
 		up: 'Arriba',
@@ -83,8 +83,7 @@ export const gl = {
 		export: 'Exportar vídeo',
 		edit: 'Corrixir a letra',
 		trash: 'Mandar á papeleira',
-		enrolWorker: 'Engadir un equipo de procesado',
-		enrolPlayer: 'Engadir unha pantalla'
+		enrolWorker: 'Engadir un equipo de procesado'
 	},
 	palette: {
 		label: 'Buscar ordes',
@@ -92,7 +91,6 @@ export const gl = {
 		empty: 'Non hai resultados',
 		song: 'Canción',
 		worker: 'Equipo de procesado',
-		player: 'Pantalla',
 		hint: '↑ ↓ para moverte · Intro para escoller · Esc para pechar'
 	},
 	cheatsheet: {
@@ -103,18 +101,33 @@ export const gl = {
 		connected: 'Servidor conectado',
 		reconnecting: 'Reconectando…'
 	},
+	screen: {
+		connecting: 'Conectando co servidor…',
+		nothing: 'Aínda non hai ningunha canción preparada',
+		upNow: 'Agora canta',
+		next: 'Despois',
+		downloading: 'Descargando a canción',
+		preparing: 'Preparando…',
+		ready: 'Lista para comezar',
+		paused: 'En pausa',
+		offline: 'Sen conexión co servidor',
+		fullscreen: 'Pantalla completa',
+		error: 'Esta pantalla non pode mostrar a canción',
+		reload: 'Volver cargar'
+	},
 	player: {
-		screen: 'Pantalla',
-		noScreens: 'Sen pantallas',
 		nothing: 'Non se está a reproducir nada',
 		states: {
-			idle: 'Parada',
-			loading: 'Cargando',
-			waiting: 'Descargando a canción',
+			idle: 'Parado',
+			cueing: 'Preparando',
+			cued: 'Listo para comezar',
+			playing: 'Reproducindo',
 			paused: 'En pausa',
-			playing: 'Reproducindo'
-		},
-		offline: 'Desconectada',
+			ended: 'Rematou',
+			fault: 'Sen son'
+		} as Record<string, string>,
+		audioDown: 'Sen motor de son',
+		screensReady: (ready: number, total: number) => `${ready}/${total} pantallas listas`,
 		next: 'Despois',
 		key: 'Ton',
 		semitones: (n: number) => `${n > 0 ? '+' : ''}${n}`,
@@ -122,7 +135,7 @@ export const gl = {
 	},
 	playback: {
 		title: 'Reprodución',
-		description: 'O que soa na pantalla escollida e a súa cola.',
+		description: 'O que soa agora, as pantallas e a cola.',
 		queue: 'Cola',
 		queueEmpty:
 			'A cola está baleira. Busca unha canción aquí enriba ou engádea dende a Biblioteca.',
@@ -135,9 +148,9 @@ export const gl = {
 		played: 'Xa soou',
 		onNow: 'Soando',
 		dragHint: 'Arrastra as filas para cambiar a orde',
-		noScreens: 'Aínda non hai ningunha pantalla.',
-		noScreensHint: 'Engade unha en Equipos e aparecerá aquí.',
-		alerts: 'Avisos desta pantalla',
+		noScreens: 'Ningunha pantalla aberta. Abre /pantalla nun navegador da rede.',
+		onScreens: (ready: number, total: number) => `${ready}/${total} pantallas`,
+		alerts: 'Avisos do son',
 		lyrics: 'Letra',
 		cache: {
 			absent: 'Sen descargar',
@@ -199,7 +212,7 @@ export const gl = {
 		gap: (s: string) => `${s} s de diferenza`,
 		show: 'Ver',
 		process: 'Crear o karaoke',
-		processTo: (screen: string) => `Crear e engadir á cola de ${screen}`,
+		processToQueue: 'Crear e engadir á cola',
 		discard: 'Descartar',
 		queued: (title: string) => `Creando o karaoke de «${title}»`
 	},
@@ -316,11 +329,11 @@ export const gl = {
 	} as Record<string, { title: string; hint: string }>,
 	devices: {
 		title: 'Equipos',
-		description: 'Os ordenadores que crean os karaokes e as pantallas que os reproducen.',
+		description: 'Os ordenadores que crean os karaokes e as pantallas que os mostran.',
 		workers: 'Equipos de procesado',
 		screens: 'Pantallas',
 		emptyWorkers: 'Non hai ningún equipo de procesado. Engade un para crear karaokes.',
-		emptyScreens: 'Non hai ningunha pantalla. Engade unha para reproducir.',
+		emptyScreens: 'Aínda non se abriu ningunha pantalla.',
 		name: 'Nome',
 		status: 'Estado',
 		disconnected: 'Desconectado',
@@ -335,22 +348,42 @@ export const gl = {
 		current: 'Traballo actual',
 		song: 'Canción',
 		outputs: 'Saídas',
-		busyPlaying: 'Non colle traballo mentres a pantalla deste ordenador reproduce.',
+		busyPlaying: 'Non colle traballo mentres soa unha canción neste ordenador.',
 		token: 'Clave de alta (vale unha vez durante 24 h)',
 		howWorker: 'Executa isto no equipo de procesado:',
-		howPlayer: 'Executa isto no ordenador da pantalla:',
-		fingerprint: 'Pegada do certificado',
+		howScreen: 'Calquera navegador da rede é unha pantalla: abre isto nel (ou no quiosco).',
+		sync: 'Sincronía',
+		maxHeight: 'Vídeo máximo',
+		preview: 'vista previa',
+		forget: 'Esquecer',
 		revoke: 'Retirar',
 		revoked: (name: string) => `${name} retirado`,
-		lastSeen: (time: string) => `visto hai ${time}`,
-		displays: (n: number) => plural(n, 'gl', { one: '# monitor', other: '# monitores' }),
-		soundOutputs: (n: number) =>
-			plural(n, 'gl', { one: '# saída de son', other: '# saídas de son' })
+		lastSeen: (time: string) => `visto hai ${time}`
 	},
-	playerErrors: {
+	screenStates: {
+		connecting: 'Conectando',
+		idle: 'Sen canción',
+		provisioning: 'Descargando',
+		syncing: 'Sincronizando',
+		waiting: 'Lista',
+		playing: 'Reproducindo',
+		paused: 'En pausa',
+		error: 'Erro'
+	} as Record<string, string>,
+	screenFlags: {
+		offline: 'Sen conexión',
+		hidden: 'A pestana está oculta',
+		degraded: 'O vídeo non dá seguido o ritmo',
+		fullscreen: 'Pantalla completa'
+	} as Record<string, string>,
+	stage: {
+		startAnyway: (names: string) =>
+			`Estas pantallas aínda non están listas: ${names}. Comezar igual? Incorporaranse en canto poidan.`,
+		stillCueing: 'O son aínda está preparando a canción'
+	},
+	audioErrors: {
 		output_failed: 'Non se puido abrir unha saída de son',
 		output_lost: 'Desconectouse unha saída de son',
-		display_failed: 'Non se puido abrir un monitor',
 		load_failed: 'Non se puido cargar a canción',
 		master_lost: 'Desconectouse a saída principal; a reprodución está en pausa'
 	} as Record<string, string>,
@@ -365,16 +398,16 @@ export const gl = {
 		duration: 'Duración',
 		version: 'Versión',
 		inQueue: 'Na cola',
-		added: (title: string, screen: string) => `«${title}» engadida á cola de ${screen}`,
+		added: (title: string) => `«${title}» engadida á cola`,
 		exporting: (title: string) => `Exportando o vídeo de «${title}»`,
 		trashed: (n: number) =>
 			plural(n, 'gl', { one: '# canción na papeleira', other: '# cancións na papeleira' })
 	},
 	outputs: {
 		title: 'Saídas',
-		description: 'Por onde sae o son e que mostra cada monitor da pantalla escollida.',
-		noPlayer: 'Escolle unha pantalla na barra inferior.',
-		displays: 'Monitores',
+		description: 'Por onde sae o son do escenario: as tarxetas de son e DAC deste ordenador.',
+		engineOffline: 'O motor de son (kp-audio) non está en marcha.',
+		screensElsewhere: 'O que mostra cada pantalla axústase en',
 		audio: 'Saídas de son',
 		master: 'Principal',
 		matrix: 'Son',
@@ -392,14 +425,12 @@ export const gl = {
 			video: 'Só o vídeo',
 			off: 'Apagado'
 		} as Record<string, string>,
-		primary: 'principal',
 		shows: 'Mostra',
 		theme: 'Estilo da letra',
 		save: 'Gardar',
 		saved: 'Cambios gardados',
 		unsaved: 'Hai cambios sen gardar',
-		bluetooth: 'Bluetooth: o atraso pode variar',
-		disconnected: 'desconectado'
+		bluetooth: 'Bluetooth: o atraso pode variar'
 	},
 	settings: {
 		title: 'Axustes',

@@ -1655,25 +1655,22 @@
         }
       }
     },
-    "/api/players": {
+    "/api/stage": {
       "get": {
         "tags": [
-          "players"
+          "stage"
         ],
-        "summary": "List Players",
-        "operationId": "list_players_api_players_get",
+        "summary": "View",
+        "operationId": "view_api_stage_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "type": "array",
-                  "title": "Response List Players Api Players Get"
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response View Api Stage Get"
                 }
               }
             }
@@ -1681,33 +1678,22 @@
         }
       }
     },
-    "/api/players/{player_id}/config": {
-      "put": {
+    "/api/stage/commands": {
+      "post": {
         "tags": [
-          "players"
+          "stage"
         ],
-        "summary": "Set Config",
-        "operationId": "set_config_api_players__player_id__config_put",
-        "parameters": [
-          {
-            "name": "player_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Player Id"
-            }
-          }
-        ],
+        "summary": "Command",
+        "operationId": "command_api_stage_commands_post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlayerConfig"
+                "$ref": "#/components/schemas/Order"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -1715,7 +1701,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PlayerConfig"
+                  "$ref": "#/components/schemas/Session"
                 }
               }
             }
@@ -1733,24 +1719,54 @@
         }
       }
     },
-    "/api/players/{player_id}/queue": {
-      "get": {
+    "/api/stage/audio": {
+      "put": {
         "tags": [
-          "players"
+          "stage"
         ],
-        "summary": "Get Queue",
-        "operationId": "get_queue_api_players__player_id__queue_get",
-        "parameters": [
-          {
-            "name": "player_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Player Id"
+        "summary": "Set Audio",
+        "operationId": "set_audio_api_stage_audio_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
+        }
+      }
+    },
+    "/api/stage/queue": {
+      "get": {
+        "tags": [
+          "stage"
         ],
+        "summary": "Get Queue",
+        "operationId": "get_queue_api_stage_queue_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1761,6 +1777,201 @@
                 }
               }
             }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Save Queue",
+        "description": "Rewrites the queue (reorder, remove, change an item) over the version it was read at.",
+        "operationId": "save_queue_api_stage_queue_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Queue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage/queue/items": {
+      "post": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Add To Queue",
+        "description": "Adds songs to the end (or the front) of the queue as it is now: no version to match.",
+        "operationId": "add_to_queue_api_stage_queue_items_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewItems"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/{screen_id}/config": {
+      "put": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Set Screen Config",
+        "operationId": "set_screen_config_api_screens__screen_id__config_put",
+        "parameters": [
+          {
+            "name": "screen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Screen Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/{screen_id}": {
+      "delete": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Forget Screen",
+        "operationId": "forget_screen_api_screens__screen_id__delete",
+        "parameters": [
+          {
+            "name": "screen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Screen Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/blobs/{sha256}": {
+      "get": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Screen Blob",
+        "description": "A blob of a song on the stage or in its queue, for any screen on the LAN; `Range`\nworks, so a download resumes.",
+        "operationId": "screen_blob_api_screens_blobs__sha256__get",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -1774,149 +1985,26 @@
           }
         }
       },
-      "put": {
+      "head": {
         "tags": [
-          "players"
+          "stage"
         ],
-        "summary": "Save Queue",
-        "description": "Rewrites the queue (reorder, remove, change an item) over the version it was read at.",
-        "operationId": "save_queue_api_players__player_id__queue_put",
+        "summary": "Screen Blob Head",
+        "operationId": "screen_blob_head_api_screens_blobs__sha256__head",
         "parameters": [
           {
-            "name": "player_id",
+            "name": "sha256",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Player Id"
+              "title": "Sha256"
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Queue"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Queue"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/players/{player_id}/queue/items": {
-      "post": {
-        "tags": [
-          "players"
-        ],
-        "summary": "Add To Queue",
-        "description": "Adds songs to the end (or the front) of the queue as it is now: no version to match.",
-        "operationId": "add_to_queue_api_players__player_id__queue_items_post",
-        "parameters": [
-          {
-            "name": "player_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Player Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewItems"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Queue"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/players/{player_id}/commands": {
-      "post": {
-        "tags": [
-          "players"
-        ],
-        "summary": "Command",
-        "operationId": "command_api_players__player_id__commands_post",
-        "parameters": [
-          {
-            "name": "player_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Player Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Order"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PlayerCommand"
-                }
-              }
-            }
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -2043,7 +2131,26 @@
           "instant"
         ],
         "title": "Anchor",
-        "description": "A song position that holds at an instant (µs on the server's clock) and moves at a rate."
+        "description": "A song position that holds at an instant (µs on the server's monotonic clock) and moves\nat a rate (0 paused, 1 playing)."
+      },
+      "AudioConfig": {
+        "properties": {
+          "routing": {
+            "$ref": "#/components/schemas/Routing"
+          },
+          "calibration_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Calibration Ms",
+            "description": "Per stable device id: how late it really is, beyond what the OS reports."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AudioConfig",
+        "description": "How `kp-audio` sends the stems to the backend's sound cards."
       },
       "AudioInfo": {
         "properties": {
@@ -2131,28 +2238,6 @@
         ],
         "title": "Blob"
       },
-      "Calibration": {
-        "properties": {
-          "audio_ms": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "type": "object",
-            "title": "Audio Ms"
-          },
-          "display_ms": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "type": "object",
-            "title": "Display Ms"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "Calibration",
-        "description": "Per stable device id: how late it really is, beyond what the OS reports."
-      },
       "Capabilities": {
         "properties": {
           "os": {
@@ -2210,14 +2295,6 @@
             "type": "object",
             "title": "Models",
             "description": "Model name to version."
-          },
-          "decoders": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Decoders",
-            "description": "Video codecs a player decodes in hardware."
           },
           "same_host_as_server": {
             "type": "boolean",
@@ -2287,6 +2364,12 @@
             ],
             "title": "Lyrics",
             "description": "None: transcribe the song."
+          },
+          "add_to_queue": {
+            "type": "boolean",
+            "title": "Add To Queue",
+            "description": "Put the song at the end of the queue once it is made.",
+            "default": false
           }
         },
         "type": "object",
@@ -2380,19 +2463,13 @@
             "type": "string",
             "minLength": 1,
             "title": "Credential"
-          },
-          "server_fingerprint": {
-            "type": "string",
-            "title": "Server Fingerprint",
-            "description": "SHA-256 of the server certificate."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "node_id",
-          "credential",
-          "server_fingerprint"
+          "credential"
         ],
         "title": "Enrolled"
       },
@@ -2405,10 +2482,7 @@
           },
           "kind": {
             "type": "string",
-            "enum": [
-              "worker",
-              "player"
-            ],
+            "const": "worker",
             "title": "Kind"
           },
           "name": {
@@ -2551,12 +2625,6 @@
             "type": "array",
             "title": "Running",
             "description": "Task ids it holds."
-          },
-          "busy_playing": {
-            "type": "boolean",
-            "title": "Busy Playing",
-            "description": "A player on this machine is playing: go easy on the GPU.",
-            "default": false
           }
         },
         "additionalProperties": false,
@@ -2664,11 +2732,6 @@
               }
             ],
             "title": "Free Vram Mb"
-          },
-          "busy_playing": {
-            "type": "boolean",
-            "title": "Busy Playing",
-            "default": false
           },
           "wait": {
             "type": "boolean",
@@ -3007,17 +3070,12 @@
         "properties": {
           "kind": {
             "type": "string",
-            "enum": [
-              "worker",
-              "player"
-            ],
-            "title": "Kind"
+            "const": "worker",
+            "title": "Kind",
+            "default": "worker"
           }
         },
         "type": "object",
-        "required": [
-          "kind"
-        ],
         "title": "NewEnrollment"
       },
       "NewItem": {
@@ -3238,16 +3296,15 @@
           "command": {
             "type": "string",
             "enum": [
-              "load",
-              "play",
+              "cue",
+              "start",
               "pause",
               "seek",
               "next",
               "previous",
               "stop",
               "volume",
-              "pitch",
-              "reload"
+              "pitch"
             ],
             "title": "Command"
           },
@@ -3284,6 +3341,12 @@
               }
             ],
             "title": "Value"
+          },
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "description": "Start although some screens are not ready.",
+            "default": false
           }
         },
         "type": "object",
@@ -3322,90 +3385,31 @@
         "title": "Part",
         "description": "A sub-unit of a word (a syllable or a group of letters) with its own timing."
       },
-      "PlayerCommand": {
+      "Program": {
         "properties": {
-          "id": {
+          "item": {
+            "$ref": "#/components/schemas/QueueItem"
+          },
+          "manifest": {
             "type": "string",
-            "minLength": 1,
-            "title": "Id"
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Manifest"
           },
-          "command": {
-            "type": "string",
-            "enum": [
-              "load",
-              "play",
-              "pause",
-              "seek",
-              "next",
-              "previous",
-              "stop",
-              "volume",
-              "pitch",
-              "reload"
-            ],
-            "title": "Command"
-          },
-          "item_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Item Id"
-          },
-          "anchor": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Anchor"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Where and when, for play/seek."
-          },
-          "value": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Value",
-            "description": "Volume (0 to 2) or semitones."
-          },
-          "issued_at": {
-            "type": "integer",
-            "title": "Issued At",
-            "description": "µs on the server's clock."
+          "duration": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Duration"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "id",
-          "command",
-          "issued_at"
+          "item",
+          "manifest",
+          "duration"
         ],
-        "title": "PlayerCommand"
-      },
-      "PlayerConfig": {
-        "properties": {
-          "routing": {
-            "$ref": "#/components/schemas/Routing"
-          },
-          "calibration": {
-            "$ref": "#/components/schemas/Calibration"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "title": "PlayerConfig"
+        "title": "Program",
+        "description": "A queue item with the manifest it plays: what screens and audio prepare."
       },
       "ProgressAnswer": {
         "properties": {
@@ -3439,11 +3443,6 @@
       },
       "Queue": {
         "properties": {
-          "player_id": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Player Id"
-          },
           "version": {
             "type": "integer",
             "minimum": 0.0,
@@ -3460,11 +3459,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "player_id"
-        ],
         "title": "Queue",
-        "description": "What a player will play, in order: one per player, made when it is enrolled."
+        "description": "What the stage will play, in order: one per backend, with an optimistic version."
       },
       "QueueItem": {
         "properties": {
@@ -3610,13 +3606,6 @@
             "type": "array",
             "title": "Routes"
           },
-          "screens": {
-            "items": {
-              "$ref": "#/components/schemas/Screen"
-            },
-            "type": "array",
-            "title": "Screens"
-          },
           "policies": {
             "additionalProperties": {
               "type": "string",
@@ -3634,12 +3623,18 @@
         "type": "object",
         "title": "Routing"
       },
-      "Screen": {
+      "ScreenConfig": {
         "properties": {
-          "display": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Display"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
           "layout": {
             "type": "string",
@@ -3656,14 +3651,33 @@
             "type": "string",
             "title": "Theme",
             "default": "clasico"
+          },
+          "display_ms": {
+            "type": "number",
+            "maximum": 2000.0,
+            "minimum": -500.0,
+            "title": "Display Ms",
+            "description": "How late the picture really is (the TV's processing).",
+            "default": 0.0
+          },
+          "video_max_height": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Max Height",
+            "description": "Never download a taller video than this (a Raspberry Pi)."
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "required": [
-          "display"
-        ],
-        "title": "Screen"
+        "title": "ScreenConfig",
+        "description": "What the operator sets for one screen, kept by its id."
       },
       "ServerInfo": {
         "properties": {
@@ -3671,27 +3685,97 @@
             "type": "string",
             "title": "Version"
           },
-          "fingerprint": {
-            "type": "string",
-            "title": "Fingerprint"
-          },
           "now": {
             "type": "integer",
             "title": "Now"
-          },
-          "tls": {
-            "type": "boolean",
-            "title": "Tls"
           }
         },
         "type": "object",
         "required": [
           "version",
-          "fingerprint",
-          "now",
-          "tls"
+          "now"
         ],
         "title": "ServerInfo"
+      },
+      "Session": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version",
+            "description": "Goes up on every change."
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Epoch",
+            "description": "Goes up on every cue; `ready` reports name the epoch they are for."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "cueing",
+              "cued",
+              "playing",
+              "paused",
+              "ended",
+              "fault"
+            ],
+            "title": "State",
+            "default": "idle"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Program"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Anchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where the song is, and when."
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/Program"
+            },
+            "type": "array",
+            "title": "Upcoming",
+            "description": "The next items, to download and get ready ahead."
+          },
+          "semitones": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": -12.0,
+            "title": "Semitones",
+            "default": 0.0
+          },
+          "volume": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "default": 1.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "epoch"
+        ],
+        "title": "Session"
       },
       "SessionView": {
         "properties": {

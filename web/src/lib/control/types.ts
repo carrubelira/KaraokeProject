@@ -1,5 +1,13 @@
 /** What the v4 server answers (plan v4 §3); contracts v2 types come from #lib/contracts. */
-import type { PlayerConfig, PlayerStatus, Queue } from '#lib/contracts';
+import type {
+	AudioConfig,
+	AudioStatus,
+	Queue,
+	ScreenConfig,
+	ScreenHello,
+	ScreenStatus,
+	Session
+} from '#lib/contracts';
 
 export interface Content {
 	id: string;
@@ -104,7 +112,7 @@ export interface Telemetry {
 
 export interface NodeView {
 	id: string;
-	kind: 'worker' | 'player';
+	kind: 'worker';
 	name: string;
 	capabilities: {
 		os: string;
@@ -114,7 +122,6 @@ export interface NodeView {
 		internet: boolean;
 		tasks: string[];
 		models: Record<string, string>;
-		decoders: string[];
 		same_host_as_server: boolean;
 	};
 	last_seen: number;
@@ -124,15 +131,26 @@ export interface NodeView {
 	running: string[];
 }
 
-export interface PlayerView {
+/** The backend's audio engine (kp-audio), as the stage sees it. */
+export interface AudioView {
+	online: boolean;
+	/** False when the server runs without sound on purpose (`--audio off`). */
+	required: boolean;
+	fault: string | null;
+	status: AudioStatus;
+	config: AudioConfig;
+}
+
+/** A web screen the stage knows: open now, or seen before (its settings are kept). */
+export interface ScreenView {
 	id: string;
-	name: string;
 	online: boolean;
 	last_seen: number;
-	status: PlayerStatus;
-	config: PlayerConfig;
-	anchor: { position: number; instant: number; rate: number } | null;
-	item_id: string | null;
+	hello: ScreenHello | null;
+	config: ScreenConfig;
+	status: ScreenStatus | null;
+	/** Whether the operator is told when it is not ready (open, shown, not a preview). */
+	counts: boolean;
 }
 
 export interface Snapshot {
@@ -141,12 +159,14 @@ export interface Snapshot {
 	now: number;
 	jobs: Job[];
 	contents: Content[];
-	queues: Queue[];
-	players: PlayerView[];
+	queue: Queue;
+	session: Session;
+	audio: AudioView;
+	screens: ScreenView[];
 	nodes: NodeView[];
 }
 
-export interface Session {
+export interface OperatorSession {
 	id: string;
 	name: string;
 	preferences: Record<string, unknown>;

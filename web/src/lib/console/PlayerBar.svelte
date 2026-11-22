@@ -1,37 +1,39 @@
 <script lang="ts">
 	/**
-	 * The player bar, at the foot of every page: which screen is driven, what it plays and where,
-	 * and its controls (previous, play or pause, next, stop), its key and its volume. The keyboard
-	 * does the same from anywhere (Space, N, P, [ ], + −).
+	 * The player bar, at the foot of every page: the stage's state (is the audio up, how many
+	 * screens are ready for the song cued), what is on and where, and the controls (previous,
+	 * start or pause, next, stop), the key and the volume. The keyboard does the same from
+	 * anywhere (Space, N, P, [ ], + −). Nothing plays until the operator starts it.
 	 */
 	import { onMount } from 'svelte';
 	import { live } from '#lib/control/live.svelte.js';
-	import { positionNow } from '#lib/control/state.js';
+	import { notReady, positionNow } from '#lib/control/state.js';
 	import { i18n } from '#lib/i18n';
-	import { choosePlayer, player, transport } from '#lib/shell/actions.svelte.js';
+	import { transport } from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
 	import Icon from './Icon.svelte';
 	import { now } from './now.svelte';
-	import { onScreen, toneOf } from './screen';
+	import { onStage, sessionTone } from './stage';
 
 	const t = $derived(i18n.t);
-	const players = $derived(live.state.players);
-	const target = $derived(player());
-	const on = $derived(onScreen(live.state, target));
-	const status = $derived(target?.status.state ?? 'idle');
-	const playing = $derived(status === 'playing');
+	const session = $derived(live.state.session);
+	const on = $derived(onStage(live.state));
+	const playing = $derived(session.state === 'playing');
 	const position = $derived.by(() => {
 		void now.value;
-		return target ? positionNow(live.state, target, now.value) : null;
+		return positionNow(session, live.serverMicros());
 	});
+	const counted = $derived(live.state.screens.filter((s) => s.counts));
+	const missing = $derived(notReady(live.state));
 	const start = $derived(on.item?.start ?? 0);
 	const length = $derived(on.song?.duration ?? null);
 	const fraction = $derived(
 		length && position !== null ? Math.min(1, Math.max(0, (position - start) / length)) : 0
 	);
-	const semitones = $derived(target?.status.semitones ?? 0);
-	const volume = $derived(target?.status.volume ?? 1);
-	const disabled = $derived(!target?.online);
+	const semitones = $derived(session.semitones);
+	const volume = $derived(session.volume);
+	const audioDown = $derived(live.state.audio.required && !live.state.audio.online);
+	const disabled = $derived(!live.connected);
 
 	function seek(event: MouseEvent & { currentTarget: HTMLElement }) {
 		if (!length || disabled) return;
@@ -43,23 +45,13 @@
 </script>
 
 <footer class="player-bar" aria-label={t.groups.playback}>
-	<div class="screen">
-		<label class="sr-only" for="player-screen">{t.player.screen}</label>
-		<select
-			id="player-screen"
-			class="field"
-			value={target?.id ?? ''}
-			disabled={!players.length}
-			onchange={(e) => choosePlayer(e.currentTarget.value)}
-		>
-			{#if !players.length}<option value="">{t.player.noScreens}</option>{/if}
-			{#each players as p (p.id)}
-				<option value={p.id}>{p.name}</option>
-			{/each}
-		</select>
-		{#if target}
-			<span class="badge {toneOf(target)}">
-				{target.online ? t.player.states[status] : t.player.offline}
+	<div class="screen" role="status">
+		<span class="badge {sessionTone(live.state)}">
+			{audioDown ? t.player.audioDown : t.player.states[session.state]}
+		</span>
+		{#if counted.length}
+			<span class="small" class:muted={!missing.length} class:warn-text={missing.length > 0}>
+				{t.player.screensReady(counted.length - missing.length, counted.length)}
 			</span>
 		{/if}
 	</div>
@@ -107,7 +99,7 @@
 			{disabled}
 			onclick={transport.toggle}
 			title={t.cmd.toggle}
-			aria-label={playing ? t.cmd.pause : t.cmd.play}
+			aria-label={playing ? t.cmd.pause : t.cmd.start}
 		>
 			<Icon name={playing ? 'pause' : 'play'} />
 		</button>
@@ -186,10 +178,11 @@
 		gap: 8px;
 		min-width: 0;
 	}
-	.screen select {
-		height: 32px;
-		min-width: 0;
-		flex: 1;
+	.screen {
+		flex-wrap: wrap;
+	}
+	.warn-text {
+		color: var(--warn);
 	}
 	.now {
 		display: flex;

@@ -5,7 +5,7 @@
  */
 export interface Enrollment {
 	token: string;
-	kind: 'worker' | 'player';
+	kind: 'worker';
 	name: string;
 	capabilities: Capabilities;
 }
@@ -25,10 +25,6 @@ export interface Capabilities {
 	models: {
 		[k: string]: string;
 	};
-	/**
-	 * Video codecs a player decodes in hardware.
-	 */
-	decoders: string[];
 	/**
 	 * It shares the server's disk: blobs go by path, not HTTP.
 	 */

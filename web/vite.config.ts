@@ -5,7 +5,7 @@ import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-// `pnpm dev` talks to a real v4 server (`karaoke-server serve --no-tls`), by default on this
+// `pnpm dev` talks to a real v4 server (`karaoke-server serve`), by default on this
 // machine; WebSockets and Range go through the proxy as they are.
 const SERVER = process.env.KARAOKE_SERVER ?? 'http://127.0.0.1:8765';
 

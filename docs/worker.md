@@ -1,12 +1,12 @@
 # Worker (v4)
 
 `karaoke-worker` runs the engine for the server on a machine with an NVIDIA GPU (Windows or Linux,
-natively). It connects out to the server, so it works behind NAT and over Tailscale.
+natively). It connects out to the server over plain HTTP on the LAN (decision 011).
 
 ```bash
 uv sync --extra ml --inexact                         # torch and the models' libraries
 uv run karaoke-worker info                           # what this machine offers
-uv run karaoke-worker enroll https://SERVER:8765 TOKEN --fingerprint FINGERPRINT
+uv run karaoke-worker enroll http://SERVER:8765 TOKEN
 uv run karaoke-worker run
 ```
 
@@ -17,8 +17,8 @@ uv run karaoke-worker run
 - **GPU**: one GPU task at a time (concurrency by VRAM: 4 GB hold one model), and up to two
   downloads alongside.
 - **Same machine as the server**: enrol with `--same-host`; it reads the server's blobs from disk.
-- **Same machine as a player**: `--player-lock FILE` names the file the player touches while it
-  plays; meanwhile the worker takes no GPU work.
+- **Same machine as the stage**: while a song plays there, the server gives a worker enrolled
+  with `--same-host` no GPU work (it knows when the stage plays; nothing to set up).
 - **Cache**: the blobs it fetched or made stay in its data folder, so the next task on the same
   song does not download them again (the server prefers the worker that has them).
 

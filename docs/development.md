@@ -17,7 +17,7 @@ From the repository's folder:
 
 ```bash
 make install        # or scripts/install.sh --no-models to skip the models for now
-make serve          # and open http://localhost:8765
+make start          # and open http://localhost:8765
 ```
 
 `make install` (`scripts/install.sh`) is safe to run again: it only does what is missing. It never
@@ -60,6 +60,34 @@ To develop, also run `make setup` (pre-commit hooks and the quality tools).
    Everything required must say `OK`. NVENC and torch show as `warning` if missing: the tests, the
    server and the web app work without a GPU, but making karaokes needs one.
 
+## Starting it on a machine
+
+One command starts what this machine runs: the server, with `kp-audio` (the sound, on this
+machine's sound cards) and a worker (the GPU). It builds what is missing or out of date first
+(the Python environment, the web app, `kp-audio`), makes an operator if there is none (it prints
+the token once), enrols the worker the first time, then runs everything in that window, starts
+again whatever stops on its own and stops it all with Ctrl+C.
+
+```bash
+scripts/start.sh             # Linux (also `make start`)
+```
+
+```powershell
+scripts\start.ps1            # Windows
+```
+
+- **On Windows** the server and `kp-audio` run on Windows, next to the sound cards, in their own
+  environment (`.venv-windows`, so WSL keeps `.venv`). The engine is not supported on native
+  Windows (`NOTICE.md`), so the worker runs **inside WSL** with WSL's `.venv` (`scripts/install.sh`
+  there first) and reaches the server through WSL's gateway (`scripts/wsl-worker.sh`).
+  `kp-audio` is built with the Build Tools' `cmake` and, for the key change, the `libclang`
+  wheel the launcher puts in `.venv-windows`: nothing to install by hand beyond Rust and the
+  Build Tools.
+- Options: `--worker auto|here|wsl|none` (`--no-worker`), `--no-audio`, `--fake` (a worker that
+  pretends, without a GPU), `--port`, `--data`, `--setup` (prepare and exit).
+- It never syncs an environment without the GPU stack where the worker needs it: `uv run`
+  would.
+
 ## Everyday commands
 
 | What | Command |
@@ -70,7 +98,8 @@ To develop, also run `make setup` (pre-commit hooks and the quality tools).
 | The tests that load models (with the GPU free) | `make test-models` |
 | The quality rules (format, lint, dependencies, boundaries, versions, licences) | `make lint` (guide: [`quality.md`](quality.md)) |
 | The web app in development mode | `pnpm --dir web dev` |
-| The server with the built web app (for phones and the TV) | `make serve` (guide: [`server.md`](server.md)) |
+| Everything this machine runs (server, kp-audio, worker) | `make start` or `scripts\start.ps1` (above) |
+| The server alone, with the built web app | `make serve` (guide: [`server.md`](server.md)) |
 | What the server still needs (network, GPU, models…) | `uv run karaoke-server doctor` |
 | A server without a GPU, with pretend karaokes | `uv run karaoke-server serve --fake-engine` |
 | Regenerate the JSON Schema and TS types after changing a contract | `make contracts` |

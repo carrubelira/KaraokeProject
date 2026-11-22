@@ -105,8 +105,8 @@ class Confirmation(BaseModel):
     lyrics: str | None = Field(
         default=None, max_length=50_000, description="None: transcribe the song."
     )
-    queue_on: str | None = Field(
-        default=None, description="A player whose queue gets the song once it is made."
+    add_to_queue: bool = Field(
+        default=False, description="Put the song at the end of the queue once it is made."
     )
 
 
@@ -114,10 +114,7 @@ class Confirmation(BaseModel):
 async def confirm(
     job_id: str, body: Confirmation, request: Request, who: Operator = Depends(operator)
 ) -> dict[str, Any]:
-    found = services(request)
-    if body.queue_on is not None:
-        found.queues.get(body.queue_on)  # 404 for a player that does not exist
-    return found.queue.confirm(job_id, body.model_dump())
+    return services(request).queue.confirm(job_id, body.model_dump())
 
 
 @router.get("/{job_id}/tasks/{key}/log", response_class=PlainTextResponse)

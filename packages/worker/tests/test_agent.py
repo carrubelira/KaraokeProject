@@ -40,7 +40,7 @@ class _Buffered(httpx.BaseTransport):
 class Rig:
     def __init__(self, tmp_path: Path) -> None:
         settings = Settings.from_env(
-            data_dir=tmp_path / "server", web_dir=None, tls=False, lease_wait_seconds=0.0
+            data_dir=tmp_path / "server", web_dir=None, audio="off", lease_wait_seconds=0.0
         )
         self.services = build_services(settings)
         self.app = create_app(settings, services=self.services)
