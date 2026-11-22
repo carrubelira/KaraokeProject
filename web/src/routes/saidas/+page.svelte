@@ -22,14 +22,33 @@
 	const audio = $derived(engine.status.devices);
 	const TRACKS = ['instrumental', 'vocals'] as const;
 
+	/** The configuration as kp-audio applies it: with no routes, both stems go to the master
+	 * (or the default output), so that is what the matrix shows and edits. */
+	function effective(config: AudioConfig, devices: typeof audio): AudioConfig {
+		const copy = structuredClone(config);
+		if (copy.routing.routes.length > 0 || devices.length === 0) return copy;
+		const master =
+			devices.find((d) => d.id === copy.routing.master) ??
+			devices.find((d) => d.default) ??
+			devices[0];
+		copy.routing.routes = TRACKS.map((track) => ({
+			track,
+			output: master.id,
+			gain_db: 0,
+			delay_ms: 0
+		}));
+		return copy;
+	}
+
 	let draft = $state<AudioConfig | null>(null);
 	let saved = $state('');
 	$effect(() => {
 		// The first configuration the server sends; later ones only when nothing is being edited.
-		const config = JSON.stringify(engine.config);
-		if (draft === null || (config !== saved && JSON.stringify(draft) === saved)) {
-			draft = structuredClone($state.snapshot(engine.config));
-			saved = config;
+		const config = effective($state.snapshot(engine.config), $state.snapshot(audio));
+		const json = JSON.stringify(config);
+		if (draft === null || (json !== saved && JSON.stringify(draft) === saved)) {
+			draft = config;
+			saved = json;
 		}
 	});
 	const dirty = $derived(draft !== null && JSON.stringify(draft) !== saved);

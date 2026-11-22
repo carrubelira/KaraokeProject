@@ -64,11 +64,13 @@ class ServerClient:
         ).json()
         return data
 
-    def lease(self, free_vram_mb: int | None, wait: bool = True) -> Lease | None:
-        # While a song plays on the server's machine, the server holds GPU work back itself.
-        answer = self._json(
-            "POST", "/api/worker/lease", json={"free_vram_mb": free_vram_mb, "wait": wait}
-        )
+    def lease(
+        self, free_vram_mb: int | None, wait: bool = True, *, cpu: bool = True
+    ) -> Lease | None:
+        """The best task this worker can take; with `cpu` false, only GPU ones (its CPU slots
+        are full). While a song plays on the server's machine, the server holds GPU work back."""
+        body = {"free_vram_mb": free_vram_mb, "wait": wait, "cpu": cpu}
+        answer = self._json("POST", "/api/worker/lease", json=body)
         return None if answer.status_code == 204 else Lease.model_validate(answer.json())
 
     def progress(self, lease: Lease, progress: TaskProgress) -> bool:

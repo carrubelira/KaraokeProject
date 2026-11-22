@@ -170,3 +170,28 @@ async def test_an_engine_failure_is_reported_with_its_log(
     make = failed["tasks"][1]
     assert make["error_code"] in ("unreadable", "engine_failed")
     assert make["log"], "a failed task still leaves its log"
+
+
+async def test_with_its_cpu_slots_full_it_asks_only_for_gpu_work(tmp_path: Path) -> None:
+    from karaoke_worker.agent import CPU_SLOTS, Running
+
+    asked: list[bool] = []
+
+    class Client:
+        def lease(self, free: int | None, wait: bool = True, *, cpu: bool = True) -> None:
+            asked.append(cpu)
+
+    ctx = Context(client=Client(), store=BlobStore(tmp_path), work=tmp_path,
+                  spawner=None, downloader=None, fake=True)  # fmt: skip
+    agent = Agent(ctx)
+    idle = asyncio.create_task(asyncio.sleep(60))
+    try:
+        await agent.lease_once()
+        for i in range(CPU_SLOTS):
+            agent.running[f"t{i}"] = Running(lease=None, task=idle, gpu=False)
+        await agent.lease_once()
+        agent.running["g"] = Running(lease=None, task=idle, gpu=True)
+        assert await agent.lease_once() is None
+    finally:
+        idle.cancel()
+    assert asked == [True, False], "no lease at all once the GPU is busy too"

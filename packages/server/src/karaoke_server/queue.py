@@ -328,12 +328,18 @@ class TaskQueue:
         self._changed.set()
 
     async def wait_lease(
-        self, node: Node, free_vram_mb: int | None, wait: float, *, busy_playing: bool = False
+        self,
+        node: Node,
+        free_vram_mb: int | None,
+        wait: float,
+        *,
+        busy_playing: bool = False,
+        cpu: bool = True,
     ) -> Lease | None:
         """A lease for the best task this worker can take, waiting up to `wait` s for one."""
         deadline = time.monotonic() + wait
         while True:
-            lease = self.lease(node, free_vram_mb, busy_playing=busy_playing)
+            lease = self.lease(node, free_vram_mb, busy_playing=busy_playing, cpu=cpu)
             remaining = deadline - time.monotonic()
             if lease is not None or remaining <= 0:
                 return lease
@@ -342,8 +348,9 @@ class TaskQueue:
                 await asyncio.wait_for(self._changed.wait(), remaining)
 
     def lease(
-        self, node: Node, free_vram_mb: int | None, *, busy_playing: bool = False
+        self, node: Node, free_vram_mb: int | None, *, busy_playing: bool = False, cpu: bool = True
     ) -> Lease | None:
+        """With `cpu` false the worker's CPU slots are full: only a GPU task fits."""
         caps = node.capabilities
         vram = free_vram_mb
         if vram is None:
@@ -361,6 +368,8 @@ class TaskQueue:
             if row["vram_mb"] > 0 and (not caps.gpus or row["vram_mb"] > vram):
                 continue
             if busy_playing and row["vram_mb"] > 0:
+                continue
+            if not cpu and row["vram_mb"] == 0:
                 continue
             score = (row["priority"], self._affinity(row, node.id), -_created(row))
             if best is None or score > best[0]:

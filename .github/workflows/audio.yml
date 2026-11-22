@@ -88,5 +88,7 @@ jobs:
         with:
           version: "0.13.6"
           enable-cache: true
+      # The server's tests build their demo song with ffprobe, as the Linux jobs do.
+      - run: choco install ffmpeg -y --no-progress
       - run: uv sync --locked
       - run: uv run pytest -q packages/contracts packages/worker packages/server

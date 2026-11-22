@@ -49,6 +49,8 @@ export type Event =
 	| { type: 'stopped' }
 	/** The picture fell too far off (or the page was hidden): look for the frame again. */
 	| { type: 'lost-sync' }
+	/** What the screen shows changed: what it downloaded may not be what it needs now. */
+	| { type: 'layout-changed' }
 	| { type: 'fatal'; error: string };
 
 export type Effect =
@@ -114,6 +116,8 @@ export function step(model: Model, event: Event): Step {
 				: { model, effects: [] };
 		case 'lost-sync':
 			return model.state === 'playing' ? lookAgain(model) : { model, effects: [] };
+		case 'layout-changed':
+			return relayout(model);
 	}
 }
 
@@ -166,6 +170,15 @@ function lookAgain(model: Model, effects: Effect[] = []): Step {
 			report
 		]
 	};
+}
+
+/** Every song is checked again for the new layout and the one on is looked up again. */
+function relayout(model: Model): Step {
+	const next = { ...model, cached: new Set<string>() };
+	const upcoming = model.session?.upcoming ?? [];
+	const effects: Effect[] = upcoming.length ? [{ kind: 'prefetch', programs: upcoming }] : [];
+	if (!model.session?.current || !model.session.anchor) return { model: next, effects };
+	return lookAgain(next, effects);
 }
 
 function cached(model: Model, manifest: string): Step {

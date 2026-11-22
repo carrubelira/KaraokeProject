@@ -2737,6 +2737,12 @@
             "type": "boolean",
             "title": "Wait",
             "default": true
+          },
+          "cpu": {
+            "type": "boolean",
+            "title": "Cpu",
+            "description": "Whether it may take a task without a GPU.",
+            "default": true
           }
         },
         "type": "object",

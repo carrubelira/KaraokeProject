@@ -145,6 +145,20 @@ def test_a_link_is_fetched_analysed_then_made_on_the_same_worker(clients: Client
     assert make["task"]["params"]["from"]["analyze"]["best"]["artist"] == "Los Suaves"
 
 
+def test_a_worker_with_its_cpu_slots_full_only_gets_gpu_tasks(clients: Clients) -> None:
+    op = clients.operator()
+    _upload_ready_to_make(clients, op)
+    op.post("/api/jobs", json={"url": "https://example.com/v"})
+    _, worker = clients.enrol("worker", name="busy")
+    make = _lease(worker, cpu=False)
+    assert make is not None
+    assert make["task"]["kind"] == "make"
+    assert _lease(worker, cpu=False) is None, "fetch needs a CPU slot"
+    fetch = _lease(worker)
+    assert fetch is not None
+    assert fetch["task"]["kind"] == "fetch"
+
+
 def test_auto_confirm_skips_the_review_only_when_the_analysis_is_sure(clients: Clients) -> None:
     op = clients.operator()
     sure = op.post("/api/jobs", json={"upload": _upload(clients), "auto_confirm": True}).json()

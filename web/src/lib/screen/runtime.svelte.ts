@@ -323,9 +323,10 @@ export class ScreenRuntime {
 		} else if (message.type === 'config') {
 			const before = this.config;
 			this.config = message.config as ScreenConfig;
-			if (before.layout !== this.config.layout && this.session) {
+			if (before.layout !== this.config.layout) {
 				// What it shows changed: it may need the video it did not download.
-				this.dispatch({ type: 'session', session: this.session });
+				this.dispatch({ type: 'layout-changed' });
+				this.#schedule();
 			}
 		} else if (message.type === 'session') {
 			this.#learnTitles(message.session as Session);

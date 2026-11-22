@@ -4,7 +4,7 @@ import time
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from karaoke_contracts.nodes import (
     Capabilities,
@@ -112,6 +112,7 @@ async def heartbeat(
 class LeaseRequest(BaseModel):
     free_vram_mb: int | None = None
     wait: bool = True
+    cpu: bool = Field(default=True, description="Whether it may take a task without a GPU.")
 
 
 @router.post("/worker/lease", response_model=None)
@@ -122,7 +123,9 @@ async def lease(
     found.telemetry.setdefault(who.id, (time.time(), Telemetry()))
     timeout = found.settings.lease_wait_seconds if body.wait else 0.0
     busy = busy_playing(found, who.capabilities.same_host_as_server)
-    granted = await found.queue.wait_lease(who, body.free_vram_mb, timeout, busy_playing=busy)
+    granted = await found.queue.wait_lease(
+        who, body.free_vram_mb, timeout, busy_playing=busy, cpu=body.cpu
+    )
     if granted is None:
         return Response(status_code=204)
     return granted

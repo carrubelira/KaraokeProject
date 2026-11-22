@@ -66,12 +66,13 @@ class Agent:
             await asyncio.sleep(self.heartbeat_seconds)
 
     async def lease_once(self) -> Lease | None:
-        if self._gpu_busy() and self._cpu_busy() >= CPU_SLOTS:
+        cpu = self._cpu_busy() < CPU_SLOTS
+        if self._gpu_busy() and not cpu:
             return None
         telemetry = await asyncio.to_thread(system.telemetry)
         # Without NVML (a fake engine, a machine without a driver) the server uses the total.
         free = 0 if self._gpu_busy() else telemetry.vram_free_mb
-        lease = await asyncio.to_thread(self.ctx.client.lease, free, self.lease_wait)
+        lease = await asyncio.to_thread(self.ctx.client.lease, free, self.lease_wait, cpu=cpu)
         if lease is not None:
             self.start(lease)
         return lease

@@ -79,6 +79,29 @@ describe('the screen state machine', () => {
 		expect(waiting.kinds).toEqual(['report']);
 	});
 
+	it('a new layout checks the songs again and looks up the frame again', () => {
+		const cue = session();
+		const ready = run([
+			{ type: 'session', session: cue },
+			{ type: 'cached', manifest: A.manifest },
+			prepared(cue.anchor!)
+		]);
+		expect(isReady(ready.model)).toBe(true);
+		const { model, effects } = run([{ type: 'layout-changed' }], ready.model);
+		// The video it now needs may not be here: the song is provisioned again.
+		expect(model.state).toBe('provisioning');
+		expect(model.cached.size).toBe(0);
+		expect(isReady(model)).toBe(false);
+		expect(effects).toContainEqual({ kind: 'provision', program: A });
+		expect(effects).toContainEqual({ kind: 'prefetch', programs: [B] });
+
+		const idle = run([
+			{ type: 'session', session: session({ current: null, anchor: null }) },
+			{ type: 'layout-changed' }
+		]);
+		expect(idle.model.state).toBe('idle');
+	});
+
 	it('a song already here goes straight to syncing, and what comes next is fetched', () => {
 		const here = { ...initial(), cached: new Set([A.manifest]) };
 		const { model, effects } = run([{ type: 'session', session: session() }], here);
