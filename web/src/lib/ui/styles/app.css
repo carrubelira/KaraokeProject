@@ -20,7 +20,7 @@
 	--border-strong: #444952;
 	--text: #e4e6e9;
 	--muted: #9ba1aa;
-	--faint: #6b717b;
+	--faint: #8d939c; /* 4.5:1 or more on every background up to --surface-2 */
 
 	--accent: #3d9bd9;
 	--accent-strong: #5aaee6;
