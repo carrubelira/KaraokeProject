@@ -15,6 +15,7 @@ kp-player run --diagnose # also logs drift, offsets and levels every second
 
 ## What it does
 
+- **Its queue**: the server sends the screen's queue (`queue` messages) whenever it changes.
 - **Downloads ahead**: the song on first, then the next three. It plays only what is on disk and
   checked by hash; downloads resume. With `--same-host` (on the server's machine) it reads the
   server's files directly.
@@ -28,6 +29,12 @@ kp-player run --diagnose # also logs drift, offsets and levels every second
   compensated so changing the key never moves the song.
 - **When an output goes away** (the TV is switched off): if it is the master, playback pauses;
   otherwise it carries on. Each output can be set otherwise. It reconnects when the device is back.
+- **Device ids** are the system's name for the output; two outputs with the same name (two
+  monitors of one model on the same graphics card) get `#2`, `#3`… in the order the system lists
+  them.
+- **What does not work** goes into its status (`errors`: an output that could not be opened or
+  went away, a song that did not load, the master lost) until it works again, so the console
+  shows it next to the screen.
 - **Without the server** it plays on what it has, and catches up when the server is back.
 - **Calibration**: per output and per screen (milliseconds), from the control UI, saved by
   device id.
@@ -37,7 +44,8 @@ kp-player run --diagnose # also logs drift, offsets and levels every second
 ## Building
 
 Rust (stable) and FFmpeg 7 development files. On Windows, set `FFMPEG_DIR` to an unpacked
-"shared" FFmpeg build and put its `bin` on `PATH`. On macOS, use `brew install ffmpeg@7 pkg-config`.
+"shared" FFmpeg build and put its `bin` on `PATH`; `bindgen` also needs `libclang` (LLVM, or
+point `LIBCLANG_PATH` at a folder with `libclang.dll`). On macOS, use `brew install ffmpeg@7 pkg-config`.
 Then:
 
 ```bash

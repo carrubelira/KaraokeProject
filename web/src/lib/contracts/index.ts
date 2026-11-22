@@ -25,7 +25,7 @@ export type {
 	VideoInfo
 } from './generated/manifest';
 export type { Lyrics } from './generated/lyrics';
-export type { Playlist, PlaylistItem } from './generated/playlist';
+export type { Queue, QueueItem } from './generated/queue';
 export type { PlayerCommand, Anchor } from './generated/player-command';
 export type { PlayerConfig, Routing, Route, Screen, Calibration } from './generated/player-config';
 export type {
@@ -33,6 +33,7 @@ export type {
 	PlayerOutputs,
 	Display,
 	AudioDevice,
-	ContentCache
+	ContentCache,
+	PlayerError
 } from './generated/player-status';
 export type { PlaybackClock } from './clock';

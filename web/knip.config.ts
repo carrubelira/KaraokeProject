@@ -12,7 +12,7 @@ const config: KnipConfig = {
 	],
 	project: ['src/**/*.{ts,svelte}', 'dev/**/*.{ts,mjs}', 'e2e/**/*.{ts,mjs}', 'scripts/**/*.mjs'],
 	// Generated from the schemas: every contract, used or not yet.
-	ignore: ['src/lib/contracts/generated/**', 'src/lib/control/generated/**'],
+	ignore: ['src/lib/contracts/generated/**'],
 	// SvelteKit's virtual modules exist only inside its build.
 	ignoreUnresolved: [/^\$app\//],
 	// A type or constant exported next to the code that uses it is documentation, not dead code.

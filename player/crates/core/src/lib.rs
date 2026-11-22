@@ -5,13 +5,13 @@
 //!   server sets "300 ms from now" lands on the same instant here.
 //! - [`Timeline`] holds the anchors in local time; the audio callback asks it the song position
 //!   heard at any instant, and a change scheduled for later takes effect exactly then.
-//! - [`PlayerCore`] applies the server's messages (config, playlist, orders), knows which song is
+//! - [`PlayerCore`] applies the server's messages (config, queue, orders), knows which song is
 //!   on, what to download first, when a song ends, and builds the status the server shows.
 
 use kp_clock::{Anchor, Micros};
 use kp_proto::{
-    CacheState, Command, ContentCache, PlaybackState, PlayerCommand, PlayerConfig, PlayerStatus, Playlist,
-    PlaylistItem, ServerMessage,
+    CacheState, Command, ContentCache, PlaybackState, PlayerCommand, PlayerConfig, PlayerStatus, Queue,
+    QueueItem, ServerMessage,
 };
 
 /// Offset from local microseconds to the server's.
@@ -132,7 +132,7 @@ pub enum AtEnd {
 /// What the engine should be playing; the core changes it, the engine follows.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Transport {
-    pub item: Option<PlaylistItem>,
+    pub item: Option<QueueItem>,
     pub semitones: f64,
     pub volume: f64,
 }
@@ -140,7 +140,7 @@ pub struct Transport {
 pub struct PlayerCore {
     pub clock: ServerClock,
     pub config: PlayerConfig,
-    pub playlist: Option<Playlist>,
+    pub queue: Option<Queue>,
     pub timeline: Timeline,
     pub transport: Transport,
     pub cache: Vec<ContentCache>,
@@ -157,7 +157,7 @@ impl Default for PlayerCore {
         Self {
             clock: ServerClock::default(),
             config: PlayerConfig::default(),
-            playlist: None,
+            queue: None,
             timeline: Timeline::default(),
             transport: Transport {
                 item: None,
@@ -177,12 +177,12 @@ impl Default for PlayerCore {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Effects {
     /// A different song must be loaded (its tracks decoded).
-    pub load: Option<PlaylistItem>,
+    pub load: Option<QueueItem>,
     pub unload: bool,
     pub config: bool,
     pub pitch: bool,
     pub volume: bool,
-    pub playlist: bool,
+    pub queue: bool,
 }
 
 impl PlayerCore {
@@ -190,8 +190,8 @@ impl PlayerCore {
         Self::default()
     }
 
-    fn item(&self, item_id: &str) -> Option<PlaylistItem> {
-        self.playlist
+    fn item(&self, item_id: &str) -> Option<QueueItem> {
+        self.queue
             .as_ref()?
             .items
             .iter()
@@ -217,10 +217,10 @@ impl PlayerCore {
                 self.config = config;
                 effects.config = true;
             }
-            ServerMessage::Playlist { playlist } => {
+            ServerMessage::Queue { queue } => {
                 if let Some(current) = &self.transport.item {
                     // The item on may have been edited (entry point, key) or removed.
-                    if let Some(updated) = playlist.items.iter().find(|i| i.id == current.id) {
+                    if let Some(updated) = queue.items.iter().find(|i| i.id == current.id) {
                         if updated.semitones != self.transport.semitones {
                             self.transport.semitones = updated.semitones;
                             effects.pitch = true;
@@ -228,8 +228,8 @@ impl PlayerCore {
                         self.transport.item = Some(updated.clone());
                     }
                 }
-                self.playlist = Some(playlist);
-                effects.playlist = true;
+                self.queue = Some(queue);
+                effects.queue = true;
             }
             ServerMessage::Command { command } => self.command(command, now, &mut effects),
         }
@@ -248,7 +248,7 @@ impl PlayerCore {
         match command.command {
             Command::Load => {
                 let Some(item) = command.item_id.as_deref().and_then(|id| self.item(id)) else {
-                    log::warn!("load of an item not in the playlist");
+                    log::warn!("load of an item not in the queue");
                     return;
                 };
                 let anchor = command
@@ -391,30 +391,24 @@ impl PlayerCore {
         effects
     }
 
-    pub fn next_item(&self, item_id: &str) -> Option<PlaylistItem> {
-        let items = &self.playlist.as_ref()?.items;
+    pub fn next_item(&self, item_id: &str) -> Option<QueueItem> {
+        let items = &self.queue.as_ref()?.items;
         let index = items.iter().position(|i| i.id == item_id)?;
         items.get(index + 1).cloned()
     }
 
     /// Songs to have on disk, most urgent first: the one on, then the next ones.
-    pub fn prefetch(&self, ahead: usize) -> Vec<PlaylistItem> {
-        let Some(playlist) = &self.playlist else {
+    pub fn prefetch(&self, ahead: usize) -> Vec<QueueItem> {
+        let Some(queue) = &self.queue else {
             return Vec::new();
         };
         let start = self
             .transport
             .item
             .as_ref()
-            .and_then(|current| playlist.items.iter().position(|i| i.id == current.id))
+            .and_then(|current| queue.items.iter().position(|i| i.id == current.id))
             .unwrap_or(0);
-        let mut order: Vec<PlaylistItem> = playlist
-            .items
-            .iter()
-            .skip(start)
-            .take(ahead + 1)
-            .cloned()
-            .collect();
+        let mut order: Vec<QueueItem> = queue.items.iter().skip(start).take(ahead + 1).cloned().collect();
         if let Some(current) = &self.transport.item
             && !order.iter().any(|i| i.id == current.id)
         {
@@ -458,8 +452,8 @@ mod tests {
     use super::*;
     use kp_proto::{CacheState, ContentCache};
 
-    fn item(id: &str, content: &str, start: Option<f64>) -> PlaylistItem {
-        PlaylistItem {
+    fn item(id: &str, content: &str, start: Option<f64>) -> QueueItem {
+        QueueItem {
             id: id.into(),
             content_id: content.into(),
             manifest: None,
@@ -470,13 +464,11 @@ mod tests {
         }
     }
 
-    fn playlist() -> Playlist {
-        Playlist {
-            id: "p".into(),
-            name: "Noite".into(),
+    fn queue() -> Queue {
+        Queue {
+            player_id: "sala".into(),
             version: 2,
             items: vec![item("a", "song-a", Some(2.0)), item("b", "song-b", None)],
-            player_id: None,
         }
     }
 
@@ -545,7 +537,7 @@ mod tests {
             },
             0,
         );
-        core.handle(ServerMessage::Playlist { playlist: playlist() }, 0);
+        core.handle(ServerMessage::Queue { queue: queue() }, 0);
         let load = core.handle(
             command(Command::Load, Some("a"), Some(Anchor::paused(2.0, 1_000_300_000))),
             10,
@@ -571,7 +563,7 @@ mod tests {
     #[test]
     fn an_order_waits_for_its_song_and_starts_late_from_its_position() {
         let mut core = PlayerCore::new();
-        core.handle(ServerMessage::Playlist { playlist: playlist() }, 0);
+        core.handle(ServerMessage::Queue { queue: queue() }, 0);
         core.handle(
             command(Command::Load, Some("b"), Some(Anchor::playing(0.0, 1_000))),
             0,
@@ -585,7 +577,7 @@ mod tests {
     #[test]
     fn the_end_cues_the_next_singer() {
         let mut core = PlayerCore::new();
-        core.handle(ServerMessage::Playlist { playlist: playlist() }, 0);
+        core.handle(ServerMessage::Queue { queue: queue() }, 0);
         ready(&mut core, "song-a", 0);
         core.handle(
             command(Command::Load, Some("a"), Some(Anchor::playing(2.0, 0))),
@@ -606,7 +598,7 @@ mod tests {
     #[test]
     fn status_reports_what_is_on() {
         let mut core = PlayerCore::new();
-        core.handle(ServerMessage::Playlist { playlist: playlist() }, 0);
+        core.handle(ServerMessage::Queue { queue: queue() }, 0);
         assert_eq!(core.prefetch(1).len(), 2);
         ready(&mut core, "song-a", 0);
         core.handle(command(Command::Load, Some("a"), None), 0);

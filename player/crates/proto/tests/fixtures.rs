@@ -29,7 +29,7 @@ fn every_fixture_round_trips() {
     assert!(manifest.track(TrackKind::Instrumental).is_some());
     let lyrics: Lyrics = round_trip("lyrics");
     assert!(!lyrics.lines.is_empty());
-    round_trip::<Playlist>("playlist");
+    round_trip::<Queue>("queue");
     let command: PlayerCommand = round_trip("player-command");
     assert_eq!(command.command, Command::Play);
     let config: PlayerConfig = round_trip("player-config");
@@ -41,9 +41,9 @@ fn every_fixture_round_trips() {
 
 #[test]
 fn unknown_fields_are_refused() {
-    let mut value = fixture("playlist");
+    let mut value = fixture("queue");
     value["colour"] = "red".into();
-    assert!(serde_json::from_value::<Playlist>(value).is_err());
+    assert!(serde_json::from_value::<Queue>(value).is_err());
 }
 
 #[test]

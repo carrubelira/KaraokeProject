@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema
 
-from karaoke_contracts.control import PlayerCommand, PlayerConfig, Playlist
+from karaoke_contracts.control import PlayerCommand, PlayerConfig, Queue
 from karaoke_contracts.doc import KaraokeDoc
 from karaoke_contracts.manifest import Lyrics, Manifest
 from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease, PlayerStatus
@@ -26,7 +26,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "player-status": PlayerStatus,
     "player-command": PlayerCommand,
     "player-config": PlayerConfig,
-    "playlist": Playlist,
+    "queue": Queue,
 }
 
 
@@ -63,7 +63,8 @@ def export_schemas(out_dir: Path) -> list[Path]:
             **model.model_json_schema(mode="serialization", schema_generator=_ModelTitlesOnly),
         }
         path = out_dir / f"{name}.schema.json"
-        path.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        text = json.dumps(schema, ensure_ascii=False, indent=2) + "\n"
+        path.write_text(text, encoding="utf-8", newline="\n")  # LF on Windows too
         written.append(path)
     return written
 

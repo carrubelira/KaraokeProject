@@ -1,8 +1,10 @@
-"""Jobs: make a karaoke from an upload or a link, export an MP4; follow, cancel, reorder."""
+"""Jobs: make a karaoke from a link or an upload (analysed, then reviewed by the operator),
+export an MP4; follow, cancel, reorder, read a task's log."""
 
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, model_validator
 
 from karaoke_server.auth import Operator, operator
@@ -20,7 +22,10 @@ class NewJob(BaseModel):
     url: str | None = None
     lyrics: str | None = Field(default=None, max_length=50_000)
     lrclib: bool = False
-    language: str = Field(default="gl", pattern=r"^[a-z]{2,3}$")
+    language: str | None = Field(default=None, pattern=r"^[a-z]{2,3}$")
+    auto_confirm: bool = Field(
+        default=False, description="Go on without a review when the analysis is sure."
+    )
     title: str | None = Field(default=None, max_length=200)
     artist: str | None = Field(default=None, max_length=200)
     content_id: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{0,79}$")
@@ -62,6 +67,7 @@ async def create(
         "title": body.title,
         "artist": body.artist,
         "content_id": body.content_id,
+        "auto_confirm": body.auto_confirm,
     }
     if body.upload is not None:
         upload = found.uploads.get(body.upload)
@@ -88,6 +94,45 @@ async def get_job(
     job_id: str, request: Request, who: Operator = Depends(operator)
 ) -> dict[str, Any]:
     return services(request).queue.job(job_id)
+
+
+class Confirmation(BaseModel):
+    """What the song is, as the operator confirmed or corrected it after the analysis."""
+
+    title: str = Field(min_length=1, max_length=200)
+    artist: str | None = Field(default=None, max_length=200)
+    language: str = Field(pattern=r"^[a-z]{2,3}$")
+    lyrics: str | None = Field(
+        default=None, max_length=50_000, description="None: transcribe the song."
+    )
+    queue_on: str | None = Field(
+        default=None, description="A player whose queue gets the song once it is made."
+    )
+
+
+@router.post("/{job_id}/confirm")
+async def confirm(
+    job_id: str, body: Confirmation, request: Request, who: Operator = Depends(operator)
+) -> dict[str, Any]:
+    found = services(request)
+    if body.queue_on is not None:
+        found.queues.get(body.queue_on)  # 404 for a player that does not exist
+    return found.queue.confirm(job_id, body.model_dump())
+
+
+@router.get("/{job_id}/tasks/{key}/log", response_class=PlainTextResponse)
+async def task_log(
+    job_id: str, key: str, request: Request, who: Operator = Depends(operator)
+) -> str:
+    """The task's log: the whole one once it ended, the last lines while it runs."""
+    found = services(request)
+    task_id = f"{job_id}:{key}"
+    task = next((t for t in found.queue.job(job_id)["tasks"] if t["id"] == task_id), None)
+    if task is None:
+        raise ApiError(404, "not_found", "No such task")
+    if task["log"] and found.store.has(task["log"]):
+        return found.store.path(task["log"]).read_text(encoding="utf-8", errors="replace")
+    return "\n".join(found.queue.recent_log(task_id))
 
 
 @router.post("/{job_id}/{action}")

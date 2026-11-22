@@ -4,6 +4,9 @@ The engine's models keep their memory until the process that loaded them ends. O
 child runs in a systemd scope with MemoryMax (when systemd is there), so the kernel stops only
 the task; on Windows it is put in a Job Object with a memory limit that also kills it when the
 worker goes away. Cancelling stops the scope, the job object or the process group.
+
+Its stdout carries the runner's events (JSON lines); its stderr is the engine's log, kept in
+the task's log file and passed on line by line, so the operator sees what the engine is doing.
 """
 
 import asyncio
@@ -188,7 +191,12 @@ class ProcessSpawner:
         ]
 
     async def run(
-        self, job_id: str, spec: dict[str, Any], log: Path, on_event: Callable[[Event], None]
+        self,
+        job_id: str,
+        spec: dict[str, Any],
+        log: Path,
+        on_event: Callable[[Event], None],
+        on_line: Callable[[str], None] | None = None,
     ) -> Outcome:
         log.parent.mkdir(parents=True, exist_ok=True)
         spec_path = log.parent / "spec.json"
@@ -204,16 +212,17 @@ class ProcessSpawner:
         }
         unit = self.unit_for(job_id)
         job = _JobObject(self.memory_limit()) if WINDOWS else None
-        with log.open("ab") as stderr:
-            process = await asyncio.create_subprocess_exec(
-                *self.full_command(unit, spec_path),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=stderr,
-                env=env,
-                start_new_session=not WINDOWS,
-            )
+        process = await asyncio.create_subprocess_exec(
+            *self.full_command(unit, spec_path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+            start_new_session=not WINDOWS,
+        )
         if job is not None:
             job.add(process.pid)
+        assert process.stderr is not None
+        lines = asyncio.create_task(_copy_lines(process.stderr, log, on_line))
         last: Event | None = None
         try:
             assert process.stdout is not None
@@ -236,9 +245,11 @@ class ProcessSpawner:
                 else:
                     on_event(event)
             code = await process.wait()
+            await lines
         except BaseException:
             # Cancelled, or anything else going wrong here: the task must not keep the GPU.
             await self._stop(unit, process, job)
+            lines.cancel()
             raise
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
@@ -300,3 +311,21 @@ class ProcessSpawner:
                 )
             await process.wait()
         logger.info("%s stopped", unit)
+
+
+async def _copy_lines(
+    stream: asyncio.StreamReader, log: Path, on_line: Callable[[str], None] | None
+) -> None:
+    """The engine's stderr into the log file, and line by line to whoever follows the task."""
+    with log.open("ab") as out:
+        while True:
+            try:
+                raw = await stream.readline()
+            except ValueError:  # a line longer than the buffer: keep what fits
+                raw = await stream.read(1 << 16)
+            if not raw:
+                return
+            out.write(raw)
+            out.flush()
+            if on_line is not None:
+                on_line(raw.decode("utf-8", "replace").rstrip())

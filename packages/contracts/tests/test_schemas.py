@@ -22,7 +22,7 @@ def test_committed_schemas_are_up_to_date(tmp_path: Path) -> None:
             "player-status",
             "player-command",
             "player-config",
-            "playlist",
+            "queue",
         )
     )
     for path in written:

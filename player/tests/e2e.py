@@ -1,9 +1,10 @@
 """End to end, on one machine (`make e2e-v4`): the v4 server, a worker with the fake engine and
 the native player headless with two simulated outputs.
 
-A song is uploaded, made by the worker, put on a playlist; the player downloads it, loads it,
-plays it on both outputs (the guide vocals only on the second) in sync, transposes it and
-pauses. Run with `uv run python player/tests/e2e.py` after `cargo build -p kp-player`.
+A song is uploaded, analysed and reviewed, made by the worker and put in the player's queue;
+the player downloads it, loads it, plays it on both outputs (the guide vocals only on the
+second) in sync, transposes it and pauses. Run with `uv run python player/tests/e2e.py` after
+`cargo build -p kp-player`.
 """
 
 import json
@@ -117,6 +118,12 @@ def main() -> int:
         job = api.call(
             "POST", "/api/jobs", {"upload": upload["id"], "lyrics": "la la", "title": "Proba"}
         )
+        wait(
+            "the analysis",
+            lambda: api.call("GET", f"/api/jobs/{job['id']}")["state"] == "review" or None,
+        )
+        review = {"title": "Proba", "language": "gl", "lyrics": "la la"}
+        api.call("POST", f"/api/jobs/{job['id']}/confirm", review)
         done = wait("the worker to make the song", lambda: _job_done(api, job["id"]), 120)
         content = done["result"]["content_id"]
         print(f"made {content}")
@@ -155,21 +162,13 @@ def main() -> int:
             "the player",
             lambda: next((p for p in api.call("GET", "/api/players") if p["online"]), None),
         )
-        playlist = api.call("POST", "/api/playlists", {"name": "Noite"})
-        playlist["items"] = [
-            {
-                "id": "one",
-                "content_id": content,
-                "manifest": None,
-                "start": None,
-                "end": None,
-                "semitones": 0,
-                "singer": "Uxía",
-            }
-        ]
-        api.call("PUT", f"/api/playlists/{playlist['id']}", playlist)
+        queue = api.call(
+            "POST",
+            f"/api/players/{player['id']}/queue/items",
+            {"items": [{"content_id": content, "singer": "Uxía"}]},
+        )
+        item_id = queue["items"][0]["id"]
         config = {
-            "playlist_id": playlist["id"],
             "routing": {
                 "master": "virtual:main",
                 "routes": [
@@ -194,7 +193,7 @@ def main() -> int:
             lambda: any(c["state"] == "ready" for c in status()["cache"]),
         )
         api.call(
-            "POST", f"/api/players/{player['id']}/commands", {"command": "load", "item_id": "one"}
+            "POST", f"/api/players/{player['id']}/commands", {"command": "load", "item_id": item_id}
         )
         wait("the song loaded", lambda: status()["state"] == "paused")
         # The demo sings from 4 s: start just before, so both outputs make sound.

@@ -1,8 +1,10 @@
-"""A v4 server with a fake worker for the browser tests (`pnpm test:e2e`, project `control`).
+"""A v4 server with a fake worker and a screen for the browser tests (`pnpm test:e2e`,
+project `control`).
 
 It writes the operator token to e2e/control/.token, then runs until stopped.
 """
 
+import json
 import os
 import shutil
 import signal
@@ -38,6 +40,15 @@ def main() -> int:
     enrol = run("karaoke-server", "--data", str(server_data), "enroll", "worker")
     run("karaoke-worker", "--data", str(worker_data), "enroll", base, enrol, "--name", "gpu-1")
     worker = subprocess.Popen(["karaoke-worker", "--data", str(worker_data), "run", "--fake"], env=env)
+    # A screen (never connected): its queue is what the tests fill.
+    screen = run("karaoke-server", "--data", str(server_data), "enroll", "player")
+    body = {"token": screen, "kind": "player", "name": "sala", "capabilities": {"os": "linux"}}
+    request = urllib.request.Request(
+        f"{base}/api/nodes/enroll",
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    urllib.request.urlopen(request, timeout=5)  # noqa: S310 - local
     stop = lambda *_: (_ for _ in ()).throw(KeyboardInterrupt)  # noqa: E731
     signal.signal(signal.SIGTERM, stop)
     try:

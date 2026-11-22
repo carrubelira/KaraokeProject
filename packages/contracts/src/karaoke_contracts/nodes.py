@@ -9,9 +9,9 @@ from karaoke_contracts.doc import NonEmptyStr
 from karaoke_contracts.manifest import ContentId, Model, Sha256
 
 NodeKind = Literal["worker", "player"]
-TaskKind = Literal["fetch", "make", "package", "render"]
+TaskKind = Literal["fetch", "analyze", "make", "package", "render"]
 TaskState = Literal[
-    "waiting", "ready", "leased", "running", "done", "failed", "cancelled", "paused"
+    "waiting", "held", "ready", "leased", "running", "done", "failed", "cancelled", "paused"
 ]
 CacheState = Literal["absent", "downloading", "verifying", "ready", "failed"]
 
@@ -59,6 +59,7 @@ class Telemetry(Model):
     gpu_temp_c: float | None = None
     cpu_util: Annotated[float, Field(ge=0, le=100)] | None = None
     ram_used_mb: Annotated[int, Field(ge=0)] | None = None
+    ram_total_mb: Annotated[int, Field(ge=0)] | None = None
 
 
 class Heartbeat(Model):
@@ -90,7 +91,14 @@ class Lease(Model):
 class TaskProgress(Model):
     stage: NonEmptyStr
     fraction: Annotated[float, Field(ge=0, le=1)] | None = None
-    message: str | None = None
+    step: str | None = Field(default=None, description="What the stage is doing right now.")
+    message: str | None = Field(default=None, description="A line for the operator.")
+
+
+class TaskLog(Model):
+    """Lines the task's process wrote (yt-dlp, the engine), sent in small batches."""
+
+    lines: Annotated[list[str], Field(max_length=200)]
 
 
 class TaskResult(Model):
@@ -102,6 +110,7 @@ class TaskFailure(Model):
     code: NonEmptyStr
     message: str
     retryable: bool = True
+    log: Sha256 | None = Field(default=None, description="The task's whole log, as a blob.")
 
 
 class Display(Model):
@@ -138,9 +147,19 @@ class ContentCache(Model):
     error: str | None = None
 
 
+class PlayerError(Model):
+    """Something the player could not do, until it can again."""
+
+    code: Literal["output_failed", "output_lost", "display_failed", "load_failed", "master_lost"]
+    device: str | None = Field(default=None, description="The audio device or display id.")
+    item_id: str | None = None
+    message: str
+
+
 class PlayerStatus(Model):
     """What a player reports every second and on every change."""
 
+    errors: list[PlayerError] = Field(default_factory=list)
     outputs: PlayerOutputs = Field(default_factory=PlayerOutputs)
     cache: list[ContentCache] = Field(default_factory=list)
     item_id: str | None = None

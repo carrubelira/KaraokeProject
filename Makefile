@@ -60,7 +60,6 @@ contracts:
 	uv run python -m karaoke_contracts.schema_export schemas
 	uv run karaoke-server openapi --out schemas/openapi.json
 	pnpm --dir web gen:contracts
-	pnpm --dir web gen:api
 
 web:
 	pnpm --dir web lint

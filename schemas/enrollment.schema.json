@@ -38,6 +38,7 @@
           "items": {
             "enum": [
               "fetch",
+              "analyze",
               "make",
               "package",
               "render"

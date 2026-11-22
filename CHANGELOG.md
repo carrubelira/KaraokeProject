@@ -7,20 +7,40 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ## [Unreleased]
 
+### Fixed
+
+- A progress report arriving after a task was complete brought it back to life: its lease
+  expired, it ran again and the console showed it stuck ("The worker stopped answering").
+- The console missed changes it never heard of; now every event is numbered and a gap or a
+  silent line brings a fresh snapshot.
+- Outputs failed (500) when a player reported two sound outputs with the same name.
+- Adding a song with no active playlist did nothing yet said it was added.
+
 ### Added
 
 - Contracts v2: manifests of tracks by SHA-256, lyrics, nodes, orders and routing, as JSON Schema,
   TypeScript and Rust (`kp-proto`).
 - `karaoke-server` v4: content store with Range and checked uploads, resumable uploads, a task
   DAG with leases and data affinity, enrolled nodes over a pinned TLS certificate, operators,
-  playlists with optimistic versions, WebSockets for players and the control.
-- `karaoke-worker`: fetch, make and render tasks in a child process capped by a systemd scope or
-  a Windows Job Object.
+  WebSockets for players and the control.
+- `karaoke-worker`: fetch, analyze, make and render tasks in a child process capped by a
+  systemd scope or a Windows Job Object.
 - `kp-player`: one clock for every output and screen, routing with gain and delay, pitch on the
   guide vocals and the music, calibration, outputs that come and go, a waiting screen; the
   software sync bench `kp-syncbench` and `make e2e-v4`.
-- The control UI: command palette, rebindable shortcuts, cheat sheet, resizable panels, undo,
-  live state, and the lyrics editor on contracts v2.
+- The console: a broadcast control room over a live Three.js signal field that follows the
+  workers and the screens; a strip with the screen driven and its ON AIR tally, a rail of
+  sections, and a deck with the transport and rotary encoders everywhere; a program monitor with
+  the lyrics in sync; command palette, rebindable shortcuts, undo, and the lyrics editor
+  ([`docs/web.md`](docs/web.md), decision `plan-v4/decisiones/010-consola.md`).
+- Songs from a link with an analysis first: the page's metadata, a Chromaprint fingerprint looked
+  up in AcoustID and MusicBrainz (language and cover), and lyrics from LRCLIB; the operator
+  reviews and corrects before anything heavy runs, and can send the song straight to a screen's
+  queue once it is made.
+- One queue per screen (playlists are gone; a screen's playlist became its queue), so adding a
+  song always has a target.
+- Workers say what is happening inside them: stage and step, a live log (kept whole once the
+  task ends), CPU and RAM on every system, and failures explained with what to do.
 
 
 - `karaoke captions`: professional subtitles for long interviews, phrase by phrase and in sync

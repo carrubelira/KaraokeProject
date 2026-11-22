@@ -1,7 +1,6 @@
 <script lang="ts">
 	/**
-	 * The command palette (Mod+K): fuzzy search over every command and every song, playlist and
-	 * node, with each command's shortcut shown so it is learnt.
+	 * The command palette (Mod+K): fuzzy search over every command and every song and node, with each command's shortcut shown so it is learnt.
 	 */
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -9,7 +8,7 @@
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import { live } from '#lib/control/live.svelte.js';
 	import { i18n } from '#lib/i18n';
-	import { addToPlaylist } from './actions.svelte';
+	import { addToQueue } from './actions.svelte';
 	import Kbd from './Kbd.svelte';
 
 	interface Entry {
@@ -39,16 +38,8 @@
 			list.push({
 				id: `song:${c.id}`,
 				title: `${c.title}${c.artist ? ` · ${c.artist}` : ''}`,
-				detail: `${t.palette.song} · ${t.cmd.addToPlaylist}`,
-				run: () => addToPlaylist([c.id])
-			});
-		}
-		for (const p of live.state.playlists) {
-			list.push({
-				id: `list:${p.id}`,
-				title: p.name,
-				detail: t.palette.playlist,
-				run: () => goto(resolve('/directo'))
+				detail: `${t.palette.song} · ${t.cmd.addToQueue}`,
+				run: () => addToQueue([c.id])
 			});
 		}
 		for (const n of live.state.nodes) {
@@ -56,7 +47,7 @@
 				id: `node:${n.id}`,
 				title: n.name,
 				detail: n.kind === 'worker' ? t.palette.worker : t.palette.player,
-				run: () => goto(resolve(n.kind === 'worker' ? '/workers' : '/saidas'))
+				run: () => goto(resolve('/nodos'))
 			});
 		}
 		return list;
@@ -136,66 +127,71 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 40;
-		background: rgb(0 0 0 / 0.45);
+		z-index: 70;
+		background: rgb(2 3 5 / 0.6);
+		backdrop-filter: blur(3px);
 	}
 	.palette {
 		position: fixed;
-		z-index: 41;
+		z-index: 71;
 		top: 12vh;
 		left: 50%;
 		transform: translateX(-50%);
 		width: min(44rem, calc(100vw - 2rem));
-		background: var(--fondo-2);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-panel);
-		box-shadow: var(--sombra);
+		background: var(--panel-solid);
+		border: 1px solid var(--line-strong);
+		border-top: 2px solid var(--info);
+		border-radius: var(--radius);
+		box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.9);
 		overflow: hidden;
 	}
 	input {
 		width: 100%;
-		padding: var(--s-4) var(--s-5);
+		padding: 16px 18px;
 		border: 0;
-		border-bottom: 1px solid var(--raia);
+		border-bottom: 1px solid var(--line);
 		background: transparent;
-		color: var(--texto);
-		font: inherit;
-		font-size: var(--t-1);
+		color: var(--text);
+		font: 500 17px var(--font-text);
 		outline: none;
 	}
 	ul {
 		max-height: 55vh;
 		overflow-y: auto;
 		margin: 0;
-		padding: var(--s-2);
+		padding: 6px;
 		list-style: none;
 	}
 	li {
 		display: grid;
 		grid-template-columns: 1fr auto auto;
-		gap: var(--s-3);
+		gap: 12px;
 		align-items: center;
-		padding: var(--s-2) var(--s-3);
-		border-radius: var(--radius-control);
+		padding: 8px 12px;
+		border-radius: 2px;
 		cursor: pointer;
 	}
 	li.active {
-		background: var(--ceo-fondo);
-		outline: 1px solid var(--ceo);
+		background: rgb(60 200 255 / 0.1);
+		box-shadow: inset 2px 0 0 var(--info);
 	}
 	.detail {
-		color: var(--texto-3);
-		font-size: var(--t--1);
+		color: var(--dim);
+		font: 500 10.5px var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 	}
 	.empty {
-		color: var(--texto-3);
+		color: var(--dim);
 		cursor: default;
 	}
 	.hint {
 		margin: 0;
-		padding: var(--s-2) var(--s-5);
-		border-top: 1px solid var(--raia);
-		color: var(--texto-3);
-		font-size: var(--t--1);
+		padding: 8px 18px;
+		border-top: 1px solid var(--line);
+		color: var(--faint);
+		font: 500 10.5px var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
 	}
 </style>

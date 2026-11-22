@@ -1,4 +1,4 @@
-"""The server's SQLite database (plan v4 §3): contents, the task queue, nodes and playlists.
+"""The server's SQLite database (plan v4 §3): contents, the task queue, nodes and their queues.
 
 Blobs live on disk in the content store; the database knows which manifests exist, which tasks
 are waiting, leased or done, which nodes are enrolled and what each player is set to. Every call
@@ -118,6 +118,26 @@ MIGRATIONS: list[str] = [
         blob TEXT,
         created_at REAL NOT NULL
     );
+    """,
+    # What a worker is doing inside a task, its log, and one queue per player instead of
+    # playlists (the playlist a player pointed at becomes its queue).
+    """
+    ALTER TABLE tasks ADD COLUMN step TEXT;
+    ALTER TABLE tasks ADD COLUMN message TEXT;
+    ALTER TABLE tasks ADD COLUMN stage_started REAL;
+    ALTER TABLE tasks ADD COLUMN log TEXT;
+    CREATE TABLE queues (
+        player_id TEXT PRIMARY KEY REFERENCES nodes (id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    INSERT INTO queues (player_id, version, items, updated_at)
+        SELECT n.id, p.version, json_extract(p.data, '$.items'), p.updated_at
+        FROM nodes n JOIN playlists p ON p.id = json_extract(n.config, '$.playlist_id')
+        WHERE n.kind = 'player';
+    UPDATE nodes SET config = json_remove(config, '$.playlist_id') WHERE kind = 'player';
+    DROP TABLE playlists;
     """,
 ]
 

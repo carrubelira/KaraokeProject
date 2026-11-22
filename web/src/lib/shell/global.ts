@@ -1,22 +1,20 @@
-/** The commands that work everywhere: navigation, transport, undo, the palette, the view. */
+/** The commands that work everywhere: navigation, the deck (transport), undo, the palette. */
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { commands, type Command } from '#lib/commands/registry.svelte.js';
 import { i18n } from '#lib/i18n';
-import { redo, transport, undo } from './actions.svelte';
-import { prefs } from './prefs.svelte';
+import { nextPlayer, redo, transport, undo } from './actions.svelte';
 
 const t = () => i18n.t;
 
 export const SECTIONS = [
-	{ id: 'home', path: '/', key: 'g h', label: () => t().nav.home },
-	{ id: 'live', path: '/directo', key: 'g d', label: () => t().nav.live },
-	{ id: 'library', path: '/biblioteca', key: 'g b', label: () => t().nav.library },
-	{ id: 'queue', path: '/cola', key: 'g c', label: () => t().nav.queue },
-	{ id: 'workers', path: '/workers', key: 'g w', label: () => t().nav.workers },
-	{ id: 'outputs', path: '/saidas', key: 'g s', label: () => t().nav.outputs },
-	{ id: 'create', path: '/crear', key: 'g n', label: () => t().nav.create },
-	{ id: 'settings', path: '/axustes', key: 'g a', label: () => t().nav.settings }
+	{ id: 'live', path: '/', key: 'g d', icon: 'live', label: () => t().nav.live },
+	{ id: 'add', path: '/engadir', key: 'g n', icon: 'add', label: () => t().nav.add },
+	{ id: 'jobs', path: '/traballos', key: 'g t', icon: 'jobs', label: () => t().nav.jobs },
+	{ id: 'library', path: '/biblioteca', key: 'g b', icon: 'library', label: () => t().nav.library },
+	{ id: 'nodes', path: '/nodos', key: 'g w', icon: 'nodes', label: () => t().nav.nodes },
+	{ id: 'outputs', path: '/saidas', key: 'g s', icon: 'outputs', label: () => t().nav.outputs },
+	{ id: 'settings', path: '/axustes', key: 'g a', icon: 'settings', label: () => t().nav.settings }
 ] as const;
 
 export function registerGlobal(): () => void {
@@ -27,7 +25,7 @@ export function registerGlobal(): () => void {
 		keys: [section.key],
 		run: () => goto(resolve(section.path))
 	}));
-	const transportCommands: Command[] = [
+	const deck: Command[] = [
 		{ id: 'transport.toggle', title: () => t().cmd.toggle, keys: ['Space'], run: transport.toggle },
 		{ id: 'transport.next', title: () => t().cmd.next, keys: ['n'], run: transport.next },
 		{
@@ -84,7 +82,8 @@ export function registerGlobal(): () => void {
 			keys: ['Mod+0'],
 			run: transport.pitchReset
 		},
-		{ id: 'transport.stop', title: () => t().cmd.stop, keys: ['Shift+s'], run: transport.stop }
+		{ id: 'transport.stop', title: () => t().cmd.stop, keys: ['Shift+s'], run: transport.stop },
+		{ id: 'screen.next', title: () => t().cmd.nextScreen, keys: ['s'], run: nextPlayer }
 	].map((c) => ({ ...c, group: () => t().groups.transport }));
 	const general: Command[] = [
 		{
@@ -101,6 +100,7 @@ export function registerGlobal(): () => void {
 			keys: ['?'],
 			run: () => void (commands.cheatsheetOpen = true)
 		},
+		{ id: 'add', title: () => t().cmd.add, keys: ['Mod+n'], run: () => goto(resolve('/engadir')) },
 		{ id: 'undo', title: () => t().cmd.undo, keys: ['Mod+z'], run: undo },
 		{ id: 'redo', title: () => t().cmd.redo, keys: ['Mod+Shift+z', 'Mod+y'], run: redo },
 		{
@@ -127,31 +127,5 @@ export function registerGlobal(): () => void {
 			}
 		}
 	].map((c) => ({ ...c, group: () => t().groups.general }));
-	const view: Command[] = [
-		{
-			id: 'view.dense',
-			title: () => t().cmd.density,
-			keys: ['Shift+d'],
-			run: () => prefs.set('dense', !prefs.value.dense)
-		},
-		{
-			id: 'view.theme',
-			title: () => t().cmd.theme,
-			keys: ['Shift+t'],
-			run: () => prefs.set('theme', prefs.value.theme === 'dark' ? 'light' : 'dark')
-		},
-		{
-			id: 'view.prep',
-			title: () => t().cmd.layoutPrep,
-			keys: ['Mod+1'],
-			run: () => prefs.set('layout', 'prep')
-		},
-		{
-			id: 'view.live',
-			title: () => t().cmd.layoutLive,
-			keys: ['Mod+2'],
-			run: () => prefs.set('layout', 'live')
-		}
-	].map((c) => ({ ...c, group: () => t().groups.view }));
-	return commands.register(...navigation, ...transportCommands, ...general, ...view);
+	return commands.register(...navigation, ...deck, ...general);
 }

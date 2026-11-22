@@ -4,6 +4,7 @@
  * What a player reports every second and on every change.
  */
 export interface PlayerStatus {
+	errors: PlayerError[];
 	outputs: PlayerOutputs;
 	cache: ContentCache[];
 	item_id: string | null;
@@ -17,6 +18,18 @@ export interface PlayerStatus {
 	sync: {
 		[k: string]: number;
 	};
+}
+/**
+ * Something the player could not do, until it can again.
+ */
+export interface PlayerError {
+	code: 'output_failed' | 'output_lost' | 'display_failed' | 'load_failed' | 'master_lost';
+	/**
+	 * The audio device or display id.
+	 */
+	device: string | null;
+	item_id: string | null;
+	message: string;
 }
 export interface PlayerOutputs {
 	displays: Display[];

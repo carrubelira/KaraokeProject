@@ -1,7 +1,7 @@
 """What this machine is (capabilities) and how busy it is (telemetry), sent to the server.
 
 GPU figures come from NVML (`nvidia-ml-py`) when an NVIDIA driver is there; without one the
-worker still runs CPU tasks (downloads).
+worker still runs CPU tasks (downloads). CPU and memory come from psutil, on every system.
 """
 
 import logging
@@ -9,6 +9,8 @@ import os
 import shutil
 import sys
 from typing import Any
+
+import psutil
 
 from karaoke_contracts.nodes import Capabilities, Gpu, Telemetry
 from karaoke_worker.child import total_memory
@@ -71,6 +73,9 @@ def model_versions() -> dict[str, str]:
 
 def capabilities(tasks: list[str], internet: bool, same_host: bool = False) -> Capabilities:
     kinds = [t for t in tasks if t != "fetch" or (internet and shutil.which("uvx") is not None)]
+    # Every worker with the internet can tell which song a file is (light: no GPU).
+    if internet and "analyze" not in kinds:
+        kinds.append("analyze")
     return Capabilities(
         os=_os(),  # type: ignore[arg-type]
         cpus=os.cpu_count() or 1,
@@ -96,6 +101,8 @@ def telemetry() -> Telemetry:
             data["gpu_temp_c"] = float(nvml.nvmlDeviceGetTemperature(handle, 0))
         except Exception:  # noqa: BLE001 - some boards do not report these
             logger.debug("no utilisation or temperature from NVML")
-    if hasattr(os, "getloadavg"):
-        data["cpu_util"] = min(100.0, os.getloadavg()[0] / (os.cpu_count() or 1) * 100)
+    data["cpu_util"] = psutil.cpu_percent(interval=None)
+    memory = psutil.virtual_memory()
+    data["ram_used_mb"] = (memory.total - memory.available) // MIB
+    data["ram_total_mb"] = memory.total // MIB
     return Telemetry.model_validate(data)

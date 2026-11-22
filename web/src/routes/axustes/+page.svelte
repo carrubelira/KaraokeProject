@@ -1,16 +1,21 @@
 <script lang="ts">
+	/**
+	 * Settings: language, how much the background moves, the server, song identification, and
+	 * every shortcut, rebindable by pressing the new one.
+	 */
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	/** Settings: language, appearance and every shortcut, rebindable by pressing the new one. */
+	import { onMount } from 'svelte';
 	import { eventChord } from '#lib/commands/keys.js';
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import { api } from '#lib/control/api.js';
-	import { i18n, LOCALE_NAMES, LOCALES, setLocale, type Locale } from '#lib/i18n';
+	import { i18n, LOCALE_NAMES, LOCALES, setLocale } from '#lib/i18n';
 	import Kbd from '#lib/shell/Kbd.svelte';
-	import { prefs } from '#lib/shell/prefs.svelte.js';
+	import { prefs, type Effects } from '#lib/shell/prefs.svelte.js';
 
 	const t = $derived(i18n.t);
 	let capturing = $state<string | null>(null);
 	let first = $state<string | null>(null);
+	let server = $state<{ version: string; fingerprint: string; tls: boolean } | null>(null);
 	const conflicts = $derived(new SvelteSet([...commands.conflicts().values()].flat()));
 	const groups = $derived.by(() => {
 		const map = new SvelteMap<string, typeof commands.commands>();
@@ -20,6 +25,11 @@
 		}
 		return [...map];
 	});
+	const EFFECTS: { value: Effects; label: () => string }[] = [
+		{ value: 'full', label: () => t.settings.effectsFull },
+		{ value: 'calm', label: () => t.settings.effectsCalm },
+		{ value: 'off', label: () => t.settings.effectsOff }
+	];
 
 	function capture(event: KeyboardEvent) {
 		if (!capturing) return;
@@ -48,108 +58,161 @@
 		delete next[id];
 		prefs.set('shortcuts', next);
 	}
+
+	onMount(() => {
+		void api.server().then((found) => (server = found));
+	});
 </script>
 
 <svelte:window onkeydowncapture={capture} />
 
-<div class="ctl-page">
-	<div class="ctl-page-head"><h1>{t.settings.title}</h1></div>
-	<div class="ctl-grid-2">
-		<section class="ctl-box">
-			<h2>{t.settings.language}</h2>
-			<select
-				class="ctl-field"
-				value={i18n.locale}
-				onchange={(e) => setLocale(e.currentTarget.value as Locale)}
-				aria-label={t.settings.language}
-			>
-				{#each LOCALES as locale (locale)}<option value={locale}>{LOCALE_NAMES[locale]}</option
-					>{/each}
-			</select>
+<div class="c-page">
+	<div class="c-page-head"><h1>{t.settings.title}</h1></div>
+	<div class="grid">
+		<section class="c-panel">
+			<header class="c-panel-head"><h2>{t.settings.language}</h2></header>
+			<div class="c-panel-body segmented" role="radiogroup" aria-label={t.settings.language}>
+				{#each LOCALES as locale (locale)}
+					<button
+						role="radio"
+						aria-checked={i18n.locale === locale}
+						class:on={i18n.locale === locale}
+						onclick={() => setLocale(locale)}
+					>
+						{LOCALE_NAMES[locale]}
+					</button>
+				{/each}
+			</div>
 		</section>
-		<section class="ctl-box">
-			<h2>{t.settings.appearance}</h2>
-			<label
-				><input
-					type="radio"
-					checked={prefs.value.theme === 'dark'}
-					onchange={() => prefs.set('theme', 'dark')}
-				/>
-				{t.settings.dark}</label
-			>
-			<label
-				><input
-					type="radio"
-					checked={prefs.value.theme === 'light'}
-					onchange={() => prefs.set('theme', 'light')}
-				/>
-				{t.settings.light}</label
-			>
-			<label
-				><input
-					type="checkbox"
-					checked={prefs.value.dense}
-					onchange={() => prefs.set('dense', !prefs.value.dense)}
-				/>
-				{t.settings.dense}
-				<Kbd keys="Shift+d" /></label
-			>
+		<section class="c-panel">
+			<header class="c-panel-head"><h2>{t.settings.effects}</h2></header>
+			<div class="c-panel-body segmented" role="radiogroup" aria-label={t.settings.effects}>
+				{#each EFFECTS as effect (effect.value)}
+					<button
+						role="radio"
+						aria-checked={prefs.value.effects === effect.value}
+						class:on={prefs.value.effects === effect.value}
+						onclick={() => prefs.set('effects', effect.value)}
+					>
+						{effect.label()}
+					</button>
+				{/each}
+			</div>
 		</section>
-		<section class="ctl-box">
-			<h2>{t.settings.account}</h2>
-			<button class="ctl-btn" onclick={() => api.signOut().then(() => location.reload())}
-				>{t.app.signOut}</button
-			>
+		<section class="c-panel">
+			<header class="c-panel-head"><h2>{t.settings.server}</h2></header>
+			<dl class="c-panel-body c-kv">
+				<dt>{t.settings.version}</dt>
+				<dd class="mono">{server?.version ?? '—'}</dd>
+				<dt>{t.nodes.fingerprint}</dt>
+				<dd class="mono small">{server?.fingerprint || '—'}</dd>
+			</dl>
+		</section>
+		<section class="c-panel">
+			<header class="c-panel-head"><h2>{t.settings.identify}</h2></header>
+			<p class="c-panel-body dim small">{t.settings.identifyHelp}</p>
+		</section>
+		<section class="c-panel">
+			<header class="c-panel-head"><h2>{t.settings.account}</h2></header>
+			<div class="c-panel-body">
+				<button class="c-btn" onclick={() => api.signOut().then(() => location.reload())}
+					>{t.app.signOut}</button
+				>
+			</div>
 		</section>
 	</div>
-	<section class="ctl-box shortcuts">
-		<h2>{t.settings.shortcuts}</h2>
-		{#each groups as [group, list] (group)}
-			<h3>{group}</h3>
-			<ul class="ctl-rows">
-				{#each list as command (command.id)}
-					<li class="ctl-row shortcut" class:ctl-marked={conflicts.has(command.id)}>
-						<span>{command.title()}</span>
-						<span>
-							{#if capturing === command.id}
-								<em>{first ? `${first} …` : t.settings.press}</em>
-							{:else}
-								{#each commands.keysOf(command) as key (key)}<Kbd keys={key} />
-								{/each}
-							{/if}
-						</span>
-						<button class="ctl-btn" onclick={() => (capturing = command.id)}>✎</button>
-						<button
-							class="ctl-btn"
-							onclick={() => reset(command.id)}
-							disabled={!prefs.value.shortcuts[command.id]}>{t.settings.reset}</button
-						>
-						{#if conflicts.has(command.id)}<span class="ctl-pill ctl-bad"
-								>{t.settings.conflict}</span
-							>{/if}
-					</li>
-				{/each}
-			</ul>
-		{/each}
+
+	<section class="c-panel">
+		<header class="c-panel-head"><h2>{t.settings.shortcuts}</h2></header>
+		<div class="c-panel-body shortcuts">
+			{#each groups as [group, list] (group)}
+				<div>
+					<h3>{group}</h3>
+					<ul class="c-rows">
+						{#each list as command (command.id)}
+							<li class="c-row shortcut" class:is-marked={conflicts.has(command.id)}>
+								<span class="name">{command.title()}</span>
+								<span class="keys">
+									{#if capturing === command.id}
+										<em class="c-tally info">{first ? `${first} …` : t.settings.press}</em>
+									{:else}
+										{#each commands.keysOf(command) as key (key)}<Kbd keys={key} />{/each}
+									{/if}
+								</span>
+								<button
+									class="c-btn icon ghost"
+									aria-label={t.settings.press}
+									onclick={() => (capturing = command.id)}>✎</button
+								>
+								<button
+									class="c-btn ghost"
+									onclick={() => reset(command.id)}
+									disabled={!prefs.value.shortcuts[command.id]}>{t.settings.reset}</button
+								>
+								{#if conflicts.has(command.id)}<span class="c-tag onair">{t.settings.conflict}</span
+									>{/if}
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/each}
+		</div>
 	</section>
 </div>
 
 <style>
-	label {
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: var(--gap);
+	}
+	.segmented {
 		display: flex;
-		gap: var(--s-2);
-		align-items: center;
-		margin: var(--s-1) 0;
+		gap: 4px;
+	}
+	.segmented button {
+		flex: 1;
+		padding: 9px 12px;
+		border: 1px solid var(--line);
+		border-radius: 2px;
+		background: transparent;
+		color: var(--dim);
+		font: 500 12px var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		cursor: pointer;
+	}
+	.segmented button.on {
+		border-color: var(--info);
+		color: var(--text);
+		background: rgb(60 200 255 / 0.08);
+	}
+	.small {
+		font-size: 12.5px;
+		margin: 0;
 	}
 	.shortcuts {
-		margin-top: var(--s-4);
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+		gap: 22px;
 	}
 	h3 {
-		color: var(--ouro);
-		font-size: var(--t-0);
-		margin: var(--s-3) 0 var(--s-1);
+		margin: 0 0 6px;
+		font: 500 11px var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--info);
 	}
 	.shortcut {
-		grid-template-columns: minmax(12rem, 1fr) minmax(8rem, auto) auto auto auto;
+		min-height: 40px;
+		padding: 4px 8px;
+	}
+	.name {
+		flex: 1;
+		font-size: 13.5px;
+	}
+	.keys {
+		display: flex;
+		gap: 4px;
 	}
 </style>

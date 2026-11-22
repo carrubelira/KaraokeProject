@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/queue.schema.json",
+  "$defs": {
+    "QueueItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "content_id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+          "type": "string"
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pinned version; None = latest."
+        },
+        "start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Entry point."
+        },
+        "end": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exit point."
+        },
+        "semitones": {
+          "default": 0.0,
+          "maximum": 12,
+          "minimum": -12,
+          "type": "number"
+        },
+        "singer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "content_id",
+        "manifest",
+        "start",
+        "end",
+        "semitones",
+        "singer"
+      ],
+      "title": "QueueItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What a player will play, in order: one per player, made when it is enrolled.",
+  "properties": {
+    "player_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/QueueItem"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "player_id",
+    "version",
+    "items"
+  ],
+  "title": "Queue",
+  "type": "object"
+}

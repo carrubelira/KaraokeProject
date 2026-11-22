@@ -67,7 +67,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         text = json.dumps(create_app(settings).openapi(), ensure_ascii=False, indent=2) + "\n"
         if args.out:
-            args.out.write_text(text, encoding="utf-8")
+            args.out.write_text(text, encoding="utf-8", newline="\n")
         else:
             print(text, end="")
         return 0

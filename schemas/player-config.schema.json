@@ -155,23 +155,11 @@
     },
     "calibration": {
       "$ref": "#/$defs/Calibration"
-    },
-    "playlist_id": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
     }
   },
   "required": [
     "routing",
-    "calibration",
-    "playlist_id"
+    "calibration"
   ],
   "title": "PlayerConfig",
   "type": "object"

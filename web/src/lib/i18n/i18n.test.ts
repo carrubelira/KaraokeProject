@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { en } from './en';
-import { es } from './es';
 import { gl } from './gl';
 import { detectLocale } from './index.svelte';
 import { plural } from './plural';
@@ -16,7 +15,7 @@ function shape(value: unknown, path = ''): string[] {
 describe('detectLocale', () => {
 	it('prefers a stored choice', () => {
 		expect(detectLocale('en', ['gl'])).toBe('en');
-		expect(detectLocale('es', ['gl'])).toBe('es');
+		expect(detectLocale('es', ['en'])).toBe('en'); // no longer offered
 	});
 
 	it('is Galician for Galician and every other Iberian browser', () => {
@@ -41,19 +40,18 @@ describe('plural', () => {
 	it('picks the form and formats the number for the locale', () => {
 		expect(plural(1, 'gl', { one: '# canción', other: '# cancións' })).toBe('1 canción');
 		expect(plural(3, 'gl', { one: '# canción', other: '# cancións' })).toBe('3 cancións');
-		const big = new Intl.NumberFormat('es').format(1200);
-		expect(plural(1200, 'es', { one: '# canción', other: '# canciones' })).toBe(`${big} canciones`);
+		const big = new Intl.NumberFormat('en').format(1200);
+		expect(plural(1200, 'en', { one: '# song', other: '# songs' })).toBe(`${big} songs`);
 	});
 });
 
 describe('dictionaries', () => {
 	it('have exactly the keys of the Galician one, with the same kinds of value', () => {
-		expect(shape(es)).toEqual(shape(gl));
 		expect(shape(en)).toEqual(shape(gl));
 	});
 
 	it('have no empty texts', () => {
-		for (const dict of [gl, es, en]) {
+		for (const dict of [gl, en]) {
 			for (const entry of shape(dict)) expect(entry).not.toMatch(/:undefined$/);
 			const texts = JSON.stringify(dict);
 			expect(texts).not.toContain('""');

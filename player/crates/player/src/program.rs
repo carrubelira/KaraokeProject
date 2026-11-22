@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use kp_cache::Preparer;
 use kp_mix::{OutputMixer, PitcherFactory, Route, Routing, Track};
-use kp_proto::{Lyrics, Manifest, PlaylistItem, TrackKind};
+use kp_proto::{Lyrics, Manifest, QueueItem, TrackKind};
 
 pub struct Program {
-    pub item: PlaylistItem,
+    pub item: QueueItem,
     pub manifest: Manifest,
     pub lyrics: Lyrics,
     pub tracks: Vec<Arc<Track>>,
@@ -17,7 +17,7 @@ pub struct Program {
 
 impl Program {
     /// Decodes the stems (a few hundred ms for a song) and reads the lyrics.
-    pub fn load(item: PlaylistItem, manifest: Manifest, preparer: &Preparer<'_>) -> Result<Self, String> {
+    pub fn load(item: QueueItem, manifest: Manifest, preparer: &Preparer<'_>) -> Result<Self, String> {
         let mut tracks = Vec::new();
         for track in &manifest.tracks {
             if !matches!(track.kind, TrackKind::Vocals | TrackKind::Instrumental) {

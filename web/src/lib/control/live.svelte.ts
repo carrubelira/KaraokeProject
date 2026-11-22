@@ -1,41 +1,52 @@
 /**
  * The live line to the server (`/api/events`): a snapshot when it connects, then every change.
- * It reconnects on its own (and reloads the snapshot), and it learns the server's clock.
+ *
+ * Nothing it shows may go stale: when an event is missing (its sequence number skips one) or the
+ * server stops answering pings, the line is dropped and opened again, which brings a fresh
+ * snapshot. It also learns the server's clock.
  */
-import { api } from './api';
-import { apply, empty, type LiveEvent, type LiveState } from './state';
+import { apply, empty, missed, type LiveEvent, type LiveState } from './state';
+
+const PING_EVERY = 10_000;
+/** No answer for this long: the line is dead even if the socket has not noticed. */
+const SILENCE = 25_000;
 
 class Live {
 	state = $state<LiveState>(empty());
 	connected = $state(false);
 	/** Server µs minus local µs. */
 	offset = $state(0);
+	/** Round trip of the last ping, in ms. */
+	latency = $state<number | null>(null);
 	private socket: WebSocket | null = null;
 	private retry = 500;
-	private timers: ReturnType<typeof setInterval>[] = [];
+	private timer: ReturnType<typeof setInterval> | null = null;
+	private heard = 0;
 	private stopped = true;
 
 	start(): void {
 		if (!this.stopped) return;
 		this.stopped = false;
 		this.connect();
-		void this.refreshNodes();
-		this.timers.push(setInterval(() => void this.refreshNodes(), 5000));
-		this.timers.push(
-			setInterval(() => {
-				if (this.socket?.readyState === WebSocket.OPEN) {
-					this.socket.send(JSON.stringify({ type: 'ping', sent: Date.now() * 1000 }));
-				}
-			}, 15000)
-		);
+		this.timer = setInterval(() => this.ping(), PING_EVERY);
 	}
 
 	stop(): void {
 		this.stopped = true;
-		this.timers.forEach(clearInterval);
-		this.timers = [];
+		if (this.timer) clearInterval(this.timer);
+		this.timer = null;
 		this.socket?.close();
 		this.socket = null;
+	}
+
+	private ping(): void {
+		const socket = this.socket;
+		if (socket?.readyState !== WebSocket.OPEN) return;
+		if (performance.now() - this.heard > SILENCE) {
+			socket.close(4000, 'silent');
+			return;
+		}
+		socket.send(JSON.stringify({ type: 'ping', sent: Date.now() * 1000 }));
 	}
 
 	private connect(): void {
@@ -45,33 +56,33 @@ class Live {
 		socket.onopen = () => {
 			this.connected = true;
 			this.retry = 500;
-			socket.send(JSON.stringify({ type: 'ping', sent: Date.now() * 1000 }));
+			this.heard = performance.now();
+			this.ping();
 		};
 		socket.onmessage = (message) => {
+			this.heard = performance.now();
 			const event = JSON.parse(String(message.data)) as LiveEvent;
+			if (missed(this.state, event)) {
+				// Something was lost on the way: start again from a fresh snapshot.
+				socket.close(4000, 'gap');
+				return;
+			}
 			if (event.type === 'pong' && event.sent) {
 				const local = Date.now() * 1000;
 				this.offset = event.now - (event.sent + local) / 2;
+				this.latency = (local - event.sent) / 1000;
 			}
 			if (event.type === 'snapshot') this.offset = event.now - Date.now() * 1000;
 			this.state = apply(this.state, event, performance.now());
-			if (event.type === 'node') void this.refreshNodes();
 		};
 		socket.onclose = () => {
+			if (this.socket !== socket) return;
 			this.connected = false;
+			this.state = { ...this.state, seq: 0 };
 			if (this.stopped) return;
 			setTimeout(() => this.connect(), this.retry);
 			this.retry = Math.min(this.retry * 2, 10000);
 		};
-	}
-
-	async refreshNodes(): Promise<void> {
-		try {
-			const nodes = await api.nodes();
-			this.state = { ...this.state, nodes };
-		} catch {
-			// The events say when the server is back.
-		}
 	}
 
 	/** A local change shown at once; `revert` undoes it if the server says no. */
@@ -79,8 +90,13 @@ class Live {
 		const before = this.state;
 		this.state = change(this.state);
 		return () => {
-			if (this.state !== before) this.state = before;
+			if (this.state !== before) this.state = { ...before, seq: this.state.seq };
 		};
+	}
+
+	/** Server time now, in seconds since the epoch. */
+	serverNow(): number {
+		return (Date.now() * 1000 + this.offset) / 1e6;
 	}
 }
 

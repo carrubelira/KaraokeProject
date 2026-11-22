@@ -15,8 +15,9 @@ from pathlib import Path
 
 import httpx
 
-from karaoke_contracts.nodes import Heartbeat, Lease, TaskFailure, TaskProgress
+from karaoke_contracts.nodes import Heartbeat, Lease, TaskFailure, TaskProgress, TaskResult
 from karaoke_worker import system, tasks
+from karaoke_worker.feed import Feed
 from karaoke_worker.tasks import Context, TaskError
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,6 @@ class Running:
     lease: Lease
     task: "asyncio.Task[None]"
     gpu: bool
-    last_report: float = 0.0
 
 
 @dataclass
@@ -97,40 +97,61 @@ class Agent:
     async def _run(self, lease: Lease) -> None:
         task_id = lease.task.id
         logger.info("running %s (%s)", task_id, lease.task.kind)
+        client = self.ctx.client
 
-        async def report(progress: TaskProgress) -> None:
+        async def send_progress(progress: TaskProgress) -> bool:
+            return await asyncio.to_thread(client.progress, lease, progress)
+
+        async def send_lines(lines: list[str]) -> None:
+            await asyncio.to_thread(client.log, lease, lines)
+
+        def stop() -> None:
             running = self.running.get(task_id)
-            if running is None:
-                return
-            now = time.monotonic()
-            if now - running.last_report < 1.0 and progress.fraction not in (0.0, 1.0):
-                return
-            running.last_report = now
-            try:
-                keep_going = await asyncio.to_thread(self.ctx.client.progress, lease, progress)
-            except (httpx.HTTPError, OSError) as exc:
-                logger.warning("progress of %s not sent: %s", task_id, exc)
-                return
-            if not keep_going:
+            if running is not None:
+                logger.info("the server stopped %s", task_id)
                 running.task.cancel()
 
+        log_file = self.ctx.work / "logs" / f"{task_id.replace(':', '-')}.log"
+        log_file.unlink(missing_ok=True)
+        feed = Feed(send_progress, send_lines, log_file, stop)
         try:
-            result = await tasks.run(self.ctx, lease, report)
-            await asyncio.to_thread(self.ctx.client.complete, lease, result)
+            result = await tasks.run(self.ctx, lease, feed)
+            await feed.close()
+            log = await self._upload_log(log_file)
+            if log is not None:
+                result = TaskResult(outputs={**result.outputs, "log": log}, data=result.data)
+            await asyncio.to_thread(client.complete, lease, result)
             logger.info("%s done", task_id)
         except asyncio.CancelledError:
+            feed.abandon()
             logger.info("%s cancelled", task_id)
-        except TaskError as exc:
-            await self._fail(
-                lease, TaskFailure(code=exc.code, message=str(exc), retryable=exc.retryable)
-            )
         except Exception as exc:
-            logger.exception("%s failed", task_id)
-            await self._fail(
-                lease, TaskFailure(code="engine_failed", message=str(exc)[:500], retryable=True)
-            )
+            if isinstance(exc, TaskError):
+                failure = TaskFailure(code=exc.code, message=str(exc), retryable=exc.retryable)
+            else:
+                logger.exception("%s failed", task_id)
+                failure = TaskFailure(code="engine_failed", message=str(exc)[:500])
+            feed.line(f"✖ {failure.code}: {failure.message}")
+            await feed.close()
+            log = await self._upload_log(log_file)
+            await self._fail(lease, failure.model_copy(update={"log": log}))
         finally:
             self.running.pop(task_id, None)
+            log_file.unlink(missing_ok=True)
+
+    async def _upload_log(self, log_file: Path) -> str | None:
+        """The task's whole log goes up as a blob, so it can be read after the task is gone."""
+
+        def has_lines() -> bool:
+            return log_file.is_file() and log_file.stat().st_size > 0
+
+        if not await asyncio.to_thread(has_lines):
+            return None
+        try:
+            return await asyncio.to_thread(self.ctx.client.upload, log_file)
+        except (httpx.HTTPError, OSError) as exc:
+            logger.warning("the log of %s did not go up: %s", log_file.stem, exc)
+            return None
 
     async def _fail(self, lease: Lease, failure: TaskFailure) -> None:
         try:

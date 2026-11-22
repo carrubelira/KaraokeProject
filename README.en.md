@@ -168,7 +168,7 @@ privately ([`SECURITY.md`](SECURITY.md)).
 
 The project is released under the [MIT licence](LICENSE). It stands on the work of others — the
 models of Proxecto Nós, HiTZ, OpenAI, Meta and Kimberley Jensen, the fonts Unbounded, Figtree,
-Martian Mono, Atkinson Hyperlegible, Nunito and Inter, the globe's data (Kontur, Natural Earth,
-Mapzen and Wikidata), and the songs of artists who share their music freely. Their licences are
+Martian Mono, Atkinson Hyperlegible, Nunito and Inter, the open databases AcoustID, MusicBrainz
+and LRCLIB, and the songs of artists who share their music freely. Their licences are
 listed in [`NOTICE.md`](NOTICE.md). The screenshots show songs under Creative Commons licences and
 are shared under CC BY-SA 4.0.

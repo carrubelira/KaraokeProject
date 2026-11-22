@@ -1,6 +1,5 @@
 """Enrolling nodes, and what workers ask for: leases, heartbeats, progress and results."""
 
-import json
 import time
 from typing import Any, Literal
 
@@ -14,12 +13,14 @@ from karaoke_contracts.nodes import (
     Heartbeat,
     Lease,
     TaskFailure,
+    TaskLog,
     TaskProgress,
     TaskResult,
     Telemetry,
 )
 from karaoke_server.auth import Node, Operator, node, operator, worker
 from karaoke_server.errors import ApiError
+from karaoke_server.fleet import nodes, publish_node
 from karaoke_server.routes._deps import services
 
 router = APIRouter(prefix="/api", tags=["nodes"])
@@ -51,47 +52,21 @@ async def new_enrollment(
 async def enroll(body: Enrollment, request: Request) -> Enrolled:
     found = services(request)
     new, credential = found.auth.enrol(body)
-    found.events.publish("node", node={"id": new.id, "kind": new.kind, "name": new.name})
+    publish_node(found, new.id)
     return Enrolled(node_id=new.id, credential=credential, server_fingerprint=found.fingerprint)
 
 
 @router.get("/nodes")
 async def list_nodes(request: Request, who: Operator = Depends(operator)) -> list[dict[str, Any]]:
-    found = services(request)
-    rows = found.db.query("SELECT * FROM nodes WHERE revoked = 0 ORDER BY kind, name")
-    out = []
-    for row in rows:
-        seen, telemetry, busy = found.telemetry.get(
-            row["id"], (row["last_seen"], Telemetry(), False)
-        )
-        running = [
-            t["id"]
-            for t in found.db.query(
-                "SELECT id FROM tasks WHERE node_id = ? AND state IN ('leased', 'running')",
-                (row["id"],),
-            )
-        ]
-        out.append(
-            {
-                "id": row["id"],
-                "kind": row["kind"],
-                "name": row["name"],
-                "capabilities": json.loads(row["capabilities"]),
-                "last_seen": seen,
-                "online": time.time() - seen < 3 * found.settings.lease_seconds
-                or (row["kind"] == "player" and found.players.state(row["id"]).online),
-                "telemetry": telemetry.model_dump(mode="json"),
-                "busy_playing": busy,
-                "running": running,
-            }
-        )
-    return out
+    return nodes(services(request))
 
 
 @router.delete("/nodes/{node_id}", status_code=204)
 async def revoke(node_id: str, request: Request, who: Operator = Depends(operator)) -> Response:
-    if not services(request).auth.revoke(node_id):
+    found = services(request)
+    if not found.auth.revoke(node_id):
         raise ApiError(404, "not_found", "No such node")
+    publish_node(found, node_id)
     return Response(status_code=204)
 
 
@@ -129,11 +104,9 @@ async def heartbeat(
     found = services(request)
     found.telemetry[who.id] = (time.time(), body.telemetry, body.busy_playing)
     found.db.execute("UPDATE nodes SET last_seen = ? WHERE id = ?", (time.time(), who.id))
-    found.events.publish(
-        "telemetry", node_id=who.id, telemetry=body.telemetry.model_dump(mode="json"),
-        busy_playing=body.busy_playing,
-    )  # fmt: skip
-    return HeartbeatAnswer(stop=found.queue.renew(who, body.running), server_time=now_us())
+    stop = found.queue.renew(who, body.running)
+    publish_node(found, who.id)
+    return HeartbeatAnswer(stop=stop, server_time=now_us())
 
 
 class LeaseRequest(BaseModel):
@@ -198,4 +171,18 @@ async def fail(
     task_id: str, body: FailBody, request: Request, who: Node = Depends(worker)
 ) -> Response:
     services(request).queue.fail(task_id, body.lease_id, who, body.failure)
+    return Response(status_code=204)
+
+
+class LogBody(BaseModel):
+    lease_id: str
+    log: TaskLog
+
+
+@router.post("/tasks/{task_id}/log", status_code=204)
+async def log(
+    task_id: str, body: LogBody, request: Request, who: Node = Depends(worker)
+) -> Response:
+    """Lines the task's process wrote, for the operator to follow live."""
+    services(request).queue.log(task_id, body.lease_id, who, body.log.lines)
     return Response(status_code=204)

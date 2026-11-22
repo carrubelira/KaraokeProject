@@ -38,6 +38,10 @@ pub trait Backend: Send {
     fn devices(&self) -> Vec<DeviceInfo>;
     /// Starts an output; dropping the handle stops it. `lost` is set if the device goes away.
     fn open(&self, id: &str, render: Render, lost: Arc<AtomicBool>) -> Result<Box<dyn Send>, String>;
+    /// What is odd about the system's outputs (for `kp-player devices`).
+    fn problems(&self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// What the control thread sends a running output.
@@ -433,15 +437,42 @@ pub mod native {
             }
         }
 
-        fn id(&self, device: &cpal::Device) -> Option<String> {
-            device
-                .name()
-                .ok()
-                .map(|name| format!("{}:{name}", self.host.id().name().to_lowercase()))
+        /// Every output with an id of its own. cpal 0.15 only knows a device's friendly name,
+        /// and two outputs may share one (two monitors of the same model on one graphics card):
+        /// the second and later get `#2`, `#3`… in the order the system lists them, which is
+        /// stable while the same devices are plugged in.
+        ///
+        /// Every device with an output format, not cpal's `output_devices()`: that one drops in
+        /// silence any device whose list of formats cannot be read ("Could not determine
+        /// support for default WAVEFORMATEX"), which Windows does now and then for every output
+        /// at once even though their default format plays fine.
+        fn listed(&self) -> Vec<(cpal::Device, String, String)> {
+            let Ok(devices) = self.host.devices() else {
+                return Vec::new();
+            };
+            let host = self.host.id().name().to_lowercase();
+            let mut seen: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+            devices
+                .filter_map(|device| {
+                    Self::pick_config(&device)?;
+                    let name = device.name().ok()?;
+                    let count = seen.entry(name.clone()).or_insert(0);
+                    *count += 1;
+                    let id = match *count {
+                        1 => format!("{host}:{name}"),
+                        n => format!("{host}:{name} #{n}"),
+                    };
+                    Some((device, id, name))
+                })
+                .collect()
         }
 
         fn pick_config(device: &cpal::Device) -> Option<cpal::SupportedStreamConfig> {
-            let configs: Vec<_> = device.supported_output_configs().ok()?.collect();
+            // When the formats cannot be listed, the device's own (shared-mode) format still plays.
+            let configs: Vec<_> = device
+                .supported_output_configs()
+                .map(|c| c.collect())
+                .unwrap_or_default();
             let f32_48k = configs.iter().find(|c| {
                 c.sample_format() == cpal::SampleFormat::F32
                     && c.min_sample_rate().0 <= RATE
@@ -458,10 +489,10 @@ pub mod native {
     impl Cpal {
         fn start(&self, id: &str, mut render: Render, lost: Arc<AtomicBool>) -> Result<cpal::Stream, String> {
             let device = self
-                .host
-                .output_devices()
-                .map_err(|e| e.to_string())?
-                .find(|d| self.id(d).as_deref() == Some(id))
+                .listed()
+                .into_iter()
+                .find(|(_, listed, _)| listed == id)
+                .map(|(device, _, _)| device)
                 .ok_or("no such device")?;
             let supported = Self::pick_config(&device).ok_or("no usable configuration")?;
             let format = supported.sample_format();
@@ -524,19 +555,42 @@ pub mod native {
     struct Handle(#[allow(dead_code)] std::sync::mpsc::Sender<()>);
 
     impl Backend for Cpal {
-        fn devices(&self) -> Vec<DeviceInfo> {
-            let default = self.host.default_output_device().and_then(|d| d.name().ok());
-            let Ok(devices) = self.host.output_devices() else {
-                return Vec::new();
+        fn problems(&self) -> Vec<String> {
+            let devices = match self.host.devices() {
+                Ok(devices) => devices,
+                Err(error) => return vec![format!("listing the outputs failed: {error}")],
             };
             devices
                 .filter_map(|device| {
+                    let name = device.name().unwrap_or_else(|e| format!("(no name: {e})"));
+                    let input = device.default_input_config().is_ok();
+                    match (device.supported_output_configs(), Self::pick_config(&device)) {
+                        (_, None) if input => None, // a microphone
+                        (Err(error), Some(config)) => Some(format!(
+                            "{name}: its formats cannot be listed ({error}); its default one is used ({} Hz)",
+                            config.sample_rate().0
+                        )),
+                        (_, None) => Some(format!("{name}: no output format")),
+                        _ => None,
+                    }
+                })
+                .collect()
+        }
+
+        fn devices(&self) -> Vec<DeviceInfo> {
+            let default = self.host.default_output_device().and_then(|d| d.name().ok());
+            let mut default_taken = false;
+            self.listed()
+                .into_iter()
+                .filter_map(|(device, id, name)| {
                     let config = Self::pick_config(&device)?;
-                    let name = device.name().ok()?;
                     let lower = name.to_lowercase();
+                    // Only the first output with the default's name is the default.
+                    let is_default = !default_taken && default.as_deref() == Some(name.as_str());
+                    default_taken |= is_default;
                     Some(DeviceInfo {
-                        id: self.id(&device)?,
-                        default: default.as_deref() == Some(name.as_str()),
+                        id,
+                        default: is_default,
                         bluetooth: lower.contains("bluetooth")
                             || lower.contains("airpods")
                             || lower.contains("hands-free"),

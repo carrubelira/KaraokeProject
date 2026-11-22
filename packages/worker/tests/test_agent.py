@@ -1,11 +1,12 @@
-"""A worker against a real server app: enrolment, a karaoke made end to end, an export, and
-cancellation, with the fake engine (no GPU)."""
+"""A worker against a real server app: enrolment, a song analysed, reviewed and made end to end,
+an export, the live log, and cancellation, with the fake engine (no GPU)."""
 
 import asyncio
 import time
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -22,6 +23,20 @@ from karaoke_worker.tasks import Context
 pytestmark = [pytest.mark.usefixtures("ffmpeg"), pytest.mark.anyio]
 
 
+class _Buffered(httpx.BaseTransport):
+    """The app's test transport, its answers read in full: httpx's own client wants a sync
+    stream, which starlette's transport no longer hands over."""
+
+    def __init__(self, inner: httpx.BaseTransport) -> None:
+        self.inner = inner
+
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        answer = self.inner.handle_request(request)
+        return httpx.Response(
+            answer.status_code, headers=answer.headers, content=answer.read(), request=request
+        )
+
+
 class Rig:
     def __init__(self, tmp_path: Path) -> None:
         settings = Settings.from_env(
@@ -35,7 +50,7 @@ class Rig:
         )
         token = self.services.auth.new_enrollment("worker")
         caps = Capabilities(os="linux", gpus=[Gpu(name="fake", vram_total_mb=8192)], internet=True,
-                            tasks=["fetch", "make", "render"])  # fmt: skip
+                            tasks=["fetch", "analyze", "make", "render"])  # fmt: skip
         enrolled = self.http.post(
             "/api/nodes/enroll",
             json=Enrollment(token=token, kind="worker", name="w", capabilities=caps).model_dump(
@@ -43,7 +58,7 @@ class Rig:
             ),
         ).json()
         client = ServerClient(
-            "http://testserver", enrolled["credential"], transport=self.http._transport
+            "http://testserver", enrolled["credential"], transport=_Buffered(self.http._transport)
         )
         data = tmp_path / "worker"
         self.ctx = Context(
@@ -79,13 +94,27 @@ class Rig:
                 return job
         raise AssertionError(f"job still {job['state']}: {job}")
 
+    def confirm(self, job_id: str, **choice: Any) -> None:
+        body = {"title": "Proba", "language": "gl", "lyrics": "la la", **choice}
+        answer = self.operator.post(f"/api/jobs/{job_id}/confirm", json=body)
+        assert answer.status_code == 200, answer.text
+
 
 async def test_a_karaoke_is_made_and_exported_by_a_worker(tmp_path: Path) -> None:
     rig = Rig(tmp_path)
     body = {"upload": rig.upload(b"ID3" + bytes(500)), "lyrics": "la la", "title": "Proba"}
     job = rig.operator.post("/api/jobs", json=body).json()
+    review = await rig.until(job["id"], ("review", "failed"))
+    assert review["state"] == "review", review
+    assert review["tasks"][0]["data"]["best"]["title"] == "Proba"
+    rig.confirm(job["id"])
     done = await rig.until(job["id"], ("done", "failed"))
     assert done["state"] == "done", done
+    make = done["tasks"][1]
+    assert make["log"], "the whole log went up as a blob"
+    log = rig.operator.get(f"/api/jobs/{job['id']}/tasks/make/log").text
+    assert "── separate" in log
+    assert all(t["error"] is None for t in done["tasks"])
     content = rig.operator.get(f"/api/contents/{done['result']['content_id']}").json()
     assert content["title"] == "Proba"
     manifest = rig.operator.get(f"/api/contents/{content['id']}/manifest").json()
@@ -105,6 +134,8 @@ async def test_cancelling_stops_the_running_task(
     monkeypatch.setenv("KARAOKE_FAKE_STAGE_SECONDS", "2")
     rig = Rig(tmp_path)
     job = rig.operator.post("/api/jobs", json={"upload": rig.upload(b"x" * 100)}).json()
+    await rig.until(job["id"], ("review",))
+    rig.confirm(job["id"])
     await rig.agent.lease_once()
     assert rig.agent.running
     await asyncio.sleep(0.5)
@@ -118,13 +149,24 @@ async def test_cancelling_stops_the_running_task(
     assert rig.operator.get(f"/api/jobs/{job['id']}").json()["state"] == "cancelled"
 
 
-async def test_an_engine_failure_is_reported(tmp_path: Path) -> None:
+async def test_an_engine_failure_is_reported_with_its_log(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("KARAOKE_ACOUSTID_KEY", raising=False)
+    monkeypatch.setattr("karaoke_worker.identify.find_lyrics", lambda guess, duration: [])
     rig = Rig(tmp_path)
     rig.ctx.fake = False  # the real engine cannot read these bytes
     job = rig.operator.post(
-        "/api/jobs", json={"upload": rig.upload(b"not audio" * 10), "lyrics": "x"}
+        "/api/jobs", json={"upload": rig.upload(b"not audio" * 10, "Banda - Cantiga.mp3")}
     ).json()
+    review = await rig.until(job["id"], ("review", "failed"))
+    analysis = review["tasks"][0]["data"]
+    assert (analysis["best"]["title"], analysis["best"]["artist"]) == ("Cantiga", "Banda")
+    assert analysis["fingerprint"] == "no_key"
+    rig.confirm(job["id"], lyrics="x")
     rig.services.db.execute("UPDATE tasks SET max_attempts = 1")
     failed = await rig.until(job["id"], ("failed", "done"))
     assert failed["state"] == "failed"
-    assert failed["tasks"][0]["error_code"] in ("unreadable", "engine_failed")
+    make = failed["tasks"][1]
+    assert make["error_code"] in ("unreadable", "engine_failed")
+    assert make["log"], "a failed task still leaves its log"

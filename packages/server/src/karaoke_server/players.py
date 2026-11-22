@@ -16,13 +16,13 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from karaoke_contracts.control import Anchor, PlayerCommand, PlayerConfig, Playlist
+from karaoke_contracts.control import Anchor, PlayerCommand, PlayerConfig, Queue
 from karaoke_contracts.nodes import PlayerStatus
 from karaoke_server.clock import now_us
 from karaoke_server.db import Database
 from karaoke_server.errors import ApiError
 from karaoke_server.events import EventHub
-from karaoke_server.playlists import Playlists
+from karaoke_server.queues import Queues
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +38,11 @@ class PlayerState:
 
 class PlayerHub:
     def __init__(
-        self, db: Database, events: EventHub, playlists: Playlists, lead_seconds: float = 0.3
+        self, db: Database, events: EventHub, queues: Queues, lead_seconds: float = 0.3
     ) -> None:
         self.db = db
         self.events = events
-        self.playlists = playlists
+        self.queues = queues
         self.lead_us = int(lead_seconds * 1e6)
         self.states: dict[str, PlayerState] = {}
         self._sockets: dict[str, WebSocket] = {}
@@ -82,14 +82,10 @@ class PlayerHub:
 
     async def set_config(self, node_id: str, config: PlayerConfig) -> PlayerConfig:
         self._require(node_id)
-        if config.playlist_id is not None:
-            self.playlists.get(config.playlist_id)
         self.db.execute(
             "UPDATE nodes SET config = ? WHERE id = ?", (config.model_dump_json(), node_id)
         )
         await self.send(node_id, {"type": "config", "config": config.model_dump(mode="json")})
-        if config.playlist_id:
-            await self.send_playlist(node_id, self.playlists.get(config.playlist_id))
         self.events.publish("player", player_id=node_id, config=config.model_dump(mode="json"))
         return config
 
@@ -102,13 +98,16 @@ class PlayerHub:
                 await old.close(4000, "replaced")
         self._sockets[node_id] = websocket
         self._send_lock[node_id] = asyncio.Lock()
-        self.state(node_id).online = True
+        state = self.state(node_id)
+        state.online = True
+        # A player that (re)connects may have restarted: what it has on is what it reports in
+        # its first status, not what was ordered before.
+        state.item_id = None
+        state.anchor = None
         config = self.config(node_id)
         await self.send(node_id, {"type": "time", "now": now_us(), "sent": None})
         await self.send(node_id, {"type": "config", "config": config.model_dump(mode="json")})
-        if config.playlist_id:
-            with contextlib.suppress(ApiError):
-                await self.send_playlist(node_id, self.playlists.get(config.playlist_id))
+        await self.send_queue(self.queues.get(node_id))
         self.events.publish("player", player_id=node_id, online=True)
 
     def detach(self, node_id: str, websocket: WebSocket) -> None:
@@ -130,13 +129,8 @@ class PlayerHub:
             return False
         return True
 
-    async def send_playlist(self, node_id: str, playlist: Playlist) -> None:
-        await self.send(node_id, {"type": "playlist", "playlist": playlist.model_dump(mode="json")})
-
-    async def playlist_changed(self, playlist: Playlist) -> None:
-        for row in self.db.query("SELECT id FROM nodes WHERE kind = 'player' AND revoked = 0"):
-            if self.config(row["id"]).playlist_id == playlist.id:
-                await self.send_playlist(row["id"], playlist)
+    async def send_queue(self, queue: Queue) -> None:
+        await self.send(queue.player_id, {"type": "queue", "queue": queue.model_dump(mode="json")})
 
     async def receive(self, node_id: str, message: dict[str, Any]) -> None:
         kind = message.get("type")
@@ -144,6 +138,8 @@ class PlayerHub:
             status = PlayerStatus.model_validate(message["status"])
             state = self.state(node_id)
             state.status = status
+            if state.item_id is None and status.item_id is not None:
+                state.item_id = status.item_id  # the song it kept through a reconnection
             self.db.execute(
                 "UPDATE nodes SET last_seen = strftime('%s','now') WHERE id = ?", (node_id,)
             )
@@ -160,21 +156,18 @@ class PlayerHub:
             return state.status.position or 0.0
         return state.anchor.position + state.anchor.rate * (at - state.anchor.instant) / 1e6
 
-    def _playlist(self, node_id: str) -> Playlist:
-        playlist_id = self.config(node_id).playlist_id
-        if playlist_id is None:
-            raise ApiError(409, "no_playlist", "The player has no playlist")
-        return self.playlists.get(playlist_id)
+    def _start(self, node_id: str, item_id: str) -> float:
+        return self.queues.item(self.queues.get(node_id), item_id).start or 0.0
 
     def _neighbour(self, node_id: str, step: int) -> str:
-        playlist = self._playlist(node_id)
-        if not playlist.items:
-            raise ApiError(409, "empty_playlist", "The playlist is empty")
-        ids = [item.id for item in playlist.items]
+        queue = self.queues.get(node_id)
+        if not queue.items:
+            raise ApiError(409, "empty_queue", "The queue is empty")
+        ids = [item.id for item in queue.items]
         current = self.state(node_id).item_id
         index = ids.index(current) + step if current in ids else 0
         if not 0 <= index < len(ids):
-            raise ApiError(409, "end_of_playlist", "There is no song there")
+            raise ApiError(409, "end_of_queue", "There is no song there")
         return ids[index]
 
     async def command(
@@ -193,18 +186,18 @@ class PlayerHub:
         if command in ("next", "previous"):
             item_id = self._neighbour(node_id, 1 if command == "next" else -1)
             command_name = "load"
-            start = self.playlists.item(self._playlist(node_id), item_id).start or 0.0
+            start = self._start(node_id, item_id)
             anchor = Anchor(position=start, instant=at, rate=1.0)
         elif command == "load":
             item_id = item_id or self._neighbour(node_id, 0)
-            start = self.playlists.item(self._playlist(node_id), item_id).start or 0.0
+            start = self._start(node_id, item_id)
             anchor = Anchor(
                 position=position if position is not None else start, instant=at, rate=0.0
             )
             command_name = "load"
         elif command == "play":
             if item_id is not None and item_id != state.item_id:
-                start = self.playlists.item(self._playlist(node_id), item_id).start or 0.0
+                start = self._start(node_id, item_id)
                 anchor = Anchor(
                     position=position if position is not None else start, instant=at, rate=1.0
                 )

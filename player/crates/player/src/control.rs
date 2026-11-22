@@ -14,7 +14,8 @@ use kp_core::{Effects, PlayerCore, Timeline};
 use kp_mix::PitcherFactory;
 use kp_net::Server;
 use kp_proto::{
-    AudioDevice, CacheState, Display, Manifest, OutputPolicy, PlayerMessage, PlayerOutputs, PlaylistItem,
+    AudioDevice, CacheState, Display, Manifest, OutputPolicy, PlayerError, PlayerErrorCode, PlayerMessage,
+    PlayerOutputs, QueueItem,
 };
 
 use crate::audio::{Outputs, Shared, Update};
@@ -29,7 +30,7 @@ pub struct View {
     pub timeline: Timeline,
     pub config: kp_proto::PlayerConfig,
     /// The item cued next, for the waiting screen.
-    pub upcoming: Option<PlaylistItem>,
+    pub upcoming: Option<QueueItem>,
     pub upcoming_title: Option<(String, Option<String>)>,
     pub state: kp_proto::PlaybackState,
     pub download: Option<(CacheState, f64)>,
@@ -52,13 +53,13 @@ pub struct Player {
     pub displays: Arc<Mutex<Vec<Display>>>,
     events: Receiver<Event>,
     to_server: Option<Sender<PlayerMessage>>,
-    wants: Sender<Vec<PlaylistItem>>,
+    wants: Sender<Vec<QueueItem>>,
     reports: Receiver<Report>,
     loaded: Receiver<Result<Program, String>>,
     loaded_tx: Sender<Result<Program, String>>,
     manifests: HashMap<String, (String, Manifest)>,
     titles: HashMap<String, (String, Option<String>)>,
-    pending: Option<PlaylistItem>,
+    pending: Option<QueueItem>,
     program: Option<Arc<Program>>,
     cache: BlobCache,
     source: Arc<ServerSource>,
@@ -66,7 +67,18 @@ pub struct Player {
     factory: PitcherFactory,
     connected: bool,
     lost_master: bool,
+    /// What does not work right now, by device (or "" for the player itself), for the server.
+    errors: HashMap<String, PlayerError>,
     started: Instant,
+}
+
+fn error(code: PlayerErrorCode, device: Option<&str>, message: String) -> PlayerError {
+    PlayerError {
+        code,
+        device: device.map(str::to_string),
+        item_id: None,
+        message,
+    }
 }
 
 impl Player {
@@ -107,6 +119,7 @@ impl Player {
             factory: crate::pitch::factory(),
             connected: false,
             lost_master: false,
+            errors: HashMap::new(),
             started: Instant::now(),
         })
     }
@@ -143,8 +156,18 @@ impl Player {
 
     /// Opens the outputs the routing names (or the default one) and gives each its mixer.
     fn reconfigure(&mut self) {
+        // Every output is tried again: what fails now is reported again below.
+        self.errors.retain(|_, e| e.code != PlayerErrorCode::OutputFailed);
         let Some(master) = self.master_id() else {
             log::warn!("no audio output");
+            self.errors.insert(
+                String::new(),
+                error(
+                    PlayerErrorCode::OutputFailed,
+                    None,
+                    "No audio output on this machine".into(),
+                ),
+            );
             return;
         };
         let routing = program::routing(&self.core.config.routing, &master);
@@ -156,6 +179,11 @@ impl Player {
         wanted.dedup();
         for failed in self.outputs.reconcile(&wanted, &master) {
             log::warn!("audio output {failed} is not available");
+            let message = format!("The audio output {failed} could not be opened");
+            self.errors.insert(
+                failed.clone(),
+                error(PlayerErrorCode::OutputFailed, Some(&failed), message),
+            );
         }
         for (id, output) in &self.outputs.open {
             let calibration = self
@@ -178,7 +206,22 @@ impl Player {
             self.outputs.broadcast(|| Update::Unload);
             return;
         };
-        let Some(master) = self.master_id() else { return };
+        // The output already keeping time, not a fresh look at the system's devices: listing
+        // them can come back empty or short for a moment (a monitor's audio coming and going),
+        // and then the old song's mixer stayed on while the screens showed the new one.
+        let master = self
+            .outputs
+            .open
+            .iter()
+            .find(|(_, output)| output.is_master)
+            .map(|(id, _)| id.clone())
+            .or_else(|| self.master_id());
+        let Some(master) = master else {
+            // Nowhere to send the new song: never let the previous one go on playing.
+            log::warn!("no audio output for {}", program.manifest.title);
+            self.outputs.broadcast(|| Update::Unload);
+            return;
+        };
         let routing = program::routing(&self.core.config.routing, &master);
         for id in self.outputs.open.keys() {
             let mixer = program.mixer(
@@ -200,6 +243,12 @@ impl Player {
             }
         }
         if let Some(item) = effects.load {
+            // Another song: the one loaded goes at once, sound and picture together, so the
+            // new song's timeline never drives the previous song while the new one decodes.
+            if self.program.as_ref().is_some_and(|p| p.item.id != item.id) {
+                self.program = None;
+                self.outputs.broadcast(|| Update::Unload);
+            }
             self.pending = Some(item);
             self.try_load();
         }
@@ -216,7 +265,7 @@ impl Player {
             let volume = self.core.transport.volume as f32;
             self.outputs.broadcast(|| Update::Volume(volume));
         }
-        if effects.playlist || effects.config {
+        if effects.queue || effects.config {
             let _ = self.wants.send(self.core.prefetch(3));
         }
     }
@@ -253,6 +302,7 @@ impl Player {
             program.manifest.title,
             program.tracks.len()
         );
+        self.errors.remove("load");
         self.core.duration = Some(program.manifest.duration);
         self.program = Some(Arc::new(program));
         self.install_mixers();
@@ -268,7 +318,10 @@ impl Player {
                 .devices()
                 .into_iter()
                 .map(|d| AudioDevice {
-                    connected: true,
+                    connected: !self
+                        .errors
+                        .get(&d.id)
+                        .is_some_and(|e| e.code == PlayerErrorCode::OutputLost),
                     default: d.default,
                     latency_ms: d.latency_ms,
                     bluetooth: d.bluetooth,
@@ -305,11 +358,24 @@ impl Player {
         if self.lost_master {
             status.sync.insert("master_lost".into(), 1.0);
         }
+        let mut errors: Vec<PlayerError> = self.errors.values().cloned().collect();
+        if self.lost_master {
+            errors.push(error(
+                PlayerErrorCode::MasterLost,
+                master_id_hint(&self.core.config.routing.master),
+                "The output that keeps time went away: playback is paused until it is back".into(),
+            ));
+        }
+        errors.sort_by(|a, b| a.device.cmp(&b.device));
+        status.errors = errors;
         status
     }
 
     fn watch_devices(&mut self, now: i64) {
         let lost = self.outputs.take_lost();
+        let present: Vec<String> = self.outputs.devices().into_iter().map(|d| d.id).collect();
+        self.errors
+            .retain(|id, e| e.code != PlayerErrorCode::OutputLost || !present.contains(id));
         if lost.is_empty() {
             // A device that came back is opened again.
             if self.lost_master
@@ -333,6 +399,14 @@ impl Player {
             let policy = self.core.config.routing.policy(&id);
             let is_master = master.as_deref() == Some(id.as_str());
             log::warn!("audio output {id} went away ({:?})", policy);
+            self.errors.insert(
+                id.clone(),
+                error(
+                    PlayerErrorCode::OutputLost,
+                    Some(&id),
+                    format!("The audio output {id} went away"),
+                ),
+            );
             if is_master {
                 self.lost_master = true;
             }
@@ -352,7 +426,7 @@ impl Player {
             .item
             .as_ref()
             .and_then(|i| self.core.next_item(&i.id))
-            .or_else(|| self.core.playlist.as_ref().and_then(|p| p.items.first().cloned()));
+            .or_else(|| self.core.queue.as_ref().and_then(|p| p.items.first().cloned()));
         let download = self.core.transport.item.as_ref().and_then(|item| {
             self.core
                 .cache
@@ -425,7 +499,12 @@ impl Player {
         while let Ok(loaded) = self.loaded.try_recv() {
             match loaded {
                 Ok(program) => self.installed(program),
-                Err(error) => log::warn!("could not load the song: {error}"),
+                Err(problem) => {
+                    log::warn!("could not load the song: {problem}");
+                    let mut failed = error(PlayerErrorCode::LoadFailed, None, problem);
+                    failed.item_id = self.core.transport.item.as_ref().map(|i| i.id.clone());
+                    self.errors.insert("load".into(), failed);
+                }
             }
         }
         let effects = self.core.tick(now);
@@ -494,4 +573,8 @@ impl Player {
         }
         log::info!("{line}");
     }
+}
+
+fn master_id_hint(master: &Option<String>) -> Option<&str> {
+    master.as_deref()
 }

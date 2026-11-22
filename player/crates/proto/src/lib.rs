@@ -198,7 +198,7 @@ pub struct Lyrics {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct PlaylistItem {
+pub struct QueueItem {
     pub id: String,
     pub content_id: String,
     pub manifest: Option<Sha256>,
@@ -210,12 +210,10 @@ pub struct PlaylistItem {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Playlist {
-    pub id: String,
-    pub name: String,
+pub struct Queue {
+    pub player_id: String,
     pub version: u64,
-    pub items: Vec<PlaylistItem>,
-    pub player_id: Option<String>,
+    pub items: Vec<QueueItem>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -313,7 +311,6 @@ pub struct Calibration {
 pub struct PlayerConfig {
     pub routing: Routing,
     pub calibration: Calibration,
-    pub playlist_id: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -379,9 +376,30 @@ pub enum PlaybackState {
     Waiting,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PlayerErrorCode {
+    OutputFailed,
+    OutputLost,
+    DisplayFailed,
+    LoadFailed,
+    MasterLost,
+}
+
+/// Something the player could not do, reported until it can again.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlayerError {
+    pub code: PlayerErrorCode,
+    pub device: Option<String>,
+    pub item_id: Option<String>,
+    pub message: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlayerStatus {
+    pub errors: Vec<PlayerError>,
     pub outputs: PlayerOutputs,
     pub cache: Vec<ContentCache>,
     pub item_id: Option<String>,
@@ -395,6 +413,7 @@ pub struct PlayerStatus {
 impl Default for PlayerStatus {
     fn default() -> Self {
         Self {
+            errors: Vec::new(),
             outputs: PlayerOutputs::default(),
             cache: Vec::new(),
             item_id: None,
@@ -452,8 +471,8 @@ pub enum ServerMessage {
     Config {
         config: PlayerConfig,
     },
-    Playlist {
-        playlist: Playlist,
+    Queue {
+        queue: Queue,
     },
     Command {
         command: PlayerCommand,

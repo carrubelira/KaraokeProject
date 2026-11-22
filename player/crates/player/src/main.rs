@@ -179,6 +179,9 @@ fn devices(args: &mut Args) -> Result<(), String> {
             device.id, device.channels, device.sample_rate, device.name
         );
     }
+    for problem in backend.problems() {
+        eprintln!("note: {problem}");
+    }
     Ok(())
 }
 

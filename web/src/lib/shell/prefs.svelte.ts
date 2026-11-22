@@ -1,30 +1,27 @@
 /**
- * The operator's preferences: shortcuts, theme, density, panel sizes, the player they drive.
+ * The operator's preferences: shortcuts, the screen they drive, how much the background moves.
  * Kept on the server (they follow the operator to another computer) and applied at once here;
- * writes are grouped so dragging a splitter does not send a request per pixel.
+ * writes are grouped so a burst of changes sends one request.
  */
 import { api } from '#lib/control/api.js';
 import { commands } from '#lib/commands/registry.svelte.js';
 
+export type Effects = 'full' | 'calm' | 'off';
+
 export interface Preferences {
 	shortcuts: Record<string, string[]>;
-	theme: 'dark' | 'light';
-	dense: boolean;
-	layout: 'prep' | 'live';
-	sizes: Record<string, number[]>;
+	/** The screen (player) the deck and the queue act on. */
 	player: string | null;
-	/** The playlist being prepared when no player has one (or there is no player yet). */
-	playlist: string | null;
+	effects: Effects;
+	/** Go on without a review when the analysis is sure. */
+	autoConfirm: boolean;
 }
 
 const DEFAULTS: Preferences = {
 	shortcuts: {},
-	theme: 'dark',
-	dense: false,
-	layout: 'live',
-	sizes: {},
 	player: null,
-	playlist: null
+	effects: 'full',
+	autoConfirm: false
 };
 
 class Prefs {
@@ -32,7 +29,8 @@ class Prefs {
 	private timer: ReturnType<typeof setTimeout> | null = null;
 
 	load(raw: Record<string, unknown>): void {
-		this.value = { ...DEFAULTS, ...(raw as Partial<Preferences>) };
+		const known = Object.fromEntries(Object.entries(raw).filter(([key]) => key in DEFAULTS));
+		this.value = { ...DEFAULTS, ...(known as Partial<Preferences>) };
 		this.apply();
 	}
 
@@ -45,10 +43,6 @@ class Prefs {
 
 	private apply(): void {
 		commands.overrides = this.value.shortcuts;
-		if (typeof document !== 'undefined') {
-			document.documentElement.dataset.theme = this.value.theme;
-			document.documentElement.dataset.density = this.value.dense ? 'dense' : 'comfortable';
-		}
 	}
 }
 

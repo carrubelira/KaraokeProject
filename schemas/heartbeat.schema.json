@@ -77,6 +77,18 @@
             }
           ],
           "default": null
+        },
+        "ram_total_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -85,7 +97,8 @@
         "vram_free_mb",
         "gpu_temp_c",
         "cpu_util",
-        "ram_used_mb"
+        "ram_used_mb",
+        "ram_total_mb"
       ],
       "title": "Telemetry",
       "type": "object"

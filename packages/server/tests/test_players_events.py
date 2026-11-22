@@ -21,42 +21,45 @@ def _credential(client: TestClient) -> str:
 
 
 @pytest.fixture
-def ready(clients: Clients, demo_manifest: str) -> tuple[str, TestClient, str]:
-    """A player with a playlist of one song."""
+def ready(clients: Clients, demo_manifest: str) -> tuple[str, TestClient]:
+    """A player with two songs in its queue."""
     clients.services.library.register(demo_manifest)
     player_id, player = clients.enrol("player", name="sala")
     op = clients.operator()
-    playlist = op.post("/api/playlists", json={"name": "Noite"}).json()
-    playlist["items"] = [
+    queue = op.get(f"/api/players/{player_id}/queue").json()
+    queue["items"] = [
         {"id": "a", "content_id": "demo", "manifest": None, "start": 2.0, "end": None,
          "semitones": -2, "singer": None},
         {"id": "b", "content_id": "demo", "manifest": None, "start": None, "end": None,
          "semitones": 0, "singer": None},
     ]  # fmt: skip
-    op.put(f"/api/playlists/{playlist['id']}", json=playlist)
-    return player_id, player, playlist["id"]
+    op.put(f"/api/players/{player_id}/queue", json=queue)
+    return player_id, player
 
 
-def test_player_gets_time_config_playlist_and_orders(
-    clients: Clients, ready: tuple[str, TestClient, str]
+def test_player_gets_time_config_queue_and_orders(
+    clients: Clients, ready: tuple[str, TestClient]
 ) -> None:
-    player_id, player, playlist_id = ready
+    player_id, player = ready
     op = clients.operator()
     with _player_socket(clients, _credential(player)) as ws:
         first = ws.receive_json()
         assert first["type"] == "time"
         assert abs(first["now"] - now_us()) < 5_000_000
         assert ws.receive_json()["type"] == "config"
+        assert ws.receive_json()["queue"]["items"][0]["id"] == "a"
         config = {
             "routing": {"master": "hdmi", "routes": [], "screens": [], "policies": {}},
             "calibration": {"audio_ms": {}, "display_ms": {}},
-            "playlist_id": playlist_id,
         }
         assert op.put(f"/api/players/{player_id}/config", json=config).status_code == 200
         pushed = ws.receive_json()
         assert pushed["type"] == "config"
-        assert pushed["config"]["playlist_id"] == playlist_id
-        assert ws.receive_json()["playlist"]["items"][0]["id"] == "a"
+        assert pushed["config"]["routing"]["master"] == "hdmi"
+        added = op.post(
+            f"/api/players/{player_id}/queue/items", json={"items": [{"content_id": "demo"}]}
+        ).json()
+        assert ws.receive_json()["queue"] == added
 
         before = now_us()
         order = op.post(f"/api/players/{player_id}/commands", json={"command": "next"}).json()
@@ -69,6 +72,9 @@ def test_player_gets_time_config_playlist_and_orders(
         assert command["anchor"]["instant"] >= before + 200_000
         nxt = op.post(f"/api/players/{player_id}/commands", json={"command": "next"}).json()
         assert nxt["item_id"] == "b"
+        ws.receive_json()
+        third = op.post(f"/api/players/{player_id}/commands", json={"command": "next"}).json()
+        assert third["item_id"] == added["items"][2]["id"]
         ws.receive_json()
         assert (
             op.post(f"/api/players/{player_id}/commands", json={"command": "next"}).status_code
@@ -87,7 +93,12 @@ def test_player_gets_time_config_playlist_and_orders(
         assert ws.receive_json()["sent"] == 123
         status = {
             "type": "status",
-            "status": {"state": "playing", "position": 3.5, "semitones": -2},
+            "status": {
+                "state": "playing",
+                "position": 3.5,
+                "semitones": -2,
+                "errors": [{"code": "output_lost", "device": "wasapi:tv", "message": "gone"}],
+            },
         }
         ws.send_text(json.dumps(status))
         # Answered after the status was taken in.
@@ -95,13 +106,14 @@ def test_player_gets_time_config_playlist_and_orders(
         assert ws.receive_json()["sent"] == 1
     players = op.get("/api/players").json()
     assert players[0]["status"]["position"] == 3.5
+    assert players[0]["status"]["errors"][0]["code"] == "output_lost"
     assert players[0]["online"] is False
 
 
 def test_orders_to_an_offline_player_are_refused(
-    clients: Clients, ready: tuple[str, TestClient, str]
+    clients: Clients, ready: tuple[str, TestClient]
 ) -> None:
-    player_id, _, _ = ready
+    player_id, _ = ready
     answer = clients.operator().post(f"/api/players/{player_id}/commands", json={"command": "stop"})
     assert answer.status_code == 409
 
@@ -128,9 +140,45 @@ def test_control_gets_a_snapshot_then_live_events(clients: Clients) -> None:
         assert snapshot["type"] == "snapshot"
         assert snapshot["jobs"] == []
         assert snapshot["players"] == []
-        op.post("/api/playlists", json={"name": "Ensaio"})
+        assert snapshot["nodes"] == []
+        player_id, _ = clients.enrol("player", name="sala")
         event = ws.receive_json()
-        assert event["type"] == "playlist"
-        assert event["playlist"]["name"] == "Ensaio"
+        assert (event["type"], event["node"]["id"]) == ("node", player_id)
+        job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+        event = ws.receive_json()
+        assert (event["type"], event["job"]["id"]) == ("job", job["id"])
         ws.send_json({"type": "ping", "sent": 7})
         assert ws.receive_json()["sent"] == 7
+
+
+def test_a_reconnected_player_is_trusted_for_what_it_has_on(
+    clients: Clients, ready: tuple[str, TestClient]
+) -> None:
+    player_id, player = ready
+    op = clients.operator()
+    with _player_socket(clients, _credential(player)) as ws:
+        for _ in range(3):
+            ws.receive_json()  # time, config, queue
+        op.post(f"/api/players/{player_id}/commands", json={"command": "load", "item_id": "a"})
+        ws.receive_json()
+    # It restarts with nothing on: "play" now asks for the song again.
+    with _player_socket(clients, _credential(player)) as ws:
+        for _ in range(3):
+            ws.receive_json()
+        ws.send_text(json.dumps({"type": "status", "status": {"state": "idle"}}))
+        ws.send_text(json.dumps({"type": "time-request", "sent": 1}))
+        ws.receive_json()
+        answer = op.post(
+            f"/api/players/{player_id}/commands", json={"command": "play", "item_id": "a"}
+        )
+        assert answer.json()["command"] == "load"
+        ws.receive_json()
+    # It reconnects with the song still on: plain "play" plays it.
+    with _player_socket(clients, _credential(player)) as ws:
+        for _ in range(3):
+            ws.receive_json()
+        ws.send_text(json.dumps({"type": "status", "status": {"state": "paused", "item_id": "b"}}))
+        ws.send_text(json.dumps({"type": "time-request", "sent": 1}))
+        ws.receive_json()
+        played = op.post(f"/api/players/{player_id}/commands", json={"command": "play"}).json()
+        assert (played["command"], played["item_id"]) == ("play", "b")

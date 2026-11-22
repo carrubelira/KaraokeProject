@@ -12,6 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from karaoke_contracts.cas import BlobStore
+from karaoke_contracts.control import QueueItem
 from karaoke_server.auth import Auth
 from karaoke_server.config import Settings
 from karaoke_server.db import Database
@@ -24,8 +25,8 @@ from karaoke_server.errors import (
 from karaoke_server.events import EventHub
 from karaoke_server.library import Library
 from karaoke_server.players import PlayerHub
-from karaoke_server.playlists import Playlists
 from karaoke_server.queue import TaskQueue
+from karaoke_server.queues import Queues, new_item_id
 from karaoke_server.routes import (
     blobs,
     events,
@@ -33,7 +34,6 @@ from karaoke_server.routes import (
     library,
     nodes,
     players,
-    playlists,
     server,
     session,
     uploads,
@@ -43,6 +43,8 @@ from karaoke_server.services import Services
 from karaoke_server.uploads import Uploads
 
 logger = logging.getLogger(__name__)
+# Messages sent after the request that caused them; kept so none is collected half-way.
+_BACKGROUND: set[asyncio.Task[None]] = set()
 
 
 def build_services(
@@ -55,15 +57,29 @@ def build_services(
     hub = EventHub()
     store = BlobStore(settings.blobs_dir)
     content = Library(db, store, settings.trash_days)
-    lists = Playlists(db, hub)
+    queues = Queues(db, hub)
+    players = PlayerHub(db, hub, queues, settings.command_lead_seconds)
 
     def job_done(job: dict[str, Any]) -> dict[str, Any] | None:
-        """A finished karaoke becomes (a new version of) a song in the library."""
+        """A finished karaoke becomes (a new version of) a song in the library, and goes to the
+        queue of the screen the operator chose when confirming it."""
         manifest = job["result"]["outputs"].get("manifest")
         if job["kind"] != "create" or manifest is None:
             return None
         registered = content.register(manifest)
         hub.publish("content", content=registered)
+        player_id = job["params"].get("queue_on")
+        if player_id:
+            item = QueueItem(id=new_item_id(), content_id=registered["id"])
+            try:
+                saved = queues.add(player_id, [item])
+            except ApiError:
+                logger.warning("player %s is gone: %s not queued", player_id, registered["id"])
+            else:
+                with contextlib.suppress(RuntimeError):  # no event loop: nobody to tell now
+                    sent = asyncio.get_running_loop().create_task(players.send_queue(saved))
+                    _BACKGROUND.add(sent)
+                    sent.add_done_callback(_BACKGROUND.discard)
         return {"content_id": registered["id"], "manifest": registered["manifest"]}
 
     return Services(
@@ -81,8 +97,8 @@ def build_services(
             blob_exists=store.has,
         ),
         uploads=Uploads(db, settings.uploads_dir, store, settings.max_upload_bytes),
-        playlists=lists,
-        players=PlayerHub(db, hub, lists, settings.command_lead_seconds),
+        queues=queues,
+        players=players,
         fingerprint=fingerprint,
     )
 
@@ -144,7 +160,6 @@ def create_app(settings: Settings, *, services: Services | None = None) -> FastA
         uploads,
         library,
         jobs,
-        playlists,
         players,
         events,
         server,

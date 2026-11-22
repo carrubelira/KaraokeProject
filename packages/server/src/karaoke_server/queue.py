@@ -1,10 +1,14 @@
 """The task queue (plan v4 §3): persistent jobs made of chained tasks, leased by workers.
 
 A job is what an operator asks for (make a karaoke, export an MP4); its tasks form a small DAG
-(`fetch → make` for a link, `make` for an upload, `render` for an export). A task is `waiting`
-until the tasks it depends on are done, then `ready`; a worker leases it (`leased`, then
-`running` once it reports), renews the lease with its heartbeat and finishes it with its
-outputs (blobs it uploaded first) or a failure.
+(`fetch → analyze → make` for a link, `analyze → make` for an upload, `render` for an export).
+A task is `waiting` until the tasks it depends on are done, then `ready`; a worker leases it
+(`leased`, then `running` once it reports), renews the lease with its heartbeat and finishes it
+with its outputs (blobs it uploaded first) or a failure.
+
+- **Review**: `make` waits for the operator. Once `analyze` has said which song it is (and found
+  its lyrics), the job goes to `review` and its `make` is `held` until the operator confirms
+  or corrects the title, artist, language and lyrics.
 
 - **Leases**: a worker that stops renewing loses the task when its lease expires, and the task
   goes back to `ready` for another worker (up to `max_attempts`).
@@ -12,7 +16,10 @@ outputs (blobs it uploaded first) or a failure.
   free VRAM, pinned worker), then data affinity: the worker that made a task's inputs keeps
   them on disk and gets it first.
 - **Idempotent**: completing a task twice with the same lease is a no-op; a stale lease is
-  refused.
+  refused, and so is any report for a task that is no longer running (a late progress call
+  must never bring a finished task back).
+- **Logs**: the last lines a task's process wrote are kept in memory for the live view; the
+  whole log is a blob the worker uploads when the task ends.
 """
 
 import asyncio
@@ -21,6 +28,7 @@ import json
 import logging
 import secrets
 import time
+from collections import deque
 from collections.abc import Callable
 from typing import Any, Literal
 
@@ -37,9 +45,13 @@ JobKind = Literal["create", "render"]
 FINISHED = ("done", "failed", "cancelled")
 # Rough VRAM each kind needs (measured by the bench: separator ≈ 3 GB, aligner ≈ 2.1 GB, one
 # model at a time; NVENC ≈ 0.5 GB).
-VRAM_MB: dict[str, int] = {"fetch": 0, "make": 3200, "package": 0, "render": 600}
+VRAM_MB: dict[str, int] = {"fetch": 0, "analyze": 0, "make": 3200, "package": 0, "render": 600}
 INTERACTIVE = 10
 BATCH = 0
+# An analysis at least this sure goes on by itself when the job asked for auto-confirm.
+AUTO_CONFIRM = 0.85
+LIVE = ("leased", "running")
+LOG_LINES = 500
 
 
 def _dumps(value: Any) -> str:
@@ -67,6 +79,7 @@ class TaskQueue:
         self.blob_exists = blob_exists or (lambda sha: True)
         self._changed = asyncio.Event()
         self._reaper: asyncio.Task[None] | None = None
+        self._logs: dict[str, deque[str]] = {}
 
     # Jobs
 
@@ -92,17 +105,23 @@ class TaskQueue:
         if kind == "render":
             return [{"key": "render", "kind": "render", "params": params,
                      "inputs": [params["manifest"]]}]  # fmt: skip
-        make_params = {k: v for k, v in params.items() if k != "url"}
+        given = {k: params.get(k) for k in ("title", "artist", "language", "lyrics", "filename")}
+        make_params = {k: v for k, v in params.items() if k not in ("url", "auto_confirm")}
+        make_params["review"] = True
         if params.get("url"):
             return [
                 {"key": "fetch", "kind": "fetch", "params": {"url": params["url"]},
                  "needs_internet": True},
-                {"key": "make", "kind": "make", "params": make_params, "deps": ["fetch"],
-                 "needs_internet": bool(params.get("lrclib"))},
+                {"key": "analyze", "kind": "analyze", "params": given, "deps": ["fetch"],
+                 "needs_internet": True},
+                {"key": "make", "kind": "make", "params": make_params,
+                 "deps": ["fetch", "analyze"]},
             ]  # fmt: skip
         return [
-            {"key": "make", "kind": "make", "params": make_params, "inputs": [params["source"]],
-             "needs_internet": bool(params.get("lrclib"))},
+            {"key": "analyze", "kind": "analyze", "params": given,
+             "inputs": [params["source"]], "needs_internet": True},
+            {"key": "make", "kind": "make", "params": make_params,
+             "inputs": [params["source"]], "deps": ["analyze"]},
         ]  # fmt: skip
 
     def _insert_task(self, job_id: str, spec: dict[str, Any], priority: int, now: str) -> None:
@@ -131,7 +150,7 @@ class TaskQueue:
         if row is None:
             raise ApiError(404, "not_found", "No such job")
         tasks = [self._task_view(t) for t in self.db.query(
-            "SELECT * FROM tasks WHERE job_id = ? ORDER BY created_at, id", (job_id,))]  # fmt: skip
+            "SELECT * FROM tasks WHERE job_id = ? ORDER BY rowid", (job_id,))]  # fmt: skip
         return {
             "id": row["id"],
             "kind": row["kind"],
@@ -147,7 +166,7 @@ class TaskQueue:
         }
 
     def jobs(self, *, active_only: bool = False, limit: int = 200) -> list[dict[str, Any]]:
-        where = "WHERE state IN ('active', 'paused')" if active_only else ""
+        where = "WHERE state IN ('active', 'paused', 'review')" if active_only else ""
         rows = self.db.query(
             f"SELECT id FROM jobs {where} ORDER BY created_at DESC LIMIT ?",  # noqa: S608
             (limit,),
@@ -169,10 +188,14 @@ class TaskQueue:
             "priority": row["priority"],
             "attempts": row["attempts"],
             "stage": row["stage"],
+            "step": row["step"],
+            "message": row["message"],
             "fraction": row["fraction"],
             "error": row["error"],
             "error_code": row["error_code"],
             "outputs": json.loads(row["outputs"]),
+            "data": json.loads(row["data"]),
+            "log": row["log"],
             "elapsed": elapsed,
             "eta": self._task_eta(row["kind"], row["state"], elapsed, row["fraction"]),
         }
@@ -215,6 +238,8 @@ class TaskQueue:
                 (time.time(), iso_now(), job_id),
             )
             self.db.execute("UPDATE jobs SET state = 'cancelled' WHERE id = ?", (job_id,))
+        for task_id in [t["id"] for t in self.job(job_id)["tasks"]]:
+            self._logs.pop(task_id, None)
         self._touch_job(job_id)
         return self.job(job_id)
 
@@ -245,18 +270,23 @@ class TaskQueue:
         self._require_state(job_id, ("failed", "cancelled"))
         with self.db.transaction():
             for row in self.db.query(
-                "SELECT id, deps FROM tasks WHERE job_id = ? AND state != 'done'", (job_id,)
+                "SELECT id, deps, params FROM tasks WHERE job_id = ? AND state != 'done'", (job_id,)
             ):
                 deps = json.loads(row["deps"])
                 ready = all(self._state(d) == "done" for d in deps)
+                state = "waiting"
+                if ready:
+                    state = "held" if json.loads(row["params"]).get("review") else "ready"
                 self.db.execute(
                     "UPDATE tasks SET state = ?, attempts = 0, error = NULL, error_code = NULL,"
-                    " lease_id = NULL, node_id = NULL, finished_at = NULL, stage = NULL,"
-                    " fraction = NULL WHERE id = ?",
-                    ("ready" if ready else "waiting", row["id"]),
+                    " lease_id = NULL, node_id = NULL, lease_expires = NULL, finished_at = NULL,"
+                    " stage = NULL, step = NULL, message = NULL, fraction = NULL WHERE id = ?",
+                    (state, row["id"]),
                 )
+            held = self.db.one("SELECT 1 FROM tasks WHERE job_id = ? AND state = 'held'", (job_id,))
             self.db.execute(
-                "UPDATE jobs SET state = 'active', error = NULL WHERE id = ?", (job_id,)
+                "UPDATE jobs SET state = ?, error = NULL WHERE id = ?",
+                ("review" if held else "active", job_id),
             )
         self._wake()
         self._touch_job(job_id)
@@ -411,24 +441,56 @@ class TaskQueue:
         return stop
 
     def progress(self, task_id: str, lease_id: str, node: Node, progress: TaskProgress) -> bool:
-        """Records progress and renews the lease; returns False if the task was cancelled."""
+        """Records progress and renews the lease; False tells the worker to stop (the task was
+        cancelled, finished or given to someone else)."""
         row = self.db.one("SELECT * FROM tasks WHERE id = ?", (task_id,))
-        if row is not None and row["state"] == "cancelled":
+        if row is None or row["state"] not in LIVE:
             return False
-        row = self._held(task_id, lease_id, node)
+        if row["lease_id"] != lease_id or row["node_id"] != node.id:
+            return False
+        now = time.time()
+        new_stage = progress.stage != row["stage"]
+        if new_stage and row["stage"] and row["stage_started"]:
+            self._record_stage(row["kind"], row["stage"], now - row["stage_started"], now)
         self.db.execute(
-            "UPDATE tasks SET state = 'running', stage = ?, fraction = ?, lease_expires = ?,"
-            " updated_at = ? WHERE id = ?",
+            "UPDATE tasks SET state = 'running', stage = ?, step = ?, message = ?, fraction = ?,"
+            " stage_started = ?, lease_expires = ?, updated_at = ? WHERE id = ? AND lease_id = ?"
+            " AND state IN ('leased', 'running')",
             (
                 progress.stage,
+                progress.step,
+                progress.message,
                 progress.fraction,
-                time.time() + self.lease_seconds,
+                now if new_stage else row["stage_started"],
+                now + self.lease_seconds,
                 iso_now(),
                 task_id,
+                lease_id,
             ),
         )
-        self.events.publish("task", job_id=row["job_id"], task=self._task_view(self._row(task_id)))
+        self._publish_task(task_id)
         return True
+
+    def _record_stage(self, kind: str, stage: str, seconds: float, at: float) -> None:
+        self.db.execute(
+            "INSERT INTO stage_times (kind, stage, seconds, at) VALUES (?, ?, ?, ?)",
+            (kind, stage, seconds, at),
+        )
+
+    def _publish_task(self, task_id: str) -> None:
+        row = self._row(task_id)
+        self.events.publish("task", job_id=row["job_id"], task=self._task_view(row))
+
+    def log(self, task_id: str, lease_id: str, node: Node, lines: list[str]) -> None:
+        """Keeps the last lines for the live view and sends them to the controls."""
+        row = self._held(task_id, lease_id, node)
+        kept = self._logs.setdefault(task_id, deque(maxlen=LOG_LINES))
+        clean = [line[:1000] for line in lines]
+        kept.extend(clean)
+        self.events.publish("task-log", job_id=row["job_id"], task_id=task_id, lines=clean)
+
+    def recent_log(self, task_id: str) -> list[str]:
+        return list(self._logs.get(task_id, ()))
 
     def _row(self, task_id: str) -> Any:
         row = self.db.one("SELECT * FROM tasks WHERE id = ?", (task_id,))
@@ -440,27 +502,44 @@ class TaskQueue:
         if row is not None and row["state"] == "done" and row["lease_id"] == lease_id:
             return  # the same completion twice
         row = self._held(task_id, lease_id, node)
+        if row["state"] not in LIVE:
+            raise ApiError(409, "lease_lost", f"The task is {row['state']}")
         missing = [sha for sha in result.outputs.values() if not self.blob_exists(sha)]
         if missing:
             raise ApiError(409, "missing_blobs", "Upload the outputs first", missing=missing)
         now = time.time()
+        log = result.outputs.get("log")
         with self.db.transaction():
             self.db.execute(
                 "UPDATE tasks SET state = 'done', outputs = ?, data = ?, finished_at = ?,"
-                " fraction = 1, updated_at = ? WHERE id = ?",
-                (_dumps(result.outputs), _dumps(result.data), now, iso_now(), task_id),
+                " fraction = 1, step = NULL, message = NULL, error = NULL, error_code = NULL,"
+                " log = COALESCE(?, log), lease_expires = NULL, updated_at = ? WHERE id = ?",
+                (_dumps(result.outputs), _dumps(result.data), now, log, iso_now(), task_id),
             )
             if row["started_at"]:
-                self.db.execute(
-                    "INSERT INTO stage_times (kind, stage, seconds, at) VALUES (?, '*', ?, ?)",
-                    (row["kind"], now - row["started_at"], now),
-                )
+                self._record_stage(row["kind"], "*", now - row["started_at"], now)
+            if row["stage"] and row["stage_started"]:
+                self._record_stage(row["kind"], row["stage"], now - row["stage_started"], now)
             self._release_dependents(row["job_id"], task_id, result)
+            self._name_job(row["job_id"], row["kind"], result)
+        self._logs.pop(task_id, None)
+        self._publish_task(task_id)
         self._wake()
         self._maybe_finish(row["job_id"])
 
+    def _name_job(self, job_id: str, kind: str, result: TaskResult) -> None:
+        """A job made from a link is named by its link until the page says what it is."""
+        title = result.data.get("title") if kind == "fetch" else None
+        if title:
+            self.db.execute(
+                "UPDATE jobs SET title = ? WHERE id = ? AND title = json_extract(params, '$.url')",
+                (str(title)[:200], job_id),
+            )
+
     def _release_dependents(self, job_id: str, task_id: str, result: TaskResult) -> None:
         kind = task_id.split(":", 1)[1]
+        job_state = self._job_state(job_id)
+        outputs = {k: v for k, v in result.outputs.items() if k != "log"}
         for dependent in self.db.query(
             "SELECT * FROM tasks WHERE job_id = ? AND state = 'waiting'", (job_id,)
         ):
@@ -468,31 +547,98 @@ class TaskQueue:
             if task_id not in deps:
                 continue
             params = json.loads(dependent["params"])
-            params.setdefault("from", {})[kind] = {**result.outputs, **result.data}
-            inputs = json.loads(dependent["inputs"]) + list(result.outputs.values())
-            ready = all(self._state(d) == "done" for d in deps)
+            params.setdefault("from", {})[kind] = {**outputs, **result.data}
+            inputs = list(dict.fromkeys(json.loads(dependent["inputs"]) + list(outputs.values())))
+            state = "waiting"
+            if all(self._state(d) == "done" for d in deps):
+                state = self._released_state(job_id, job_state, params)
             self.db.execute(
                 "UPDATE tasks SET params = ?, inputs = ?, state = ? WHERE id = ?",
-                (_dumps(params), _dumps(inputs), "ready" if ready else "waiting", dependent["id"]),
+                (_dumps(params), _dumps(inputs), state, dependent["id"]),
             )
+
+    def _released_state(self, job_id: str, job_state: str | None, params: dict[str, Any]) -> str:
+        """Where a task goes once its inputs are there: the operator's review, or the queue."""
+        if params.get("review"):
+            if self._auto_confirm(job_id, params):
+                params["review"] = False
+            else:
+                self.db.execute("UPDATE jobs SET state = 'review' WHERE id = ?", (job_id,))
+                return "held"
+        return "paused" if job_state == "paused" else "ready"
+
+    def _auto_confirm(self, job_id: str, params: dict[str, Any]) -> bool:
+        """With auto-confirm on, a confident analysis goes straight on with what it found."""
+        job = self.db.one("SELECT params FROM jobs WHERE id = ?", (job_id,))
+        if job is None or not json.loads(job["params"]).get("auto_confirm"):
+            return False
+        found = params.get("from", {}).get("analyze", {})
+        best = found.get("best") or {}
+        if float(best.get("confidence") or 0) < AUTO_CONFIRM:
+            return False
+        candidates = found.get("lyrics") or []
+        lyrics = candidates[0].get("text") if candidates else None
+        params.update(
+            {
+                "title": best.get("title") or params.get("title"),
+                "artist": best.get("artist") or params.get("artist"),
+                "language": best.get("language") or params.get("language"),
+                "lyrics": lyrics or params.get("lyrics"),
+            }
+        )
+        return True
+
+    def confirm(self, job_id: str, choice: dict[str, Any]) -> dict[str, Any]:
+        """The operator's word on what the song is: `make` runs with it."""
+        self._require_state(job_id, ("review",))
+        row = self.db.one("SELECT * FROM tasks WHERE job_id = ? AND state = 'held'", (job_id,))
+        if row is None:
+            raise ApiError(409, "bad_state", "Nothing is waiting for a review")
+        params = json.loads(row["params"])
+        queue_on = choice.pop("queue_on", None)
+        params.update({k: v for k, v in choice.items() if k != "lyrics" and v is not None})
+        params["lyrics"] = choice.get("lyrics")  # None: the engine transcribes the song
+        params["lrclib"] = False  # the review already chose the lyrics
+        params["review"] = False
+        with self.db.transaction():
+            self.db.execute(
+                "UPDATE tasks SET params = ?, state = 'ready', updated_at = ? WHERE id = ?",
+                (_dumps(params), iso_now(), row["id"]),
+            )
+            self.db.execute(
+                "UPDATE jobs SET state = 'active', title = COALESCE(?, title),"
+                " params = json_set(params, '$.queue_on', ?) WHERE id = ?",
+                (choice.get("title"), queue_on, job_id),
+            )
+        self._wake()
+        self._touch_job(job_id)
+        return self.job(job_id)
+
+    def _job_state(self, job_id: str) -> str | None:
+        row = self.db.one("SELECT state FROM jobs WHERE id = ?", (job_id,))
+        return row["state"] if row else None
 
     def _maybe_finish(self, job_id: str) -> None:
         states = {
             r["state"] for r in self.db.query("SELECT state FROM tasks WHERE job_id = ?", (job_id,))
         }
-        if states == {"done"}:
+        if states == {"done"} and self._job_state(job_id) not in ("cancelled", "done"):
             job = self.job(job_id)
             outputs: dict[str, Any] = {}
             for task in job["tasks"]:
                 outputs.update(task["outputs"])
+            outputs.pop("log", None)
             result = {"outputs": outputs}
             if self.on_job_done is not None:
                 try:
                     extra = self.on_job_done({**job, "result": result})
-                except ApiError as exc:
+                except Exception as exc:  # whatever it was, the job must not stay active
+                    detail = exc.detail if isinstance(exc, ApiError) else str(exc)
+                    if not isinstance(exc, ApiError):
+                        logger.exception("could not finish job %s", job_id)
                     self.db.execute(
                         "UPDATE jobs SET state = 'failed', error = ? WHERE id = ?",
-                        (exc.detail, job_id),
+                        (detail, job_id),
                     )
                     self._touch_job(job_id)
                     return
@@ -504,26 +650,34 @@ class TaskQueue:
 
     def fail(self, task_id: str, lease_id: str, node: Node, failure: TaskFailure) -> None:
         row = self._held(task_id, lease_id, node)
+        if row["state"] not in LIVE:
+            return  # cancelled meanwhile, or already given up on
+        if failure.log is not None:
+            self.db.execute("UPDATE tasks SET log = ? WHERE id = ?", (failure.log, task_id))
         self._failed(row, failure.code, failure.message, failure.retryable)
 
     def _failed(self, row: Any, code: str, message: str, retryable: bool) -> None:
         again = retryable and row["attempts"] < row["max_attempts"]
+        self._logs.pop(row["id"], None)
         with self.db.transaction():
             if again:
+                state = "paused" if self._job_state(row["job_id"]) == "paused" else "ready"
                 self.db.execute(
-                    "UPDATE tasks SET state = 'ready', lease_id = NULL, node_id = NULL,"
-                    " error = ?, error_code = ?, stage = NULL, fraction = NULL, updated_at = ?"
+                    "UPDATE tasks SET state = ?, lease_id = NULL, node_id = NULL,"
+                    " lease_expires = NULL, error = ?, error_code = ?, stage = NULL, step = NULL,"
+                    " message = NULL, fraction = NULL, started_at = NULL, updated_at = ?"
                     " WHERE id = ?",
-                    (message, code, iso_now(), row["id"]),
+                    (state, message, code, iso_now(), row["id"]),
                 )
             else:
                 self.db.execute(
                     "UPDATE tasks SET state = 'failed', error = ?, error_code = ?,"
-                    " finished_at = ?, updated_at = ? WHERE id = ?",
+                    " lease_expires = NULL, finished_at = ?, updated_at = ? WHERE id = ?",
                     (message, code, time.time(), iso_now(), row["id"]),
                 )
                 self.db.execute(
-                    "UPDATE tasks SET state = 'cancelled' WHERE job_id = ? AND state = 'waiting'",
+                    "UPDATE tasks SET state = 'cancelled' WHERE job_id = ?"
+                    " AND state IN ('waiting', 'held')",
                     (row["job_id"],),
                 )
                 self.db.execute(
@@ -532,6 +686,7 @@ class TaskQueue:
                 )
         if again:
             self._wake()
+        self._publish_task(row["id"])
         self._touch_job(row["job_id"])
 
     def expire(self, now: float | None = None) -> int:

@@ -365,34 +365,35 @@
 
 <svelte:window onbeforeunload={(e) => dirty && e.preventDefault()} />
 
-<div class="ctl-page editor">
-	<div class="ctl-page-head">
+<div class="c-page editor">
+	<div class="c-page-head">
 		<h1>{t.editor.title}</h1>
-		<span class="ctl-muted">{manifest?.title ?? ''}</span>
-		<button class="ctl-btn ctl-primary" onclick={save} disabled={!dirty}
+		<span class="c-tag">{manifest?.title ?? ''}</span>
+		<span class="spacer"></span>
+		<button class="c-btn primary" onclick={save} disabled={!dirty}
 			>{t.editor.save} <Kbd keys="Mod+s" /></button
 		>
 	</div>
 	{#if !doc}
-		<p class="ctl-muted">{t.common.loading}</p>
+		<p class="label">{t.common.loading}</p>
 	{:else}
 		<div class="layout">
-			<ol class="ctl-rows lines ctl-box" aria-label="Liñas">
+			<ol class="c-rows c-panel lines" aria-label={t.editor.title}>
 				{#each doc.lines as l, i (l.id)}
 					<li
-						class="ctl-row"
-						class:ctl-cursor={i === lineIndex}
+						class="c-row"
+						class:is-cursor={i === lineIndex}
 						onclick={() => selectLine(i)}
 						onkeydown={() => {}}
 						role="option"
 						aria-selected={i === lineIndex}
 					>
-						<span class="ctl-muted mono">{clock(l.start)}</span>
+						<span class="dim mono time">{clock(l.start)}</span>
 						<span>{l.words.map((w) => w.text).join(' ')}</span>
 					</li>
 				{/each}
 			</ol>
-			<section class="ctl-box detail">
+			<section class="c-panel c-panel-body detail">
 				{#if line}
 					<Waveform
 						buffer={vocals}
@@ -430,7 +431,7 @@
 								{#if editing && j === wordIndex}
 									<!-- svelte-ignore a11y_autofocus -->
 									<input
-										class="ctl-field"
+										class="c-field"
 										autofocus
 										value={w.text}
 										onkeydown={(e) => {
@@ -446,8 +447,8 @@
 							</span>
 						{/each}
 					</p>
-					{#if word}<p class="ctl-muted mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
-					{#if mode === 'tap'}<p class="ctl-pill ctl-warn">
+					{#if word}<p class="dim mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
+					{#if mode === 'tap'}<p class="c-tag warn">
 							Tap {taps.length}/{line.words.length} · <Kbd keys="Space" />
 						</p>{/if}
 				{/if}
@@ -457,7 +458,7 @@
 				<div class="preview">
 					<LyricsView {doc} {theme} clock={{ now: () => time }} />
 				</div>
-				<p class="ctl-muted keys">
+				<p class="faint keys">
 					<Kbd keys="Space" />
 					{t.editor.play} · <Kbd keys="l" /> ⟳ · <Kbd keys="t" /> Tap · <Kbd keys="j" />/<Kbd
 						keys="k"
@@ -476,49 +477,64 @@
 	.layout {
 		display: grid;
 		grid-template-columns: minmax(16rem, 1fr) minmax(0, 2.2fr);
-		gap: var(--s-4);
-		height: calc(100vh - 11rem);
+		gap: var(--gap);
+		height: calc(100dvh - var(--strip) - var(--deck) - 90px);
 	}
 	.lines {
 		overflow: auto;
 	}
-	.lines .ctl-row {
-		grid-template-columns: 4rem 1fr;
+	.lines .c-row {
+		min-height: 40px;
+		font-size: 14px;
+	}
+	.time {
+		font-size: 11.5px;
+		width: 3.5rem;
+		flex: none;
 	}
 	.detail {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 		overflow: auto;
 	}
 	.words {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--s-2);
-		font-size: var(--t-1);
+		gap: 6px;
+		margin: 0;
+		font-size: 18px;
 	}
 	.words span {
-		padding: 0 var(--s-1);
-		border-radius: var(--radius-control);
+		padding: 0 4px;
+		border-radius: 2px;
 	}
 	.words .selected {
-		outline: 2px solid var(--ceo);
+		outline: 2px solid var(--info);
 	}
 	.words .doubtful {
-		text-decoration: underline wavy var(--erro);
+		text-decoration: underline wavy var(--onair);
 	}
 	.preview {
 		position: relative;
 		height: 14rem;
-		margin-top: var(--s-4);
-		border-radius: var(--radius-panel);
+		border: 1px solid var(--line-strong);
 		overflow: hidden;
-		background: #0b0b12;
+		background: #000;
 	}
 	.problems {
-		color: var(--erro);
-	}
-	.mono {
-		font-family: var(--font-data);
+		color: var(--onair);
 	}
 	.keys {
-		font-size: var(--t--1);
+		font-size: 12px;
+	}
+	@media (max-width: 900px) {
+		.layout {
+			grid-template-columns: minmax(0, 1fr);
+			height: auto;
+		}
+		.lines {
+			max-height: 40vh;
+		}
 	}
 </style>

@@ -18,7 +18,7 @@ export interface Capabilities {
 	/**
 	 * Task kinds it can run.
 	 */
-	tasks: ('fetch' | 'make' | 'package' | 'render')[];
+	tasks: ('fetch' | 'analyze' | 'make' | 'package' | 'render')[];
 	/**
 	 * Model name to version.
 	 */

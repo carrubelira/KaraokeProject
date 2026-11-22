@@ -7,7 +7,7 @@ use std::thread;
 
 use kp_cache::{BlobCache, Needs, Preparer, Source};
 use kp_net::Server;
-use kp_proto::{ContentCache, Manifest, PlaylistItem};
+use kp_proto::{ContentCache, Manifest, QueueItem};
 
 /// Blobs from the server: its disk when it shares this machine's, else HTTP with `Range`.
 pub struct ServerSource {
@@ -39,14 +39,14 @@ impl Source for ServerSource {
 pub enum Report {
     Cache(ContentCache),
     Ready {
-        item: PlaylistItem,
+        item: QueueItem,
         manifest: Box<Manifest>,
         manifest_sha: String,
     },
 }
 
-/// The manifest a playlist item plays: the pinned one, else the song's current version.
-fn manifest_of(server: &Server, item: &PlaylistItem) -> Result<String, String> {
+/// The manifest a queue item plays: the pinned one, else the song's current version.
+fn manifest_of(server: &Server, item: &QueueItem) -> Result<String, String> {
     if let Some(sha) = &item.manifest {
         return Ok(sha.clone());
     }
@@ -63,7 +63,7 @@ pub fn spawn(
     cache: BlobCache,
     source: ServerSource,
     needs: Needs,
-    wants: Receiver<Vec<PlaylistItem>>,
+    wants: Receiver<Vec<QueueItem>>,
     reports: Sender<Report>,
 ) -> thread::JoinHandle<()> {
     thread::Builder::new()

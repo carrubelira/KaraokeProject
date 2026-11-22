@@ -1,4 +1,4 @@
-export type Locale = 'gl' | 'es' | 'en';
+export type Locale = 'gl' | 'en';
 
 /**
  * The plural form of `forms` for `n` in `locale`, with `#` replaced by the number written the

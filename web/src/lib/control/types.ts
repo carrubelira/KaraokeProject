@@ -1,5 +1,5 @@
 /** What the v4 server answers (plan v4 §3); contracts v2 types come from #lib/contracts. */
-import type { PlayerConfig, PlayerStatus, Playlist } from '#lib/contracts';
+import type { PlayerConfig, PlayerStatus, Queue } from '#lib/contracts';
 
 export interface Content {
 	id: string;
@@ -14,27 +14,69 @@ export interface Content {
 	deleted_at: string | null;
 }
 
+export type TaskKind = 'fetch' | 'analyze' | 'make' | 'package' | 'render';
+
 export type TaskState =
-	'waiting' | 'ready' | 'leased' | 'running' | 'done' | 'failed' | 'cancelled' | 'paused';
+	'waiting' | 'held' | 'ready' | 'leased' | 'running' | 'done' | 'failed' | 'cancelled' | 'paused';
+
+/** One idea of which song it is (karaoke_worker.identify.Guess). */
+export interface Guess {
+	source: 'youtube' | 'title' | 'tags' | 'acoustid' | 'operator';
+	title: string;
+	artist: string | null;
+	album: string | null;
+	year: number | null;
+	language: string | null;
+	confidence: number;
+	cover: string | null;
+	recording: string | null;
+}
+
+export interface LyricsCandidate {
+	id: number;
+	title: string;
+	artist: string;
+	album: string | null;
+	duration: number;
+	synced: boolean;
+	text: string;
+	duration_gap: number | null;
+	source: string;
+}
+
+/** What the `analyze` task found, for the operator to review. */
+export interface Analysis {
+	best: Guess | null;
+	candidates: Guess[];
+	lyrics: LyricsCandidate[];
+	duration: number | null;
+	fingerprint: 'ok' | 'no_match' | 'no_key' | 'failed' | 'skipped';
+	notes: string[];
+}
 
 export interface TaskView {
 	id: string;
-	kind: 'fetch' | 'make' | 'package' | 'render';
+	kind: TaskKind;
 	state: TaskState;
 	node_id: string | null;
 	pinned_node: string | null;
 	priority: number;
 	attempts: number;
 	stage: string | null;
+	step: string | null;
+	message: string | null;
 	fraction: number | null;
 	error: string | null;
 	error_code: string | null;
 	outputs: Record<string, string>;
+	data: Record<string, unknown>;
+	/** The whole log, as a blob, once the task has ended. */
+	log: string | null;
 	elapsed: number | null;
 	eta: number | null;
 }
 
-export type JobState = 'active' | 'paused' | 'done' | 'failed' | 'cancelled';
+export type JobState = 'active' | 'review' | 'paused' | 'done' | 'failed' | 'cancelled';
 
 export interface Job {
 	id: string;
@@ -57,6 +99,7 @@ export interface Telemetry {
 	gpu_temp_c: number | null;
 	cpu_util: number | null;
 	ram_used_mb: number | null;
+	ram_total_mb: number | null;
 }
 
 export interface NodeView {
@@ -98,23 +141,13 @@ export interface Snapshot {
 	now: number;
 	jobs: Job[];
 	contents: Content[];
-	playlists: Playlist[];
+	queues: Queue[];
 	players: PlayerView[];
+	nodes: NodeView[];
 }
 
 export interface Session {
 	id: string;
 	name: string;
 	preferences: Record<string, unknown>;
-}
-
-export interface Candidate {
-	id: number;
-	title: string;
-	artist: string;
-	album: string | null;
-	duration: number;
-	synced: boolean;
-	text: string;
-	duration_gap: number | null;
 }

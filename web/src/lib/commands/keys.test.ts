@@ -72,7 +72,7 @@ describe('registry', () => {
 				id: 'remove',
 				title: () => 'Remove',
 				group: () => 'P',
-				scope: 'playlist',
+				scope: 'live',
 				keys: ['Delete'],
 				run: () => void ran.push('remove')
 			},
@@ -80,7 +80,7 @@ describe('registry', () => {
 				id: 'cancel',
 				title: () => 'Cancel',
 				group: () => 'Q',
-				scope: 'queue',
+				scope: 'jobs',
 				keys: ['Delete'],
 				run: () => void ran.push('cancel')
 			}
@@ -95,9 +95,9 @@ describe('registry', () => {
 		expect(registry.handle(event(' '))).toBe(true);
 		expect(registry.handle(event('g'))).toBe(true);
 		expect(registry.handle(event('b'))).toBe(true);
-		registry.scope = 'queue';
+		registry.scope = 'jobs';
 		registry.handle(event('Delete'));
-		registry.scope = 'playlist';
+		registry.scope = 'live';
 		registry.handle(event('Delete'));
 		await Promise.resolve();
 		expect(ran).toEqual(['play', 'library', 'cancel', 'remove']);

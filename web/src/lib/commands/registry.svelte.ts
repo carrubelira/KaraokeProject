@@ -4,7 +4,7 @@
  * one shortcut and one implementation.
  *
  * Commands belong to a scope: `global` ones work anywhere; the others only while a panel of that
- * scope has the focus (Delete removes from the playlist in the playlist, cancels in the queue).
+ * scope has the focus (Delete removes from the queue in Live, cancels a job in Jobs).
  * Operators can rebind any shortcut; their bindings are kept on the server with their other
  * preferences.
  */
@@ -12,7 +12,7 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { eventChord, hasModifier, isTyping, parseShortcut } from './keys';
 
-export type Scope = 'global' | 'library' | 'queue' | 'playlist' | 'workers' | 'outputs' | 'editor';
+export type Scope = 'global' | 'live' | 'add' | 'jobs' | 'library' | 'nodes' | 'outputs' | 'editor';
 
 export interface Command {
 	id: string;

@@ -1,6 +1,6 @@
 [package]
 name = "kp-core"
-description = "The player's logic: server clock, timeline of anchors, orders, playlist and status."
+description = "The player's logic: server clock, timeline of anchors, orders, queue and status."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

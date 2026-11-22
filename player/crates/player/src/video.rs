@@ -2,21 +2,35 @@
 //!
 //! The screens ask for the frame to show at a song time; the feed keeps a few frames around it
 //! and seeks when the song jumps (a seek, a new entry point) or when it falls behind.
+//!
+//! A seek lands on the keyframe before the time asked, and the frames from there on must be
+//! decoded to reach it: that takes time, during which the song goes on. So a seek aims ahead by
+//! as long as the last one took, the frames on the way are skipped without converting them, and
+//! no new seek is asked while one is under way; otherwise the feed chases the song for ever and
+//! shows a frame now and then.
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+use std::time::Instant;
 
 use kp_media::{VideoDecoder, VideoFrame};
 
 const AHEAD: usize = 6;
+/// How far ahead the first seek aims, before one has been measured (seconds).
+const FIRST_LEAD: f64 = 0.5;
+const MAX_LEAD: f64 = 4.0;
 
 struct Queue {
     frames: VecDeque<Arc<VideoFrame>>,
     /// Song time the screens want, as f64 bits (read by the decoder).
     seek_to: Option<f64>,
+    /// A seek is being decoded towards: no new one until it lands.
+    seeking: bool,
+    /// How long the last seek took to land (seconds): the next one aims that far ahead.
+    lead: f64,
     ended: bool,
 }
 
@@ -35,6 +49,8 @@ impl VideoFeed {
             Mutex::new(Queue {
                 frames: VecDeque::new(),
                 seek_to: None,
+                seeking: false,
+                lead: FIRST_LEAD,
                 ended: false,
             }),
             Condvar::new(),
@@ -79,12 +95,10 @@ impl VideoFeed {
         let first = queue.frames.front().cloned();
         let behind =
             first.as_ref().is_some_and(|f| t - f.time > 0.5) && queue.frames.len() <= 1 && !queue.ended;
-        let jumped_back = first.as_ref().is_some_and(|f| f.time - t > 0.25);
-        if (behind || jumped_back || (first.is_none() && !queue.ended))
-            && queue.seek_to.is_none()
-            && (behind || jumped_back)
-        {
-            queue.seek_to = Some(t);
+        let jumped_back = first.as_ref().is_some_and(|f| f.time - t > queue.lead + 0.25);
+        if (behind || jumped_back) && queue.seek_to.is_none() && !queue.seeking {
+            let lead = queue.lead;
+            queue.seek_to = Some(t + lead);
             queue.frames.clear();
             wake.notify_one();
         }
@@ -115,25 +129,31 @@ fn decode(
                     Err(_) => return,
                 };
             }
-            q.seek_to.take()
+            let seek = q.seek_to.take();
+            q.seeking = seek.is_some();
+            seek
         };
         if let Some(t) = seek {
+            let started = Instant::now();
             if decoder.seek(t).is_err() {
                 log::warn!("video seek to {t:.2} failed");
             }
-            // Decode up to the wanted time without queueing what is already past.
+            // Up to the aim (or further, if the song is already past it), skipping the frames
+            // on the way without converting them.
             let target = f64::from_bits(wanted.load(Ordering::Relaxed)).max(t);
-            loop {
-                match decoder.next_frame() {
-                    Ok(Some(frame)) if frame.time + 0.05 < target => continue,
-                    Ok(Some(frame)) => {
-                        if let Ok(mut q) = lock.lock() {
-                            q.frames.push_back(Arc::new(frame));
-                            q.ended = false;
-                        }
-                        break;
-                    }
-                    _ => break,
+            let landed = decoder.next_frame_from(target);
+            let Ok(mut q) = lock.lock() else { return };
+            q.lead = (started.elapsed().as_secs_f64() * 1.25).clamp(0.1, MAX_LEAD);
+            q.seeking = false;
+            match landed {
+                Ok(Some(frame)) => {
+                    q.frames.push_back(Arc::new(frame));
+                    q.ended = false;
+                }
+                Ok(None) => q.ended = true,
+                Err(error) => {
+                    log::warn!("video decoding stopped: {error}");
+                    return;
                 }
             }
             continue;

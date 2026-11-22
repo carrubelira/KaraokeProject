@@ -39,7 +39,8 @@ Operators can also make tokens from the control UI (Workers → Enrol).
 `%LOCALAPPDATA%\karaoke` on Windows, `~/.local/share/karaoke` elsewhere (`--data` or `KARAOKE_DATA`):
 
 - `blobs/`: every track, video, lyrics and manifest, named by its SHA-256.
-- `karaoke-v4.db`: contents, the task queue, nodes, playlists (a v3 `karaoke.db` is left alone).
+- `karaoke-v4.db`: contents, the task queue, nodes, their queues (a v3 `karaoke.db` is left
+  alone).
 - `uploads/`: uploads that have not finished (deleted after a day).
 - `tls/`: the certificate and its key.
 - `logs/`.
@@ -58,12 +59,22 @@ Operators can also make tokens from the control UI (Workers → Enrol).
 - `GET /api/blobs/{sha}` (with `Range`), `PUT /api/blobs/{sha}` (the hash is checked),
   `GET /api/blobs/{sha}/local` for nodes on the server's own disk.
 - Resumable uploads: `POST /api/uploads`, `HEAD`/`PATCH /api/uploads/{id}` with `Upload-Offset`.
-- Jobs: `POST /api/jobs` (an upload or a link, or an MP4 export), `…/{cancel,pause,resume,retry}`,
-  `PATCH` for priority and pinning.
+- Jobs: `POST /api/jobs` (an upload or a link, or an MP4 export; `auto_confirm` skips the review
+  when the analysis is sure), `…/{cancel,pause,resume,retry}`, `POST …/confirm` (the operator's
+  title, artist, language and lyrics after the analysis, and optionally `queue_on`, a player
+  whose queue gets the song once it is made), `GET …/tasks/{key}/log` (the whole log once the
+  task ended, the last lines while it runs), `PATCH` for priority and pinning.
 - Workers: `POST /api/worker/lease` (long poll), `/api/worker/heartbeat`,
-  `/api/tasks/{id}/{progress,complete,fail}`.
-- Playlists with optimistic versions (`409` with the current list on a conflict).
+  `/api/tasks/{id}/{progress,log,complete,fail}`. A report for a task that is no longer running
+  (finished, cancelled, given to another worker) is refused, so a late one never brings a
+  finished task back.
+- One queue per player (made when it is enrolled; a v3/v4 playlist a player pointed at became
+  its queue): `GET/PUT /api/players/{id}/queue` with optimistic versions (`409` with the current
+  queue on a conflict) and `POST /api/players/{id}/queue/items`, which adds to the end (or the
+  front) of whatever the queue is, with no version to match.
 - Players: `PUT /api/players/{id}/config`, `POST /api/players/{id}/commands`, and their socket
-  `/api/players/ws`. The control's socket is `/api/events` (a snapshot, then every change).
+  `/api/players/ws`. The control's socket is `/api/events`: a snapshot (jobs, songs, queues,
+  players, nodes), then every change with a sequence number (`job`, `task`, `task-log`,
+  `content`, `queue`, `player`, `player-status`, `player-command`, `node`, `node-removed`).
 
 The design is in `plan-v4/decisiones/004-servidor.md`.

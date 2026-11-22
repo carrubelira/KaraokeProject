@@ -51,50 +51,59 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		z-index: 40;
-		background: rgb(0 0 0 / 0.5);
+		z-index: 70;
+		background: rgb(2 3 5 / 0.6);
+		backdrop-filter: blur(3px);
 	}
 	.sheet {
 		position: fixed;
-		z-index: 41;
+		z-index: 71;
 		inset: 6vh 50% auto auto;
 		transform: translateX(50%);
 		width: min(64rem, calc(100vw - 2rem));
 		max-height: 86vh;
 		overflow: auto;
-		padding: var(--s-5) var(--s-6);
-		background: var(--fondo-2);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-panel);
+		padding: 22px 26px;
+		background: var(--panel-solid);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius);
+	}
+	h2 {
+		margin: 0;
+		font: 600 18px var(--font-display);
+		text-transform: uppercase;
 	}
 	header p {
-		color: var(--texto-3);
-		margin: 0;
+		color: var(--dim);
+		margin: 4px 0 0;
 	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-		gap: var(--s-5);
-		margin-top: var(--s-4);
+		gap: 22px;
+		margin-top: 18px;
 	}
 	h3 {
-		font-size: var(--t-0);
-		color: var(--ouro);
-		margin: 0 0 var(--s-2);
+		font: 500 11px var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--info);
+		margin: 0 0 10px;
 	}
 	dl {
 		display: grid;
 		grid-template-columns: 1fr auto;
-		gap: var(--s-1) var(--s-3);
+		gap: 6px 12px;
 		margin: 0;
+		font-size: 13.5px;
 	}
 	dt {
-		color: var(--texto-2);
+		color: var(--text);
 	}
 	dd {
 		margin: 0;
 		display: flex;
-		gap: var(--s-1);
+		gap: 4px;
 		justify-content: end;
 	}
 </style>

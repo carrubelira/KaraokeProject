@@ -3,16 +3,16 @@ import { plural } from './plural';
 
 export const en: Messages = {
 	app: {
-		name: 'Karaoke · control',
+		name: 'Console',
 		signIn: 'Sign in',
-		signInTitle: 'Karaoke control',
+		signInTitle: 'Karaoke console',
 		tokenLabel: 'Operator token',
-		tokenHint: '`karaoke-server operator add "your name"` on the server gives you one.',
+		tokenHint: 'Get one with `karaoke-server operator add "your name"` on the server.',
 		badToken: 'That token is not an operator’s.',
 		signOut: 'Sign out',
 		reconnecting: 'No connection to the server; reconnecting…',
-		dropHere: 'Drop to make karaokes',
-		pasted: 'Link pasted: making the karaoke',
+		dropHere: 'Drop to analyse and make the karaoke',
+		pasted: 'Link pasted: analysing',
 		failed: (what: string) => `Could not: ${what}`,
 		undone: (what: string) => `Undone: ${what}`,
 		redone: (what: string) => `Redone: ${what}`,
@@ -20,25 +20,23 @@ export const en: Messages = {
 	},
 	nav: {
 		label: 'Sections',
-		home: 'Home',
 		live: 'Live',
+		add: 'Add',
+		jobs: 'Jobs',
 		library: 'Library',
-		queue: 'Queue',
-		workers: 'Workers',
+		nodes: 'Nodes',
 		outputs: 'Outputs',
-		create: 'Create',
 		settings: 'Settings'
 	},
 	groups: {
 		navigation: 'Go to',
-		transport: 'Playback',
-		playlist: 'Playlist',
+		transport: 'On air',
 		queue: 'Queue',
+		jobs: 'Jobs',
 		library: 'Library',
-		view: 'View',
 		general: 'General',
 		outputs: 'Outputs',
-		workers: 'Workers'
+		nodes: 'Nodes'
 	},
 	cmd: {
 		palette: 'Command palette',
@@ -60,24 +58,24 @@ export const en: Messages = {
 		pitchReset: 'Original key',
 		stop: 'Stop',
 		search: 'Search',
-		density: 'Dense mode',
-		theme: 'Light or dark',
-		layoutPrep: 'Layout: preparation',
-		layoutLive: 'Layout: live',
+		nextScreen: 'Next screen',
+		add: 'Add a song',
 		down: 'Down',
 		up: 'Up',
 		open: 'Open',
-		toggleSelect: 'Select',
-		selectDown: 'Extend the selection down',
-		selectUp: 'Extend the selection up',
-		selectAll: 'Select all',
-		addToPlaylist: 'Add to the playlist',
-		addNext: 'Add after the current one',
-		remove: 'Remove from the playlist',
-		moveUp: 'Move up the playlist',
-		moveDown: 'Move down the playlist',
-		cue: 'Load on the player',
+		toggleSelect: 'Mark',
+		selectDown: 'Extend selection down',
+		selectUp: 'Extend selection up',
+		selectAll: 'Mark all',
+		addToQueue: 'To queue',
+		addNext: 'Play next',
+		remove: 'Remove from queue',
+		moveUp: 'Move up the queue',
+		moveDown: 'Move down the queue',
+		cue: 'Cue',
+		playNow: 'Play now',
 		retry: 'Retry',
+		retryElsewhere: 'Retry on another worker',
 		cancel: 'Cancel',
 		pauseJob: 'Pause the job',
 		resumeJob: 'Resume the job',
@@ -86,56 +84,137 @@ export const en: Messages = {
 		retryFailed: 'Retry the failed ones',
 		export: 'Export MP4',
 		edit: 'Fix the lyrics',
-		trash: 'Move to the trash',
-		enrolWorker: 'New worker token',
-		enrolPlayer: 'New player token',
-		newPlaylist: 'New playlist',
-		createFromClipboard: 'Create from the clipboard'
+		trash: 'Move to trash',
+		enrolWorker: 'Enrol a worker',
+		enrolPlayer: 'Enrol a screen'
 	},
 	palette: {
 		label: 'Command palette',
-		placeholder: 'Type a command, a song, a playlist…',
+		placeholder: 'A command, a song, a node…',
 		empty: 'Nothing matches',
 		song: 'Song',
-		playlist: 'Playlist',
 		worker: 'Worker',
-		player: 'Player',
-		hint: '↑↓ to move · ↵ to run · Esc to close'
+		player: 'Screen',
+		hint: '↑↓ move · ↵ run · Esc close'
 	},
 	cheatsheet: {
 		title: 'Keyboard shortcuts',
-		rebind: 'Change them in Settings',
+		rebind: 'Change in Settings',
 		pending: (key: string) => `${key}…`
 	},
-	status: {
-		nothing: 'Nothing playing',
-		playing: 'Playing',
-		paused: 'Paused',
+	strip: {
+		onAir: 'On air',
+		standby: 'Standby',
 		loading: 'Loading',
-		waiting: 'Waiting for the song',
-		idle: 'Stopped',
-		remaining: (time: string) => `${time} left`,
-		noPlayer: 'No player',
-		offline: 'offline',
-		key: (n: number) => (n === 0 ? 'original key' : `${n > 0 ? '+' : ''}${n} st`),
-		gpu: (util: number, vram: string) => `GPU ${util} % · ${vram}`,
-		lastCommand: (ms: string) => `command in ${ms} ms`
+		noSignal: 'No signal',
+		server: 'Server',
+		online: 'Online',
+		reconnecting: 'Reconnecting',
+		latency: (ms: number) => `${ms} ms`,
+		workers: (on: number, all: number) => `${on}/${all} workers`,
+		running: (n: number) => plural(n, 'en', { one: '# running', other: '# running' }),
+		review: (n: number) => plural(n, 'en', { one: '# to review', other: '# to review' }),
+		alerts: (n: number) => plural(n, 'en', { one: '# alert', other: '# alerts' }),
+		screen: 'Screen',
+		noScreen: 'No screens'
 	},
-	library: {
-		title: 'Library',
-		search: 'Search by title, artist or language',
-		empty: 'No songs yet: drop one here or go to Create.',
-		count: (n: number) => plural(n, 'en', { one: '# song', other: '# songs' }),
-		version: (v: number) => `v${v}`,
-		added: (title: string) => `“${title}” on the playlist`,
-		trash: 'Trash',
-		restore: 'Restore'
+	deck: {
+		nothing: 'Nothing on air',
+		cued: 'Cued',
+		upNext: 'Up next',
+		key: 'Key',
+		volume: 'Volume',
+		original: 'original',
+		semitones: (n: number) => `${n > 0 ? '+' : ''}${n} st`,
+		remaining: (time: string) => `−${time}`,
+		emptyQueue: 'Queue empty',
+		offline: 'The screen is not connected'
 	},
-	queue: {
-		title: 'Queue',
+	live: {
+		title: 'Live',
+		program: 'Program',
+		queue: (screen: string) => `Queue · ${screen}`,
+		queueEmpty: 'The queue is empty. Add songs from the Library or search here.',
+		quickAdd: 'Add to the queue: search a song',
+		played: 'Played',
+		singer: 'Singer',
+		noSinger: 'no name',
+		dragHint: 'Drag to reorder',
+		noPlayer: 'There is no screen yet.',
+		noPlayerHint: 'Enrol a player in Nodes and it shows up here.',
+		alerts: 'Screen alerts',
+		lyricsPreview: 'Lyrics',
+		cache: {
+			absent: 'not downloaded',
+			downloading: 'downloading',
+			verifying: 'checking',
+			ready: 'ready',
+			failed: 'failed'
+		}
+	},
+	add: {
+		title: 'Add',
+		lead: 'Paste a song’s link. The system works out which song it is, finds its lyrics, and you confirm before it is processed.',
+		link: 'Link',
+		placeholder: 'https://www.youtube.com/watch?v=…',
+		analyse: 'Analyse',
+		orFile: 'or drop an audio or video file',
+		chooseFile: 'Choose a file',
+		uploading: (name: string, pct: number) => `Uploading ${name} · ${pct} %`,
+		autoConfirm: 'Go on without review when the analysis is sure',
+		inProgress: 'Analysing',
+		toReview: 'To review',
+		nothing: 'Nothing being analysed. Paste a link to start.',
+		steps: {
+			download: 'Download',
+			metadata: 'Metadata',
+			fingerprint: 'Fingerprint',
+			acoustid: 'AcoustID',
+			musicbrainz: 'MusicBrainz',
+			lyrics: 'Lyrics'
+		},
+		sources: {
+			youtube: 'YouTube Music',
+			title: 'Video title',
+			tags: 'File tags',
+			acoustid: 'Fingerprint (AcoustID)',
+			operator: 'You'
+		},
+		confidence: (pct: number) => `${pct} % sure`,
+		fingerprint: {
+			ok: 'Recognised by its sound fingerprint',
+			no_match: 'The fingerprint matches no known recording',
+			no_key: 'No AcoustID key: the song was not listened to (set it on the worker)',
+			failed: 'Could not take the sound fingerprint',
+			skipped: 'No sound fingerprint'
+		},
+		reviewTitle: 'Which song is it?',
+		reviewLead: 'Check or fix before processing. What you confirm is what is used.',
+		candidates: 'Other possibilities',
+		useThis: 'Use this',
+		songTitle: 'Title',
+		artist: 'Artist',
+		language: 'Language of the lyrics',
+		lyrics: 'Lyrics',
+		lyricsFound: (n: number) => plural(n, 'en', { one: '# lyrics found', other: '# lyrics found' }),
+		lyricsNone: 'No lyrics: transcribe the audio',
+		lyricsOwn: 'Paste my own',
+		lyricsSearch: 'Search other lyrics',
+		synced: 'timed',
+		gap: (s: string) => `${s} s apart`,
+		process: 'Process',
+		processTo: (screen: string) => `Process and queue on ${screen}`,
+		discard: 'Discard',
+		queued: (title: string) => `“${title}” is being processed`,
+		cover: 'Cover'
+	},
+	jobs: {
+		title: 'Jobs',
 		empty: 'No jobs.',
+		filters: { all: 'All', active: 'Running', review: 'To review', failed: 'Failed', done: 'Done' },
 		states: {
 			active: 'Running',
+			review: 'To review',
 			paused: 'Paused',
 			done: 'Done',
 			failed: 'Failed',
@@ -143,7 +222,8 @@ export const en: Messages = {
 		},
 		tasks: {
 			waiting: 'waiting',
-			ready: 'ready',
+			held: 'waiting for you',
+			ready: 'queued',
 			leased: 'assigned',
 			running: 'working',
 			done: 'done',
@@ -151,52 +231,122 @@ export const en: Messages = {
 			cancelled: 'cancelled',
 			paused: 'paused'
 		},
-		kinds: { fetch: 'Download', make: 'Make the karaoke', package: 'Package', render: 'MP4' },
+		kinds: {
+			fetch: 'Download',
+			analyze: 'Analysis',
+			make: 'Karaoke',
+			package: 'Package',
+			render: 'Video'
+		},
+		stages: {
+			download: 'downloading',
+			analyze: 'analysing',
+			decode: 'decoding',
+			separate: 'separating the voice',
+			transcribe: 'transcribing',
+			align: 'aligning the lyrics',
+			encode: 'encoding',
+			render: 'rendering',
+			upload: 'uploading'
+		},
 		eta: (time: string) => `${time} left`,
+		elapsed: (time: string) => `${time}`,
 		on: (worker: string) => `on ${worker}`,
 		attempt: (n: number) => `attempt ${n}`,
-		priority: (n: number) => `priority ${n}`
+		log: 'Log',
+		logEmpty: 'No lines yet.',
+		logWhole: 'Whole log',
+		review: 'Review',
+		openSong: 'Open in the library'
 	},
-	workers: {
-		title: 'Workers',
-		players: 'Players',
-		empty: 'No worker enrolled.',
+	errors: {
+		too_big: { title: 'The file is too big', hint: 'Use a shorter or lower-quality version.' },
+		too_long: { title: 'The song is too long', hint: 'The limit is 20 minutes.' },
+		no_audio: { title: 'There is no sound', hint: 'Check that the file or video has audio.' },
+		unreadable: { title: 'The sound cannot be read', hint: 'Try another file or link.' },
+		bad_url: {
+			title: 'That link will not do',
+			hint: 'It must be one song (not a playlist nor a live stream).'
+		},
+		download_failed: {
+			title: 'The download failed',
+			hint: 'The site may be blocking: retry or use another link.'
+		},
+		disk_full: {
+			title: 'The worker’s disk is full',
+			hint: 'Free some space on the worker and retry.'
+		},
+		bad_lyrics: {
+			title: 'The lyrics do not fit',
+			hint: 'Change the lyrics or let them be transcribed.'
+		},
+		gpu_memory: {
+			title: 'Out of GPU memory',
+			hint: 'Close what uses the GPU on that machine, or retry on another worker.'
+		},
+		out_of_memory: { title: 'Out of memory', hint: 'The process went over its RAM limit: retry.' },
+		engine_failed: {
+			title: 'The engine failed',
+			hint: 'Read the log; retry, or try another worker.'
+		},
+		interrupted: { title: 'Interrupted', hint: 'Retry.' },
+		server_lost: { title: 'The worker lost the server', hint: 'Retry once the network is fine.' },
+		worker_lost: {
+			title: 'The worker stopped answering',
+			hint: 'If it does not come back, retry on another worker.'
+		},
+		unknown: { title: 'Failed', hint: 'Read the log.' }
+	},
+	nodes: {
+		title: 'Nodes',
+		workers: 'Workers',
+		players: 'Screens',
+		emptyWorkers: 'No workers. Enrol one to make karaokes.',
+		emptyPlayers: 'No screens. Enrol a player.',
 		online: 'Online',
 		offline: 'Offline',
-		vram: (used: string, total: string) => `${used} of ${total}`,
-		temp: (c: number) => `${c} °C`,
+		idle: 'Idle',
+		gpu: 'GPU',
+		vram: 'VRAM',
+		cpu: 'CPU',
+		ram: 'RAM',
+		temp: (c: number) => `${Math.round(c)} °C`,
+		of: (used: string, total: string) => `${used} / ${total}`,
 		running: (n: number) => plural(n, 'en', { one: '# task', other: '# tasks' }),
-		busyPlaying: 'The player on this machine is playing: no GPU work starts',
-		token: 'Enrolment token (works once)',
-		tokenHelp: (kind: string) => `On the ${kind}: karaoke-worker enroll https://SERVER:8765 TOKEN`,
-		revoke: 'Revoke'
+		busyPlaying: 'This machine’s screen is playing: it takes no GPU work',
+		takes: 'Takes',
+		token: 'Enrolment token · valid once, 24 h',
+		howWorker: 'On the worker:',
+		howPlayer: 'On the player:',
+		fingerprint: 'Certificate fingerprint',
+		revoke: 'Revoke',
+		revoked: (name: string) => `${name} revoked`,
+		lastSeen: (time: string) => `seen ${time} ago`,
+		displays: (n: number) => plural(n, 'en', { one: '# display', other: '# displays' }),
+		outputs: (n: number) => plural(n, 'en', { one: '# sound output', other: '# sound outputs' })
 	},
-	live: {
-		title: 'Live',
-		playlist: 'Playlist',
-		noPlaylist: 'This player has no playlist: make one or pick one.',
-		choosePlaylist: 'The player’s playlist',
-		player: 'Player',
-		nowPlaying: 'Now',
-		upNext: 'Next',
-		singer: 'Who sings',
-		empty: 'The playlist is empty: add songs from the Library (A).',
-		cache: {
-			absent: 'not downloaded',
-			downloading: 'downloading',
-			verifying: 'checking',
-			ready: 'ready',
-			failed: 'failed'
-		},
-		volume: 'Volume',
-		key: 'Key',
-		entry: 'Entry',
-		exit: 'Exit'
+	playerErrors: {
+		output_failed: 'A sound output could not be opened',
+		output_lost: 'A sound output went away',
+		display_failed: 'A display could not be opened',
+		load_failed: 'The song could not be loaded',
+		master_lost: 'The master output went away: paused'
+	},
+	library: {
+		title: 'Library',
+		search: 'Search by title, artist or language',
+		empty: 'No songs yet. Add one.',
+		count: (n: number) => plural(n, 'en', { one: '# song', other: '# songs' }),
+		version: (v: number) => `v${v}`,
+		added: (title: string, screen: string) => `“${title}” queued on ${screen}`,
+		exporting: (title: string) => `Exporting “${title}”`,
+		trashed: (n: number) => plural(n, 'en', { one: '# song to trash', other: '# songs to trash' })
 	},
 	outputs: {
 		title: 'Outputs',
-		displays: 'Screens',
-		audio: 'Audio',
+		noPlayer: 'Choose a screen at the top.',
+		displays: 'Displays',
+		audio: 'Sound',
 		master: 'Master',
 		matrix: 'Routing',
 		vocals: 'Guide vocals',
@@ -213,43 +363,32 @@ export const en: Messages = {
 			video: 'Video only',
 			off: 'Off'
 		},
+		primary: 'primary',
+		shows: 'Shows',
 		theme: 'Theme',
 		save: 'Save',
 		saved: 'Outputs saved',
-		sync: 'Sync',
-		bluetooth: 'Bluetooth: its latency varies'
-	},
-	create: {
-		title: 'Create',
-		drop: 'Drop songs or videos here, or paste a link',
-		file: 'Choose files',
-		url: 'Link (YouTube…)',
-		lyrics: 'Lyrics',
-		lyricsHint: 'Paste the lyrics as the web page gives them; without lyrics, they are heard.',
-		lrclib: 'Search LRCLIB',
-		candidates: 'Candidates',
-		synced: 'with times',
-		gap: (s: string) => `${s} s apart`,
-		use: 'Use this one',
-		language: 'Language',
-		title_: 'Title',
-		artist: 'Artist',
-		submit: 'Make the karaoke',
-		uploading: (pct: number) => `Uploading ${pct} %`,
-		queued: (title: string) => `“${title}” queued`
+		unsaved: 'Unsaved changes',
+		bluetooth: 'Bluetooth: its latency varies',
+		disconnected: 'disconnected'
 	},
 	settings: {
 		title: 'Settings',
 		language: 'Language',
-		appearance: 'Appearance',
-		dark: 'Dark',
-		light: 'Light',
-		dense: 'Dense',
+		effects: 'Effects',
+		effectsFull: 'Full',
+		effectsCalm: 'Calm',
+		effectsOff: 'Off',
 		shortcuts: 'Shortcuts',
 		press: 'Press the new shortcut…',
 		reset: 'Reset',
 		conflict: 'Clashes with another shortcut',
-		account: 'Account'
+		account: 'Account',
+		server: 'Server',
+		version: 'Version',
+		identify: 'Song identification',
+		identifyHelp:
+			'The sound fingerprint uses AcoustID. Each worker needs a free key (acoustid.org/new-application): keep it with “karaoke-worker acoustid-key KEY”.'
 	},
 	editor: {
 		title: 'Fix the lyrics',
@@ -259,6 +398,17 @@ export const en: Messages = {
 		play: 'Listen',
 		back: 'Back'
 	},
+	languages: {
+		gl: 'Galician',
+		es: 'Spanish',
+		pt: 'Portuguese',
+		en: 'English',
+		ca: 'Catalan',
+		eu: 'Basque',
+		fr: 'French',
+		it: 'Italian',
+		de: 'German'
+	},
 	common: {
 		close: 'Close',
 		cancel: 'Cancel',
@@ -266,17 +416,10 @@ export const en: Messages = {
 		delete: 'Delete',
 		loading: 'Loading…',
 		none: '—',
-		undo: 'Undo',
 		copy: 'Copy',
 		copied: 'Copied',
+		more: 'More',
 		update: 'Update',
-		updateReady: 'A new version is ready'
-	},
-	globe: {
-		atlantic: 'Atlantic Ocean',
-		label: (people: string) =>
-			`Galicia at night in the north-west of the Iberian Peninsula, with the Atlantic, Portugal, Asturias and León in the dark; ${people} people, one light for every place where people live.`,
-		credits:
-			'Population from Kontur, relief and bathymetry from Mapzen (SRTM, EU-DEM, ETOPO1), outlines from Natural Earth and lighthouses from Wikidata.'
+		updateReady: 'There is a new version'
 	}
 };

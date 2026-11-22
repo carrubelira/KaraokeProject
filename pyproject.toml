@@ -24,6 +24,7 @@ dev = [
     "schemathesis>=4.0",
     "shellcheck-py>=0.11",
     "check-jsonschema>=0.39",
+    "types-psutil>=7.2.2.20261111",
 ]
 
 [tool.uv]

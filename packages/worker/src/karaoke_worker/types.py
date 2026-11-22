@@ -40,7 +40,12 @@ class Spawner(Protocol):
         ...
 
     async def run(
-        self, job_id: str, spec: dict[str, Any], log: Path, on_event: Callable[[Event], None]
+        self,
+        job_id: str,
+        spec: dict[str, Any],
+        log: Path,
+        on_event: Callable[[Event], None],
+        on_line: Callable[[str], None] | None = None,
     ) -> Outcome:
         """Runs one job to the end; cancelling the awaiting task stops it."""
         ...
@@ -55,6 +60,11 @@ class RemoteInfo:
     is_live: bool
     # Files the download is made of: video and audio apart are two.
     parts: int = 1
+    # What the page says besides (YouTube Music gives the track, artist and album of songs).
+    album: str | None = None
+    uploader: str | None = None
+    thumbnail: str | None = None
+    year: int | None = None
 
 
 class DownloadError(Exception):
@@ -67,5 +77,10 @@ class Downloader(Protocol):
     async def probe(self, url: str) -> RemoteInfo: ...
 
     async def download(
-        self, url: str, dest: Path, on_progress: Callable[[float], None], parts: int = 1
+        self,
+        url: str,
+        dest: Path,
+        on_progress: Callable[[float], None],
+        parts: int = 1,
+        on_line: Callable[[str], None] | None = None,
     ) -> Path: ...

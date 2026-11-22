@@ -8,6 +8,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from karaoke_server.auth import Operator, websocket_identity
 from karaoke_server.clock import now_us
+from karaoke_server.fleet import nodes
 from karaoke_server.routes._deps import ws_services
 from karaoke_server.services import Services
 
@@ -21,8 +22,9 @@ def snapshot(found: Services) -> dict[str, Any]:
         "now": now_us(),
         "jobs": found.queue.jobs(limit=100),
         "contents": found.library.contents(),
-        "playlists": [p.model_dump(mode="json") for p in found.playlists.all()],
+        "queues": [q.model_dump(mode="json") for q in found.queues.all()],
         "players": found.players.players(),
+        "nodes": nodes(found),
     }
 
 

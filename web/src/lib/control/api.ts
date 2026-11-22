@@ -1,6 +1,6 @@
 /** The v4 server's HTTP API, with the operator's session cookie. */
-import type { Lyrics, Manifest, PlayerCommand, PlayerConfig, Playlist } from '#lib/contracts';
-import type { Candidate, Content, Job, NodeView, PlayerView, Session } from './types';
+import type { Lyrics, Manifest, PlayerCommand, PlayerConfig, Queue } from '#lib/contracts';
+import type { Content, Job, LyricsCandidate, Session } from './types';
 
 export class ApiError extends Error {
 	constructor(
@@ -50,7 +50,31 @@ async function call<T>(
 		);
 	}
 	if (response.status === 204 || method === 'HEAD') return undefined as T;
+	if (response.headers.get('Content-Type')?.startsWith('text/plain')) {
+		return (await response.text()) as T;
+	}
 	return (await response.json()) as T;
+}
+
+const song = (id: string) => `/api/contents/${encodeURIComponent(id)}`;
+
+export interface NewJob {
+	url?: string;
+	upload?: string;
+	title?: string;
+	artist?: string;
+	language?: string;
+	lyrics?: string;
+	auto_confirm?: boolean;
+}
+
+export interface Confirmation {
+	title: string;
+	artist: string | null;
+	language: string;
+	lyrics: string | null;
+	/** A screen whose queue gets the song once it is made. */
+	queue_on?: string | null;
 }
 
 export const api = {
@@ -60,24 +84,32 @@ export const api = {
 	savePreferences: (preferences: Record<string, unknown>) =>
 		call<Record<string, unknown>>('PUT', '/api/session/preferences', preferences),
 
-	contents: (trash = false) => call<Content[]>('GET', `/api/contents${trash ? '?trash=true' : ''}`),
-	manifest: (id: string) =>
-		call<Manifest>('GET', `/api/contents/${encodeURIComponent(id)}/manifest`),
-	lyrics: (id: string) => call<Lyrics>('GET', `/api/contents/${encodeURIComponent(id)}/lyrics`),
+	manifest: (id: string) => call<Manifest>('GET', `${song(id)}/manifest`),
+	lyrics: (id: string) => call<Lyrics>('GET', `${song(id)}/lyrics`),
 	saveLyrics: (id: string, base: string, lyrics: Lyrics) =>
-		call<Content>('PUT', `/api/contents/${encodeURIComponent(id)}/lyrics`, { base, lyrics }),
-	trash: (id: string) => call<void>('DELETE', `/api/contents/${encodeURIComponent(id)}`),
-	restore: (id: string) => call<Content>('POST', `/api/contents/${encodeURIComponent(id)}/restore`),
+		call<Content>('PUT', `${song(id)}/lyrics`, { base, lyrics }),
+	trash: (id: string) => call<void>('DELETE', song(id)),
+	restore: (id: string) => call<Content>('POST', `${song(id)}/restore`),
 	blobUrl: (sha: string) => `/api/blobs/${sha}`,
 
-	jobs: () => call<Job[]>('GET', '/api/jobs'),
-	createJob: (body: Record<string, unknown>) => call<Job>('POST', '/api/jobs', body),
+	createJob: (body: NewJob) => call<Job>('POST', '/api/jobs', body),
+	exportVideo: (contentId: string, aspect: '16:9' | '9:16') =>
+		call<Job>('POST', '/api/jobs', { kind: 'render', content_id: contentId, aspect }),
 	jobAction: (id: string, action: 'cancel' | 'pause' | 'resume' | 'retry') =>
 		call<Job>('POST', `/api/jobs/${id}/${action}`),
+	confirm: (id: string, choice: Confirmation) =>
+		call<Job>('POST', `/api/jobs/${id}/confirm`, choice),
 	changeJob: (id: string, change: { priority?: number; pinned_node?: string; unpin?: boolean }) =>
 		call<Job>('PATCH', `/api/jobs/${id}`, change),
+	taskLog: (jobId: string, key: string) =>
+		call<string>('GET', `/api/jobs/${jobId}/tasks/${encodeURIComponent(key)}/log`),
 
-	nodes: () => call<NodeView[]>('GET', '/api/nodes'),
+	searchLyrics: (q: string, duration?: number | null) =>
+		call<LyricsCandidate[]>(
+			'GET',
+			`/api/lyrics/search?q=${encodeURIComponent(q)}${duration ? `&duration=${Math.round(duration)}` : ''}`
+		),
+
 	enrollment: (kind: 'worker' | 'player') =>
 		call<{ token: string; kind: string; expires_in_hours: number }>('POST', '/api/enrollments', {
 			kind
@@ -86,26 +118,18 @@ export const api = {
 	server: () =>
 		call<{ version: string; fingerprint: string; now: number; tls: boolean }>('GET', '/api/server'),
 
-	playlists: () => call<Playlist[]>('GET', '/api/playlists'),
-	createPlaylist: (name: string, player_id?: string) =>
-		call<Playlist>('POST', '/api/playlists', { name, player_id }),
-	savePlaylist: (playlist: Playlist) =>
-		call<Playlist>('PUT', `/api/playlists/${playlist.id}`, playlist),
-	deletePlaylist: (id: string) => call<void>('DELETE', `/api/playlists/${id}`),
-
-	players: () => call<PlayerView[]>('GET', '/api/players'),
 	setConfig: (id: string, config: PlayerConfig) =>
 		call<PlayerConfig>('PUT', `/api/players/${id}/config`, config),
 	command: (
 		id: string,
 		order: { command: string; item_id?: string; position?: number; value?: number }
 	) => call<PlayerCommand>('POST', `/api/players/${id}/commands`, order),
-
-	searchLyrics: (q: string, duration?: number) =>
-		call<Candidate[]>(
-			'GET',
-			`/api/lyrics/search?q=${encodeURIComponent(q)}${duration ? `&duration=${duration}` : ''}`
-		),
+	saveQueue: (queue: Queue) => call<Queue>('PUT', `/api/players/${queue.player_id}/queue`, queue),
+	addToQueue: (
+		playerId: string,
+		items: { content_id: string; singer?: string | null }[],
+		first = false
+	) => call<Queue>('POST', `/api/players/${playerId}/queue/items`, { items, first }),
 
 	createUpload: (filename: string, size: number) =>
 		call<{ id: string; offset: number; size: number; blob: string | null }>(
@@ -123,8 +147,6 @@ export const api = {
 			'PATCH',
 			`/api/uploads/${id}`,
 			chunk,
-			{
-				headers: { 'Upload-Offset': String(offset) }
-			}
+			{ headers: { 'Upload-Offset': String(offset) } }
 		)
 };

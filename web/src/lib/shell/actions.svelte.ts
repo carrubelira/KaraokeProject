@@ -1,10 +1,11 @@
 /**
  * What the operator does, as functions the commands, the buttons and the palette share. Every
- * change shows at once (optimistic) and is reverted with a notice if the server says no;
- * playlist edits that meet a newer version are applied again on top of it.
+ * change shows at once (optimistic) and is reverted with a notice if the server says no.
+ *
+ * Every screen (player) has its own queue, so "add" always has a target: the screen the operator
+ * drives (chosen in the top strip), else the first one online.
  */
-import { SvelteMap } from 'svelte/reactivity';
-import type { Playlist, PlaylistItem } from '#lib/contracts';
+import type { Queue, QueueItem } from '#lib/contracts';
 import { api, ApiError } from '#lib/control/api.js';
 import { live } from '#lib/control/live.svelte.js';
 import { positionNow } from '#lib/control/state.js';
@@ -19,6 +20,7 @@ export function fail(error: unknown): void {
 	toasts.show(i18n.t.app.failed(text), 'error');
 }
 
+/** The screen the operator drives. */
 export function player(): PlayerView | undefined {
 	const players = live.state.players;
 	return (
@@ -26,9 +28,26 @@ export function player(): PlayerView | undefined {
 	);
 }
 
-export function playlist(): Playlist | undefined {
-	const id = player()?.config.playlist_id ?? prefs.value.playlist;
-	return live.state.playlists.find((p) => p.id === id);
+export function choosePlayer(id: string): void {
+	prefs.set('player', id);
+}
+
+export function nextPlayer(): void {
+	const players = live.state.players;
+	if (players.length < 2) return;
+	const index = players.findIndex((p) => p.id === player()?.id);
+	choosePlayer(players[(index + 1) % players.length].id);
+}
+
+export function queueOf(playerId: string | undefined): Queue | undefined {
+	if (!playerId) return undefined;
+	return (
+		live.state.queues.find((q) => q.player_id === playerId) ?? {
+			player_id: playerId,
+			version: 0,
+			items: []
+		}
+	);
 }
 
 export function content(id: string): Content | undefined {
@@ -57,6 +76,7 @@ export const transport = {
 	stop: () => order('stop'),
 	cue: (itemId: string) => order('load', { item_id: itemId }),
 	playItem: (itemId: string) => order('play', { item_id: itemId }),
+	seek: (position: number) => order('seek', { position: Math.max(0, position) }),
 	seekBy: (seconds: number) => {
 		const target = player();
 		if (!target) return;
@@ -65,114 +85,111 @@ export const transport = {
 	},
 	restart: () => {
 		const target = player();
-		const item = playlist()?.items.find((i) => i.id === target?.status.item_id);
+		const item = queueOf(target?.id)?.items.find((i) => i.id === target?.status.item_id);
 		return order('seek', { position: item?.start ?? 0 });
 	},
-	volumeBy: (step: number) =>
-		order('volume', { value: Math.round(((player()?.status.volume ?? 1) + step) * 100) / 100 }),
+	volume: (value: number) => order('volume', { value: Math.round(value * 100) / 100 }),
+	volumeBy: (step: number) => transport.volume((player()?.status.volume ?? 1) + step),
+	pitch: (value: number) => order('pitch', { value }),
 	pitchBy: (step: number) => order('pitch', { value: (player()?.status.semitones ?? 0) + step }),
 	pitchReset: () => order('pitch', { value: 0 })
 };
 
-let counter = 0;
-export function itemId(): string {
-	counter += 1;
-	return `i${Date.now().toString(36)}${counter.toString(36)}`;
-}
-
-function same(a: PlaylistItem[], b: PlaylistItem[]): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
-}
-
-function save(list: Playlist, items: PlaylistItem[]): Promise<Playlist> {
-	return api.savePlaylist({ ...list, items });
+function setQueue(saved: Queue): void {
+	live.state = {
+		...live.state,
+		queues: [...live.state.queues.filter((q) => q.player_id !== saved.player_id), saved]
+	};
 }
 
 /**
- * Changes a playlist's items: shown at once, saved with its version; on a conflict the change is
- * applied again to the newer list. Undoable.
+ * Changes a queue's order or items: shown at once, saved with its version; on a conflict the
+ * change is applied again to the newer queue. Undoable.
  */
-export async function editPlaylist(
+export async function editQueue(
 	label: string,
-	change: (items: PlaylistItem[]) => PlaylistItem[],
-	list: Playlist | undefined = playlist()
+	change: (items: QueueItem[]) => QueueItem[],
+	queue: Queue | undefined = queueOf(player()?.id)
 ): Promise<void> {
-	if (!list) return;
-	const before = list.items;
+	if (!queue) return;
+	const before = queue.items;
 	const after = change(before);
-	if (same(before, after)) return;
+	if (JSON.stringify(before) === JSON.stringify(after)) return;
 	const revert = live.patch((state) => ({
 		...state,
-		playlists: state.playlists.map((p) => (p.id === list.id ? { ...p, items: after } : p))
+		queues: [
+			...state.queues.filter((q) => q.player_id !== queue.player_id),
+			{ ...queue, items: after }
+		]
 	}));
-	// On the undo stack at once: the next key may be Mod+Z before the server has answered.
-	const id = list.id;
+	const id = queue.player_id;
 	const entry = {
 		label,
 		undo: async () => {
-			const now = live.state.playlists.find((p) => p.id === id);
-			if (now) await editPlaylist(label, () => before, now).then(() => void history.past.pop());
+			await editQueue(label, () => before, queueOf(id)).then(() => void history.past.pop());
 		},
 		redo: async () => {
-			const now = live.state.playlists.find((p) => p.id === id);
+			const now = queueOf(id);
 			if (now)
-				await editPlaylist(label, () => change(now.items), now).then(() => void history.past.pop());
+				await editQueue(label, () => change(now.items), now).then(() => void history.past.pop());
 		}
 	};
 	history.push(entry);
-	const withdraw = () => {
-		history.past = history.past.filter((e) => e !== entry);
-	};
-	let saved: Playlist;
 	try {
-		saved = await save(list, after);
+		setQueue(await api.saveQueue({ ...queue, items: after }));
 	} catch (error) {
+		let problem: unknown = error;
 		if (error instanceof ApiError && error.code === 'version_conflict' && error.body.current) {
-			const current = error.body.current as Playlist;
+			const current = error.body.current as Queue;
 			try {
-				saved = await save(current, change(current.items));
+				setQueue(await api.saveQueue({ ...current, items: change(current.items) }));
+				return;
 			} catch (again) {
-				revert();
-				withdraw();
-				return fail(again);
+				problem = again;
 			}
-		} else {
-			revert();
-			withdraw();
-			return fail(error);
 		}
+		revert();
+		history.past = history.past.filter((e) => e !== entry);
+		fail(problem);
 	}
-	live.state = {
-		...live.state,
-		playlists: live.state.playlists.map((p) => (p.id === saved.id ? saved : p))
-	};
 }
 
-export function addToPlaylist(contentIds: string[], next = false): Promise<void> {
-	const current = player()?.status.item_id;
-	const items = contentIds.map((content_id) => ({
-		id: itemId(),
-		content_id,
-		manifest: null,
-		start: null,
-		end: null,
-		semitones: 0,
-		singer: null
-	}));
+/** Adds songs to the end of the screen's queue (or right after the song on air). */
+export async function addToQueue(contentIds: string[], next = false): Promise<void> {
+	const target = player();
+	if (!target || !contentIds.length) return;
 	const titles = contentIds.map((id) => content(id)?.title ?? id).join(', ');
-	return editPlaylist(i18n.t.library.added(titles), (list) => {
-		if (!next) return [...list, ...items];
-		const at = list.findIndex((i) => i.id === current);
-		return [...list.slice(0, at + 1), ...items, ...list.slice(at + 1)];
-	}).then(() => toasts.show(i18n.t.library.added(titles)));
+	try {
+		const saved = await api.addToQueue(
+			target.id,
+			contentIds.map((content_id) => ({ content_id }))
+		);
+		setQueue(saved);
+		if (next) {
+			const fresh = saved.items.slice(-contentIds.length).map((i) => i.id);
+			await editQueue(
+				i18n.t.cmd.addNext,
+				(items) => {
+					const moving = items.filter((i) => fresh.includes(i.id));
+					const rest = items.filter((i) => !fresh.includes(i.id));
+					const at = rest.findIndex((i) => i.id === target.status.item_id);
+					return [...rest.slice(0, at + 1), ...moving, ...rest.slice(at + 1)];
+				},
+				saved
+			);
+		}
+		toasts.show(i18n.t.library.added(titles, target.name));
+	} catch (error) {
+		fail(error);
+	}
 }
 
-export function removeFromPlaylist(ids: string[]): Promise<void> {
-	return editPlaylist(i18n.t.cmd.remove, (list) => list.filter((i) => !ids.includes(i.id)));
+export function removeFromQueue(ids: string[]): Promise<void> {
+	return editQueue(i18n.t.cmd.remove, (items) => items.filter((i) => !ids.includes(i.id)));
 }
 
-export function moveInPlaylist(ids: string[], step: -1 | 1): Promise<void> {
-	return editPlaylist(step < 0 ? i18n.t.cmd.moveUp : i18n.t.cmd.moveDown, (list) => {
+export function moveInQueue(ids: string[], step: -1 | 1): Promise<void> {
+	return editQueue(step < 0 ? i18n.t.cmd.moveUp : i18n.t.cmd.moveDown, (list) => {
 		const items = list.slice();
 		const order = step < 0 ? items.map((_, i) => i) : items.map((_, i) => items.length - 1 - i);
 		for (const index of order) {
@@ -190,52 +207,57 @@ export function moveInPlaylist(ids: string[], step: -1 | 1): Promise<void> {
 	});
 }
 
-export function updateItem(id: string, change: Partial<PlaylistItem>): Promise<void> {
-	return editPlaylist(i18n.t.live.playlist, (list) =>
-		list.map((i) => (i.id === id ? { ...i, ...change } : i))
+/** Puts `id` where `beforeId` is (or at the end): drag and drop. */
+export function placeInQueue(id: string, beforeId: string | null): Promise<void> {
+	return editQueue(i18n.t.live.dragHint, (items) => {
+		const moving = items.find((i) => i.id === id);
+		if (!moving || id === beforeId) return items;
+		const rest = items.filter((i) => i.id !== id);
+		const at = beforeId === null ? rest.length : rest.findIndex((i) => i.id === beforeId);
+		return [...rest.slice(0, at), moving, ...rest.slice(at)];
+	});
+}
+
+export function updateItem(id: string, change: Partial<QueueItem>): Promise<void> {
+	return editQueue(i18n.t.live.singer, (items) =>
+		items.map((i) => (i.id === id ? { ...i, ...change } : i))
 	);
+}
+
+function setJob(id: string, job: Awaited<ReturnType<typeof api.jobAction>>): void {
+	live.state = { ...live.state, jobs: live.state.jobs.map((j) => (j.id === id ? job : j)) };
 }
 
 export const jobs = {
 	async act(ids: string[], action: 'cancel' | 'pause' | 'resume' | 'retry') {
 		for (const id of ids) {
 			try {
-				const job = await api.jobAction(id, action);
-				live.state = { ...live.state, jobs: live.state.jobs.map((j) => (j.id === id ? job : j)) };
+				setJob(id, await api.jobAction(id, action));
 			} catch (error) {
 				fail(error);
 			}
-		}
-		if (action === 'pause' || action === 'resume') {
-			const inverse = action === 'pause' ? 'resume' : 'pause';
-			history.push({
-				label: action === 'pause' ? i18n.t.cmd.pauseJob : i18n.t.cmd.resumeJob,
-				undo: () => jobs.act(ids, inverse).then(() => void history.past.pop()),
-				redo: () => jobs.act(ids, action).then(() => void history.past.pop())
-			});
 		}
 	},
-	async priority(ids: string[], step: number) {
-		const before = new SvelteMap(
-			ids.map((id) => [id, live.state.jobs.find((j) => j.id === id)?.tasks[0]?.priority ?? 0])
+	/** Retries on any worker but the one it failed on. */
+	async retryElsewhere(id: string, failedOn: string | null) {
+		const other = live.state.nodes.find(
+			(n) => n.kind === 'worker' && n.online && n.id !== failedOn
 		);
-		for (const id of ids) {
-			try {
-				const job = await api.changeJob(id, { priority: (before.get(id) ?? 0) + step });
-				live.state = { ...live.state, jobs: live.state.jobs.map((j) => (j.id === id ? job : j)) };
-			} catch (error) {
-				fail(error);
-			}
+		try {
+			// Retried first (its tasks go back to the queue), then pinned while nobody holds it.
+			const retried = await api.jobAction(id, 'retry');
+			setJob(id, other ? await api.changeJob(id, { pinned_node: other.id }) : retried);
+		} catch (error) {
+			fail(error);
 		}
-		history.push({
-			label: step > 0 ? i18n.t.cmd.prioritise : i18n.t.cmd.deprioritise,
-			undo: async () => {
-				for (const [id, p] of before) await api.changeJob(id, { priority: p }).catch(fail);
-			},
-			redo: async () => {
-				for (const [id, p] of before) await api.changeJob(id, { priority: p + step }).catch(fail);
-			}
-		});
+	},
+	async priority(id: string, step: number) {
+		const now = live.state.jobs.find((j) => j.id === id)?.tasks[0]?.priority ?? 0;
+		try {
+			setJob(id, await api.changeJob(id, { priority: now + step }));
+		} catch (error) {
+			fail(error);
+		}
 	},
 	retryFailed: () =>
 		jobs.act(
@@ -251,6 +273,7 @@ export const library = {
 			...live.state,
 			contents: live.state.contents.filter((c) => !ids.includes(c.id))
 		};
+		toasts.show(i18n.t.library.trashed(ids.length));
 		history.push({
 			label: i18n.t.cmd.trash,
 			undo: async () => {
@@ -261,9 +284,14 @@ export const library = {
 			}
 		});
 	},
-	async exportMp4(ids: string[]) {
+	async exportMp4(ids: string[], aspect: '16:9' | '9:16' = '16:9') {
 		for (const id of ids) {
-			await api.createJob({ kind: 'render', content_id: id }).catch(fail);
+			try {
+				await api.exportVideo(id, aspect);
+				toasts.show(i18n.t.library.exporting(content(id)?.title ?? id));
+			} catch (error) {
+				fail(error);
+			}
 		}
 	}
 };

@@ -1,7 +1,7 @@
 /**
- * The control UI from the keyboard only (plan v4 §7): sign in, make a karaoke, follow it in the
- * queue, put it on a playlist, reorder, remove and undo, the palette and the cheat sheet, and
- * the time from a key to what it changes on screen (< 100 ms).
+ * The console from the keyboard (plan v4 §7): sign in, add a song (analysed, then reviewed),
+ * follow it in Jobs, queue it twice on a screen, remove and undo, the palette and the cheat
+ * sheet, and the time from a key to what it changes on screen (< 100 ms).
  */
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -50,63 +50,64 @@ async function signIn(page: Page) {
 	await expect(page.getByRole('navigation', { name: 'Seccións' })).toBeVisible();
 }
 
-test('a karaoke from upload to playlist, from the keyboard', async ({ page }) => {
+test('a song from upload to a screen queue, from the keyboard', async ({ page }) => {
 	await signIn(page);
 
-	// Create: the file comes from the file picker; the rest is keys.
+	// Add: the file comes from the file picker; it is analysed at once.
 	await page.keyboard.press('g');
 	await page.keyboard.press('n');
-	await expect(page).toHaveURL(/\/crear$/);
-	await expect(page.getByRole('heading', { name: 'Crear' })).toBeVisible();
-	await page.getByLabel('Escoller ficheiros').setInputFiles({
+	await expect(page).toHaveURL(/\/engadir$/);
+	await expect(page.getByRole('heading', { name: 'Engadir' })).toBeVisible();
+	await page.locator('input[type="file"]').setInputFiles({
 		name: 'Proba.mp3',
 		mimeType: 'audio/mpeg',
 		buffer: Buffer.from('ID3' + '\0'.repeat(4000))
 	});
-	await page.getByLabel('Título').focus();
-	await page.keyboard.type('Proba de teclado');
-	await page.keyboard.press(`${MOD}+Enter`);
-	await expect(page.getByText('«Proba de teclado» na cola')).toBeVisible();
 
-	// The queue: the fake worker makes it in a few seconds.
+	// The review: what the analysis found, corrected before anything heavy runs.
+	await expect(page.getByRole('heading', { name: 'Que canción é?' })).toBeVisible({
+		timeout: 30_000
+	});
+	const title = page.getByLabel('Título');
+	await title.fill('Proba de teclado');
+	await page.getByLabel('Pegar a miña').check();
+	await page.getByRole('textbox', { name: 'Pegar a miña' }).fill('la la la');
+	await title.focus();
+	await page.keyboard.press('Enter');
+	await expect(page.getByText('«Proba de teclado» procesándose')).toBeVisible();
+
+	// Jobs: the fake worker makes it in a few seconds.
 	await page.keyboard.press('Escape');
 	await page.keyboard.press('g');
-	await page.keyboard.press('c');
-	await expect(page.getByRole('heading', { name: 'Cola' })).toBeVisible();
-	const job = page.getByRole('option').filter({ hasText: 'Proba de teclado' });
-	await expect(job).toBeVisible();
+	await page.keyboard.press('t');
+	await expect(page.getByRole('heading', { name: 'Traballos' })).toBeVisible();
+	const job = page.locator('article').filter({ hasText: 'Proba de teclado' });
 	await expect(job.getByText('Feito')).toBeVisible({ timeout: 60_000 });
 
-	// A playlist, then the song on it.
-	await page.keyboard.press('g');
-	await page.keyboard.press('d');
-	await expect(page.getByRole('region', { name: 'Lista' })).toBeVisible();
-	await page.keyboard.press(`${MOD}+Shift+N`);
-	await expect(page.getByText('A lista está baleira')).toBeVisible();
+	// The library: A puts it in the screen's queue, twice.
 	await page.keyboard.press('g');
 	await page.keyboard.press('b');
 	await expect(page.getByRole('heading', { name: 'Biblioteca' })).toBeVisible();
-	const song = page.getByRole('option').filter({ hasText: 'Proba de teclado' });
-	await expect(song).toBeVisible();
+	await expect(page.getByRole('option').filter({ hasText: 'Proba de teclado' })).toBeVisible();
 	await page.keyboard.press('a');
+	await expect(page.getByText('«Proba de teclado» na cola de sala')).toBeVisible();
 	await page.keyboard.press('a');
+
+	// Live: the queue, Delete removes, Mod+Z puts it back.
 	await page.keyboard.press('g');
 	await page.keyboard.press('d');
-	await expect(page.getByRole('region', { name: 'Lista' })).toBeVisible();
-	const items = page.getByRole('listbox').getByRole('option');
+	const items = page.getByRole('listbox', { name: 'Cola · sala' }).getByRole('option');
 	await expect(items).toHaveCount(2);
-
-	// Remove one, undo it.
 	await page.keyboard.press('Delete');
 	await expect(items).toHaveCount(1);
 	await page.keyboard.press(`${MOD}+z`);
 	await expect(items).toHaveCount(2);
 
 	// The singer, typed in place.
-	await page.keyboard.press('s');
-	await page.keyboard.type('Uxía');
-	await page.keyboard.press('Enter');
-	await expect(items.first().getByText('Uxía')).toBeVisible();
+	await items.first().getByLabel('Quen canta').fill('Uxía');
+	await items.first().getByLabel('Quen canta').press('Enter');
+	await page.keyboard.press('Escape');
+	await expect(items.first().getByLabel('Quen canta')).toHaveValue('Uxía');
 });
 
 test('palette, cheat sheet and response times', async ({ page }) => {
@@ -122,9 +123,9 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 		'[role="dialog"][aria-label="Paleta de ordes"]'
 	);
 	expect(palette).toBeLessThan(100);
-	await page.keyboard.type('cola');
+	await page.keyboard.type('traballos');
 	await page.keyboard.press('Enter');
-	await expect(page).toHaveURL(/\/cola$/);
+	await expect(page).toHaveURL(/\/traballos$/);
 
 	const sheet = await responseTime(page, '?', '[role="dialog"][aria-label="Atallos de teclado"]');
 	expect(sheet).toBeLessThan(100);
@@ -136,7 +137,15 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 	expect(navigation).toBeLessThan(100);
 
 	// Every main section passes axe's WCAG 2 A/AA rules.
-	for (const path of ['/directo', '/biblioteca', '/cola', '/workers', '/crear', '/axustes']) {
+	for (const path of [
+		'/',
+		'/engadir',
+		'/traballos',
+		'/biblioteca',
+		'/nodos',
+		'/saidas',
+		'/axustes'
+	]) {
 		await page.goto(path);
 		await expect(page.locator('h1, h2').first()).toBeVisible();
 		const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();

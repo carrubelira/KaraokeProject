@@ -3,7 +3,6 @@
 export interface PlayerConfig {
 	routing: Routing;
 	calibration: Calibration;
-	playlist_id: string | null;
 }
 export interface Routing {
 	/**

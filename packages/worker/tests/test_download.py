@@ -16,7 +16,8 @@ FAKE = [sys.executable, str(Path(__file__).with_name("fake_ytdlp.py"))]
 async def test_probe_reads_title_artist_and_length(monkeypatch: pytest.MonkeyPatch) -> None:
     info = await YtDlp(FAKE).probe("https://example.com/v")
     assert info.title == "Pandeireta (Videoclip Oficial)"
-    assert info.artist == "Banda - Topic"
+    assert info.artist is None, "the channel is not the performer"
+    assert info.uploader == "Banda - Topic"
     assert info.duration == 45.0
     assert info.is_live is False
 

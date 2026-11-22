@@ -154,6 +154,56 @@
       "title": "Display",
       "type": "object"
     },
+    "PlayerError": {
+      "additionalProperties": false,
+      "description": "Something the player could not do, until it can again.",
+      "properties": {
+        "code": {
+          "enum": [
+            "output_failed",
+            "output_lost",
+            "display_failed",
+            "load_failed",
+            "master_lost"
+          ],
+          "type": "string"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The audio device or display id."
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "device",
+        "item_id",
+        "message"
+      ],
+      "title": "PlayerError",
+      "type": "object"
+    },
     "PlayerOutputs": {
       "additionalProperties": false,
       "properties": {
@@ -181,6 +231,12 @@
   "additionalProperties": false,
   "description": "What a player reports every second and on every change.",
   "properties": {
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/PlayerError"
+      },
+      "type": "array"
+    },
     "outputs": {
       "$ref": "#/$defs/PlayerOutputs"
     },
@@ -240,6 +296,7 @@
     }
   },
   "required": [
+    "errors",
     "outputs",
     "cache",
     "item_id",

@@ -1,4 +1,12 @@
 {
+  "errors": [
+    {
+      "code": "output_lost",
+      "device": "wasapi:usb-2",
+      "item_id": null,
+      "message": "The USB headphones went away"
+    }
+  ],
   "outputs": {
     "displays": [
       {

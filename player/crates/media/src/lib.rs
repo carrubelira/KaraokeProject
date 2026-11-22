@@ -180,10 +180,21 @@ impl VideoDecoder {
 
     /// The next frame, or `None` at the end.
     pub fn next_frame(&mut self) -> Result<Option<VideoFrame>, MediaError> {
+        self.next_frame_from(f64::NEG_INFINITY)
+    }
+
+    /// The next frame that starts at `from` seconds or later. The ones before are decoded (they
+    /// are needed for the ones after) but neither copied out of the GPU nor converted, which is
+    /// most of the cost: catching up from a keyframe after a seek is several times faster.
+    pub fn next_frame_from(&mut self, from: f64) -> Result<Option<VideoFrame>, MediaError> {
         let mut decoded = frame::Video::empty();
         loop {
             if self.decoder.receive_frame(&mut decoded).is_ok() {
-                let decoded = hw::download(decoded);
+                let pts = decoded.timestamp().or(decoded.pts()).unwrap_or(0);
+                if (pts as f64) * self.time_base + 0.05 < from {
+                    continue;
+                }
+                let decoded = hw::download(std::mem::replace(&mut decoded, frame::Video::empty()));
                 return Ok(Some(self.convert(&decoded)?));
             }
             if self.eof {

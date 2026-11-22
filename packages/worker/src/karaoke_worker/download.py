@@ -65,8 +65,10 @@ class YtDlp:
         if info.get("_type") == "playlist":
             raise DownloadError("bad_url", "That is a playlist: send the link of one song")
         live = bool(info.get("is_live")) or info.get("live_status") in ("is_live", "is_upcoming")
-        artist = info.get("artist") or info.get("creator") or info.get("uploader")
+        # The performer, when the page knows it (not the channel: that is `uploader`).
+        artist = info.get("artist") or info.get("creator") or (info.get("artists") or [None])[0]
         duration = info.get("duration")
+        year = info.get("release_year")
         return RemoteInfo(
             title=info.get("title"),
             artist=artist,
@@ -74,10 +76,19 @@ class YtDlp:
             duration=float(duration) if duration else None,
             is_live=live,
             parts=len(info.get("requested_formats") or []) or 1,
+            album=info.get("album"),
+            uploader=info.get("uploader") or info.get("channel"),
+            thumbnail=info.get("thumbnail"),
+            year=int(year) if isinstance(year, int) else None,
         )
 
     async def download(
-        self, url: str, dest: Path, on_progress: Callable[[float], None], parts: int = 1
+        self,
+        url: str,
+        dest: Path,
+        on_progress: Callable[[float], None],
+        parts: int = 1,
+        on_line: Callable[[str], None] | None = None,
     ) -> Path:
         dest.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240 - metadata only
         args = [
@@ -104,7 +115,7 @@ class YtDlp:
         )
         assert process.stdout is not None
         assert process.stderr is not None
-        stderr_task = asyncio.create_task(process.stderr.read())
+        stderr_task = asyncio.create_task(_lines(process.stderr, on_line))
         path: Path | None = None
         # Video and audio apart come as two files, one after the other: each fills its share.
         parts = max(1, parts)
@@ -120,17 +131,32 @@ class YtDlp:
                     last = percent
                     fraction = min(0.99, (min(files, parts - 1) + percent) / parts)
                     if fraction > shown:
+                        if on_line is not None and int(fraction * 10) > int(shown * 10):
+                            on_line(f"[download] {fraction:.0%}")
                         shown = fraction
                         on_progress(fraction)
                 elif line and Path(line).is_absolute():
                     path = Path(line)
+                elif line and on_line is not None:
+                    on_line(line)
             await process.wait()
         except asyncio.CancelledError:
             process.kill()
             await process.wait()
             raise
-        err = (await stderr_task).decode("utf-8", "replace")
+        err = await stderr_task
         if process.returncode != 0 or path is None or not path.is_file():
             raise _error(err)
         on_progress(1.0)
         return path
+
+
+async def _lines(stream: asyncio.StreamReader, on_line: Callable[[str], None] | None) -> str:
+    """yt-dlp's messages, passed on as they come and kept to explain a failure."""
+    kept: list[str] = []
+    async for raw in stream:
+        line = raw.decode("utf-8", "replace").rstrip()
+        kept.append(line)
+        if on_line is not None and line:
+            on_line(line)
+    return "\n".join(kept)

@@ -1,4 +1,4 @@
-"""Contracts v2: playlists, player orders, routing and calibration (plan v4 §6 and §7)."""
+"""Contracts v2: player queues, orders, routing and calibration (plan v4 §6 and §7)."""
 
 from typing import Annotated, Literal
 
@@ -18,7 +18,7 @@ class Anchor(Model):
     rate: Annotated[float, Field(ge=0)] = 1.0
 
 
-class PlaylistItem(Model):
+class QueueItem(Model):
     id: NonEmptyStr
     content_id: ContentId
     manifest: Sha256 | None = Field(default=None, description="Pinned version; None = latest.")
@@ -28,18 +28,18 @@ class PlaylistItem(Model):
     singer: str | None = None
 
     @model_validator(mode="after")
-    def _start_before_end(self) -> "PlaylistItem":
+    def _start_before_end(self) -> "QueueItem":
         if self.start is not None and self.end is not None and self.start >= self.end:
             raise ValueError("the entry point must come before the exit point")
         return self
 
 
-class Playlist(Model):
-    id: NonEmptyStr
-    name: NonEmptyStr
+class Queue(Model):
+    """What a player will play, in order: one per player, made when it is enrolled."""
+
+    player_id: NonEmptyStr
     version: Annotated[int, Field(ge=0)] = 0
-    items: list[PlaylistItem] = Field(default_factory=list)
-    player_id: str | None = None
+    items: list[QueueItem] = Field(default_factory=list)
 
 
 Command = Literal[
@@ -90,4 +90,3 @@ class Calibration(Model):
 class PlayerConfig(Model):
     routing: Routing = Field(default_factory=Routing)
     calibration: Calibration = Field(default_factory=Calibration)
-    playlist_id: str | None = None

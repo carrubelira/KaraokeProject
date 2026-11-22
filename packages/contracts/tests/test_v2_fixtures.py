@@ -7,14 +7,14 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from karaoke_contracts import Lyrics, Manifest
-from karaoke_contracts.control import PlayerCommand, PlayerConfig, Playlist, PlaylistItem
+from karaoke_contracts.control import PlayerCommand, PlayerConfig, Queue, QueueItem
 from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease, PlayerStatus
 
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures" / "contracts-v2"
 MODELS: dict[str, type[BaseModel]] = {
     "manifest": Manifest,
     "lyrics": Lyrics,
-    "playlist": Playlist,
+    "queue": Queue,
     "player-command": PlayerCommand,
     "player-config": PlayerConfig,
     "player-status": PlayerStatus,
@@ -31,10 +31,10 @@ def test_fixture_round_trips(name: str) -> None:
 
 
 def test_unknown_fields_are_refused() -> None:
-    data = json.loads((FIXTURES / "playlist.json").read_text(encoding="utf-8"))
+    data = json.loads((FIXTURES / "queue.json").read_text(encoding="utf-8"))
     data["colour"] = "red"
     with pytest.raises(ValidationError):
-        Playlist.model_validate(data)
+        Queue.model_validate(data)
 
 
 def test_manifest_needs_lyrics_and_instrumental() -> None:
@@ -55,4 +55,4 @@ def test_audio_tracks_carry_audio_info() -> None:
 
 def test_entry_point_before_exit_point() -> None:
     with pytest.raises(ValidationError, match="entry point"):
-        PlaylistItem(id="x", content_id="song", start=10, end=5)
+        QueueItem(id="x", content_id="song", start=10, end=5)

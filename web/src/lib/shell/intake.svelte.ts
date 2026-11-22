@@ -1,27 +1,24 @@
 /**
- * New karaokes from anywhere: a file dropped on any screen, a link pasted, or the Create form.
- * Files upload (resumably) and become jobs; links become jobs at once.
+ * New songs from anywhere: a link pasted (on any screen or in Add) or a file dropped. Nothing is
+ * asked first: the job starts with its analysis (which song is it? its lyrics?) and waits for
+ * the operator's review in Add before the heavy work.
  */
 import { api } from '#lib/control/api.js';
 import { live } from '#lib/control/live.svelte.js';
-import { toasts } from '#lib/control/toasts.svelte.js';
+import type { Job } from '#lib/control/types.js';
 import { Upload } from '#lib/control/upload.svelte.js';
-import { i18n } from '#lib/i18n';
 import { fail } from './actions.svelte';
-
-export interface Options {
-	lyrics?: string;
-	lrclib?: boolean;
-	language?: string;
-	title?: string;
-	artist?: string;
-}
+import { prefs } from './prefs.svelte';
 
 const MEDIA = /\.(mp3|m4a|aac|wav|flac|ogg|opus|mp4|mkv|webm|mov)$/i;
 
+function shown(job: Job): Job {
+	live.state = { ...live.state, jobs: [job, ...live.state.jobs.filter((j) => j.id !== job.id)] };
+	return job;
+}
+
 class Intake {
 	uploads = $state<Upload[]>([]);
-	language = $state('gl');
 
 	isMedia(file: File): boolean {
 		return (
@@ -29,52 +26,35 @@ class Intake {
 		);
 	}
 
-	async file(file: File, options: Options = {}): Promise<void> {
+	async file(file: File): Promise<Job | null> {
 		const upload = new Upload(file);
 		this.uploads = [...this.uploads, upload];
 		try {
 			await upload.run();
-			const job = await api.createJob({
-				upload: upload.id,
-				language: options.language ?? this.language,
-				lyrics: options.lyrics || null,
-				lrclib: options.lrclib ?? false,
-				title: options.title || null,
-				artist: options.artist || null
-			});
-			live.state = {
-				...live.state,
-				jobs: [job, ...live.state.jobs.filter((j) => j.id !== job.id)]
-			};
-			toasts.show(i18n.t.create.queued(job.title));
+			return shown(
+				await api.createJob({
+					upload: upload.id ?? undefined,
+					auto_confirm: prefs.value.autoConfirm
+				})
+			);
 		} catch (error) {
 			fail(error);
+			return null;
 		} finally {
 			this.uploads = this.uploads.filter((u) => u !== upload);
 		}
 	}
 
-	async files(files: Iterable<File>, options: Options = {}): Promise<void> {
-		await Promise.all([...files].filter((f) => this.isMedia(f)).map((f) => this.file(f, options)));
+	async files(files: Iterable<File>): Promise<void> {
+		await Promise.all([...files].filter((f) => this.isMedia(f)).map((f) => this.file(f)));
 	}
 
-	async link(url: string, options: Options = {}): Promise<void> {
+	async link(url: string): Promise<Job | null> {
 		try {
-			const job = await api.createJob({
-				url,
-				language: options.language ?? this.language,
-				lyrics: options.lyrics || null,
-				lrclib: options.lrclib ?? true,
-				title: options.title || null,
-				artist: options.artist || null
-			});
-			live.state = {
-				...live.state,
-				jobs: [job, ...live.state.jobs.filter((j) => j.id !== job.id)]
-			};
-			toasts.show(i18n.t.create.queued(job.title));
+			return shown(await api.createJob({ url, auto_confirm: prefs.value.autoConfirm }));
 		} catch (error) {
 			fail(error);
+			return null;
 		}
 	}
 }

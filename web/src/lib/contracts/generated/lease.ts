@@ -8,7 +8,7 @@ export interface Lease {
 }
 export interface Task {
 	id: string;
-	kind: 'fetch' | 'make' | 'package' | 'render';
+	kind: 'fetch' | 'analyze' | 'make' | 'package' | 'render';
 	job_id: string;
 	params: {};
 	/**

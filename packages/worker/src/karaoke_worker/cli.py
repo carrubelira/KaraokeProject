@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from collections.abc import Sequence
 from importlib import metadata
@@ -37,13 +38,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     run.add_argument("--fake", action="store_true", help="pretend (tests, trying the system)")
     run.add_argument("-v", "--verbose", action="store_true")
     commands.add_parser("info", help="print what this machine offers")
+    key = commands.add_parser("acoustid-key", help="keep the AcoustID key (empty removes it)")
+    key.add_argument("key", nargs="?", default="")
     args = parser.parse_args(argv)
     data = args.data or default_data_dir()
     if args.command == "info":
-        print(system.capabilities(["fetch", "make", "render"], True).model_dump_json(indent=2))
+        print(
+            system.capabilities(["fetch", "analyze", "make", "render"], True).model_dump_json(
+                indent=2
+            )
+        )
         return 0
     if args.command == "enroll":
         return _enrol(args, data)
+    if args.command == "acoustid-key":
+        config = WorkerConfig.load(data)
+        config.acoustid_key = args.key.strip() or None
+        config.save(data)
+        print("AcoustID key kept" if config.acoustid_key else "AcoustID key removed")
+        return 0
     return _run(args, data)
 
 
@@ -53,7 +66,9 @@ def _enrol(args: argparse.Namespace, data: Path) -> int:
     from karaoke_worker.client import enrol
 
     name = args.name or socket.gethostname()
-    caps = system.capabilities(["fetch", "make", "render"], not args.no_internet, args.same_host)
+    caps = system.capabilities(
+        ["fetch", "analyze", "make", "render"], not args.no_internet, args.same_host
+    )
     request = Enrollment(token=args.token, kind="worker", name=name, capabilities=caps)
     try:
         enrolled = enrol(args.server, args.token, request, data / CERT, args.fingerprint)
@@ -93,12 +108,16 @@ def _run(args: argparse.Namespace, data: Path) -> int:
         spawner=ProcessSpawner(SpawnSettings(data_dir=data)),
         downloader=YtDlp(YTDLP),
         fake=args.fake or config.fake_engine,
+        acoustid_key=os.environ.get("KARAOKE_ACOUSTID_KEY") or config.acoustid_key,
     )
     capabilities = system.capabilities(config.tasks, config.internet)
     if ctx.fake and not capabilities.gpus:
         # The fake engine needs no GPU; it says it has one so it gets GPU tasks.
         capabilities = capabilities.model_copy(
-            update={"gpus": [Gpu(name="fake", vram_total_mb=8192)], "tasks": config.tasks}
+            update={
+                "gpus": [Gpu(name="fake", vram_total_mb=8192)],
+                "tasks": list(dict.fromkeys([*config.tasks, "analyze"])),
+            }
         )
     client.update_capabilities(capabilities)
     agent = Agent(ctx, player_lock=Path(config.player_lock) if config.player_lock else None)

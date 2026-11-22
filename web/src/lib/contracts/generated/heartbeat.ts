@@ -18,4 +18,5 @@ export interface Telemetry {
 	gpu_temp_c: number | null;
 	cpu_util: number | null;
 	ram_used_mb: number | null;
+	ram_total_mb: number | null;
 }

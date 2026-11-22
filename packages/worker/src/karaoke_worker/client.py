@@ -23,6 +23,7 @@ from karaoke_contracts.nodes import (
     Heartbeat,
     Lease,
     TaskFailure,
+    TaskLog,
     TaskProgress,
     TaskResult,
 )
@@ -134,6 +135,13 @@ class ServerClient:
             json={"lease_id": lease.lease_id, "progress": progress.model_dump(mode="json")},
         )
         return bool(answer.json()["keep_going"])
+
+    def log(self, lease: Lease, lines: list[str]) -> None:
+        self._json(
+            "POST",
+            f"/api/tasks/{lease.task.id}/log",
+            json={"lease_id": lease.lease_id, "log": TaskLog(lines=lines).model_dump(mode="json")},
+        )
 
     def complete(self, lease: Lease, result: TaskResult) -> None:
         self._json(

@@ -1,6 +1,6 @@
 /**
- * Global undo and redo (Mod+Z, Mod+Shift+Z) for what an operator does to the queue and the
- * playlists. Every action knows how to undo itself against the server (a new write, so it goes
+ * Global undo and redo (Mod+Z, Mod+Shift+Z) for what an operator does to the screens' queues and
+ * the library. Every action knows how to undo itself against the server (a new write, so it goes
  * through the same optimistic versioning as any other change).
  */
 

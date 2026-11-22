@@ -10,8 +10,8 @@ from karaoke_server.db import Database
 from karaoke_server.events import EventHub
 from karaoke_server.library import Library
 from karaoke_server.players import PlayerHub
-from karaoke_server.playlists import Playlists
 from karaoke_server.queue import TaskQueue
+from karaoke_server.queues import Queues
 from karaoke_server.uploads import Uploads
 
 
@@ -25,7 +25,7 @@ class Services:
     library: Library
     queue: TaskQueue
     uploads: Uploads
-    playlists: Playlists
+    queues: Queues
     players: PlayerHub
     # SHA-256 of the TLS certificate nodes pin ("" without TLS).
     fingerprint: str = ""
