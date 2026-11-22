@@ -130,15 +130,25 @@ function setQueue(saved: Queue): void {
 	if (saved.version >= live.state.queue.version) live.state = { ...live.state, queue: saved };
 }
 
+let editing: Promise<void> = Promise.resolve();
+
 /**
  * Changes the queue's order or items: shown at once, saved with its version; on a conflict the
- * change is applied again to the newer queue. Undoable.
+ * change is applied again to the newer queue. Undoable. Edits go one after another, each on the
+ * queue the one before left: two at once (an undo and a typed singer) would each save over the
+ * other.
  */
-export async function editQueue(
+export function editQueue(
 	label: string,
-	change: (items: QueueItem[]) => QueueItem[],
-	from: Queue = queue()
+	change: (items: QueueItem[]) => QueueItem[]
 ): Promise<void> {
+	const run = editing.then(() => saveEdit(label, change));
+	editing = run.catch(() => {});
+	return run;
+}
+
+async function saveEdit(label: string, change: (items: QueueItem[]) => QueueItem[]): Promise<void> {
+	const from = queue();
 	const before = from.items;
 	const after = change(before);
 	if (JSON.stringify(before) === JSON.stringify(after)) return;
@@ -146,11 +156,10 @@ export async function editQueue(
 	const entry = {
 		label,
 		undo: async () => {
-			await editQueue(label, () => before, queue()).then(() => void history.past.pop());
+			await editQueue(label, () => before).then(() => void history.past.pop());
 		},
 		redo: async () => {
-			const now = queue();
-			await editQueue(label, () => change(now.items), now).then(() => void history.past.pop());
+			await editQueue(label, change).then(() => void history.past.pop());
 		}
 	};
 	history.push(entry);
@@ -183,16 +192,12 @@ export async function addToQueue(contentIds: string[], next = false): Promise<vo
 		if (next) {
 			const fresh = saved.items.slice(-contentIds.length).map((i) => i.id);
 			const on = session().current?.item.id;
-			await editQueue(
-				i18n.t.cmd.addNext,
-				(items) => {
-					const moving = items.filter((i) => fresh.includes(i.id));
-					const rest = items.filter((i) => !fresh.includes(i.id));
-					const at = rest.findIndex((i) => i.id === on);
-					return [...rest.slice(0, at + 1), ...moving, ...rest.slice(at + 1)];
-				},
-				saved
-			);
+			await editQueue(i18n.t.cmd.addNext, (items) => {
+				const moving = items.filter((i) => fresh.includes(i.id));
+				const rest = items.filter((i) => !fresh.includes(i.id));
+				const at = rest.findIndex((i) => i.id === on);
+				return [...rest.slice(0, at + 1), ...moving, ...rest.slice(at + 1)];
+			});
 		}
 		toasts.show(i18n.t.library.added(titles));
 	} catch (error) {

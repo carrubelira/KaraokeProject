@@ -400,23 +400,24 @@ input[type='radio'] {
 	background: currentColor;
 }
 
+/* A tint on a solid colour: on a selected row the two tints would not add up and dim the text. */
 .badge.ok {
-	background: var(--ok-soft);
+	background: linear-gradient(var(--ok-soft), var(--ok-soft)) var(--surface);
 	color: var(--ok);
 }
 
 .badge.warn {
-	background: var(--warn-soft);
+	background: linear-gradient(var(--warn-soft), var(--warn-soft)) var(--surface);
 	color: var(--warn);
 }
 
 .badge.error {
-	background: var(--error-soft);
+	background: linear-gradient(var(--error-soft), var(--error-soft)) var(--surface);
 	color: var(--error);
 }
 
 .badge.info {
-	background: var(--accent-soft);
+	background: linear-gradient(var(--accent-soft), var(--accent-soft)) var(--surface);
 	color: var(--accent-strong);
 }
 
