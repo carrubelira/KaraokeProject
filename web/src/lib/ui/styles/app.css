@@ -20,17 +20,21 @@
 	--border-strong: #444952;
 	--text: #e4e6e9;
 	--muted: #9ba1aa;
-	--faint: #8d939c; /* 4.5:1 or more on every background up to --surface-2 */
+	/* The dimmest text that still reads 4.5:1 (WCAG AA) on every background, a selected row too. */
+	--faint: #959ba4;
 
 	--accent: #3d9bd9;
 	--accent-strong: #5aaee6;
 	--accent-soft: rgb(61 155 217 / 0.14);
+	/* Under white text (primary buttons): 4.5:1 or more, as the accent itself is not. */
+	--accent-fill: #2b78ad;
+	--accent-fill-hover: #276fa1;
 	--ok: #4cae7a;
 	--ok-soft: rgb(76 174 122 / 0.14);
 	--warn: #d6a23f;
 	--warn-soft: rgb(214 162 63 / 0.14);
-	--error: #e0574f;
-	--error-soft: rgb(224 87 79 / 0.14);
+	--error: #f2847c;
+	--error-soft: rgb(242 132 124 / 0.14);
 	--live: #e0574f;
 
 	--font: 'IBM Plex Sans', 'Segoe UI', sans-serif;
@@ -232,13 +236,14 @@ textarea {
 }
 
 .btn.primary {
-	background: var(--accent);
-	border-color: var(--accent);
+	background: var(--accent-fill);
+	border-color: var(--accent-fill);
 	color: #fff;
 }
 
 .btn.primary:hover:not(:disabled) {
-	background: var(--accent-strong);
+	background: var(--accent-fill-hover);
+	border-color: var(--accent-fill-hover);
 }
 
 .btn.subtle {
