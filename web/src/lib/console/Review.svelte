@@ -107,13 +107,15 @@
 	const target = $derived(player());
 </script>
 
-<article class="c-panel review is-warn">
-	<header class="c-panel-head">
-		<span class="c-tally warn">{t.add.toReview}</span>
-		<h2 class="job">{job.title}</h2>
-		<span class="spacer"></span>
-		<button class="c-btn ghost" onclick={() => jobs.act([job.id], 'cancel')}>{t.add.discard}</button
-		>
+<article class="panel review">
+	<header class="panel-header">
+		<span class="badge warn">{t.jobs.states.review}</span>
+		<h2 class="job truncate">{job.title}</h2>
+		<div class="actions">
+			<button class="btn subtle" onclick={() => jobs.act([job.id], 'cancel')}>
+				{t.add.discard}
+			</button>
+		</div>
 	</header>
 
 	<div class="body">
@@ -126,7 +128,7 @@
 				{t.add.fingerprint[analysis.fingerprint ?? 'skipped']}
 			</p>
 			{#if candidates.length > 1}
-				<span class="label">{t.add.candidates}</span>
+				<h3 class="muted small">{t.add.candidates}</h3>
 				<ul class="guesses">
 					{#each candidates as guess, i (i)}
 						<li>
@@ -135,13 +137,15 @@
 								onclick={() => use(guess)}
 							>
 								<span class="g-title">{guess.title}</span>
-								<span class="dim small"
+								<span class="muted small"
 									>{guess.artist ?? '—'}{guess.year ? ` · ${guess.year}` : ''}</span
 								>
 								<span class="meta">
-									<span class="c-tag">{t.add.sources[guess.source] ?? guess.source}</span>
-									<span class="c-meter" style:--value={guess.confidence}></span>
-									<span class="mono small dim">{pct(guess.confidence)} %</span>
+									<span class="faint small">{t.add.sources[guess.source] ?? guess.source}</span>
+									<span class="progress ok"
+										><span style:width="{pct(guess.confidence)}%"></span></span
+									>
+									<span class="mono small muted">{t.add.confidence(pct(guess.confidence))}</span>
 								</span>
 							</button>
 						</li>
@@ -153,20 +157,20 @@
 		<form class="form" onsubmit={(e) => (e.preventDefault(), void process(false))}>
 			<div>
 				<h3>{t.add.reviewTitle}</h3>
-				<p class="dim lead">{t.add.reviewLead}</p>
+				<p class="muted lead">{t.add.reviewLead}</p>
 			</div>
 			<div class="fields">
-				<label class="c-labelled wide">
-					<span class="label">{t.add.songTitle}</span>
-					<input class="c-field big" bind:value={title} required maxlength="200" />
+				<label class="form-row wide">
+					<span>{t.add.songTitle}</span>
+					<input class="field big" bind:value={title} required maxlength="200" />
 				</label>
-				<label class="c-labelled">
-					<span class="label">{t.add.artist}</span>
-					<input class="c-field" bind:value={artist} maxlength="200" />
+				<label class="form-row">
+					<span>{t.add.artist}</span>
+					<input class="field" bind:value={artist} maxlength="200" />
 				</label>
-				<label class="c-labelled">
-					<span class="label">{t.add.language}</span>
-					<select class="c-field" bind:value={language}>
+				<label class="form-row">
+					<span>{t.add.language}</span>
+					<select class="field" bind:value={language}>
 						{#each LANGUAGES as code (code)}
 							<option value={code}>{t.languages[code]}</option>
 						{/each}
@@ -175,16 +179,16 @@
 			</div>
 
 			<fieldset class="lyrics">
-				<legend class="label">{t.add.lyrics} · {t.add.lyricsFound(found.length)}</legend>
+				<legend>{t.add.lyrics} · {t.add.lyricsFound(found.length)}</legend>
 				<div class="search">
 					<input
-						class="c-field"
+						class="field"
 						bind:value={query}
 						placeholder={`${artist} ${title}`.trim()}
 						aria-label={t.add.lyricsSearch}
 						onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), void search())}
 					/>
-					<button type="button" class="c-btn" onclick={search} disabled={searching}>
+					<button type="button" class="btn" onclick={search} disabled={searching}>
 						<Icon name="search" size={16} />
 						{t.add.lyricsSearch}
 					</button>
@@ -200,18 +204,18 @@
 									onchange={() => (choice = i)}
 								/>
 								<span class="o-title">{lyric.artist} — {lyric.title}</span>
-								{#if lyric.synced}<span class="c-tag cue">{t.add.synced}</span>{/if}
+								{#if lyric.synced}<span class="badge ok plain">{t.add.synced}</span>{/if}
 								{#if lyric.duration_gap !== null}
-									<span class="c-tag {Math.abs(lyric.duration_gap) > 5 ? 'warn' : ''}"
+									<span class="badge plain {Math.abs(lyric.duration_gap) > 5 ? 'warn' : ''}"
 										>{t.add.gap(lyric.duration_gap.toFixed(1))}</span
 									>
 								{/if}
-								<span class="mono dim small">{clock(lyric.duration)}</span>
+								<span class="mono muted small">{clock(lyric.duration)}</span>
 								<button
 									type="button"
-									class="c-btn ghost peek"
+									class="btn subtle peek"
 									onclick={(e) => (e.preventDefault(), (open = open === i ? null : i))}
-									aria-expanded={open === i}>{t.common.more}</button
+									aria-expanded={open === i}>{t.add.show}</button
 								>
 							</label>
 							{#if open === i}<pre class="text">{lyric.text}</pre>{/if}
@@ -228,7 +232,7 @@
 							<span class="o-title">{t.add.lyricsOwn}</span>
 						</label>
 						{#if choice === 'own'}
-							<textarea class="c-field" rows="8" bind:value={own} aria-label={t.add.lyricsOwn}
+							<textarea class="field" rows="8" bind:value={own} aria-label={t.add.lyricsOwn}
 							></textarea>
 						{/if}
 					</li>
@@ -247,14 +251,13 @@
 			</fieldset>
 
 			<div class="go">
-				<button type="submit" class="c-btn primary big" disabled={busy || !title.trim()}>
-					<Icon name="bolt" size={16} />
+				<button type="submit" class="btn primary large" disabled={busy || !title.trim()}>
 					{t.add.process}
 				</button>
 				{#if target}
 					<button
 						type="button"
-						class="c-btn go big"
+						class="btn large"
 						disabled={busy || !title.trim()}
 						onclick={() => process(true)}
 					>
@@ -267,17 +270,10 @@
 </article>
 
 <style>
-	.review {
-		overflow: hidden;
-	}
 	.job {
-		color: var(--text);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		text-transform: none;
-		letter-spacing: 0;
-		font: 500 13px var(--font-text);
+		min-width: 0;
+		font-size: 14px;
+		font-weight: 500;
 	}
 	.body {
 		display: grid;
@@ -288,102 +284,98 @@
 		flex-direction: column;
 		gap: 12px;
 		padding: 16px;
-		border-right: 1px solid var(--line);
+		border-right: 1px solid var(--border);
 	}
 	.cover {
 		display: grid;
 		place-items: center;
 		aspect-ratio: 1;
-		background: radial-gradient(circle at 30% 20%, #1a222d, #07090c) center / cover no-repeat;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--surface-2) center / cover no-repeat;
 		color: var(--faint);
-		box-shadow: 0 20px 40px -20px rgb(0 0 0 / 0.9);
 	}
 	.print {
 		display: flex;
 		gap: 8px;
-		margin: 0;
-		font-size: 12.5px;
+		font-size: 13px;
 		color: var(--warn);
 	}
 	.print.ok {
-		color: var(--cue);
+		color: var(--ok);
 	}
 	.guesses {
 		display: grid;
-		gap: 4px;
+		gap: 6px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 	.guesses button {
 		display: grid;
-		gap: 4px;
+		gap: 2px;
 		width: 100%;
 		padding: 8px 10px;
-		border: 1px solid var(--line);
-		border-radius: 2px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
 		background: transparent;
 		text-align: left;
 		cursor: pointer;
 	}
 	.guesses button:hover {
-		border-color: var(--line-strong);
+		background: var(--surface-2);
 	}
 	.guesses button.chosen {
-		border-color: var(--info);
-		background: rgb(60 200 255 / 0.06);
+		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 	.g-title {
-		font-weight: 600;
-		font-size: 13.5px;
+		font-weight: 500;
 	}
 	.meta {
 		display: grid;
 		grid-template-columns: auto 1fr auto;
 		gap: 8px;
 		align-items: center;
-	}
-	.small {
-		font-size: 12px;
+		margin-top: 4px;
 	}
 	.form {
 		display: grid;
 		gap: 18px;
-		padding: 18px;
+		padding: 16px 20px 20px;
 		min-width: 0;
 	}
 	h3 {
-		margin: 0;
-		font: 600 20px var(--font-display);
-		text-transform: uppercase;
+		font-size: 15px;
 	}
 	.lead {
-		margin: 4px 0 0;
-		font-size: 13.5px;
+		margin-top: 2px;
 	}
 	.fields {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 200px;
+		grid-template-columns: minmax(0, 1fr) 220px;
 		gap: 12px;
 	}
 	.fields .wide {
 		grid-column: 1 / -1;
 	}
-	.c-field.big {
-		font: 600 20px var(--font-text);
-		min-height: 48px;
+	.field.big {
+		height: 40px;
+		font-size: 16px;
+		font-weight: 500;
 	}
 	.lyrics {
-		margin: 0;
-		padding: 0;
-		border: 0;
 		display: grid;
 		gap: 10px;
 		min-width: 0;
+		margin: 0;
+		padding: 0;
+		border: 0;
 	}
 	legend {
 		margin-bottom: 8px;
+		color: var(--muted);
+		font-size: 13px;
 	}
 	.search {
 		display: flex;
@@ -391,32 +383,28 @@
 	}
 	.options {
 		display: grid;
-		gap: 4px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 		max-height: 360px;
 		overflow-y: auto;
 		overflow-x: hidden;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
 	}
-	.options li {
-		border: 1px solid var(--line);
-		border-radius: 2px;
+	.options li + li {
+		border-top: 1px solid var(--border);
 	}
 	.options li.chosen {
-		border-color: rgb(36 227 143 / 0.5);
-		background: rgb(36 227 143 / 0.04);
+		background: var(--accent-soft);
 	}
 	.options label {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 10px;
-		padding: 8px 10px;
+		padding: 8px 12px;
 		cursor: pointer;
-	}
-	.options input[type='radio'] {
-		accent-color: var(--cue);
 	}
 	.o-title {
 		flex: 1 1 12rem;
@@ -424,25 +412,23 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		font-size: 13.5px;
 	}
 	.peek {
-		margin-left: auto;
-		min-height: 26px;
+		height: 26px;
 		padding: 0 8px;
 	}
 	.text {
 		margin: 0;
-		padding: 10px 14px 14px 36px;
-		font: 13px/1.6 var(--font-text);
-		color: var(--dim);
+		padding: 4px 14px 14px 36px;
+		color: var(--muted);
+		font: inherit;
 		white-space: pre-wrap;
 		max-height: 220px;
 		overflow-y: auto;
 	}
 	.options textarea {
-		margin: 0 10px 10px;
-		width: calc(100% - 20px);
+		margin: 0 12px 12px;
+		width: calc(100% - 24px);
 	}
 	.go {
 		display: flex;
@@ -455,10 +441,10 @@
 		}
 		.who {
 			border-right: 0;
-			border-bottom: 1px solid var(--line);
+			border-bottom: 1px solid var(--border);
 		}
 		.cover {
-			max-width: 180px;
+			max-width: 160px;
 		}
 		.fields {
 			grid-template-columns: minmax(0, 1fr);

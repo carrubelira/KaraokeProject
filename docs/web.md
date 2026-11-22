@@ -20,39 +20,37 @@ server itself, over its TLS.
 
 ## What it looks like
 
-A broadcast control room at night, over a live 3D signal field:
+A plain desktop application in a sober dark grey, the same in every section:
 
-- **The strip** (top): the screen the console drives (one button per screen, each with its tally
-  lamp), the big ON AIR / STANDBY tally, the server's clock, and the health of the system in one
-  line (workers online, jobs running, songs to review, alerts). Every count opens its section.
-- **The rail** (left; at the bottom on a phone): the sections, with live counts when something
-  there wants the operator.
-- **The deck** (bottom, everywhere): what is on air, its position (click to jump), the transport,
-  and the key and the volume on two rotary encoders (drag, scroll or arrow keys; double click
-  resets).
-- **The field** (behind, Three.js): a sheet of points that breathes with the work in flight; each
-  worker is a core on the left whose spin and size follow its GPU and VRAM, red when a task of
-  it failed, streaming particles to the hub while it works; each screen is a core on the right,
-  red and pulsing on air, green when cued, amber when something on it is broken. It rests when
-  the tab is hidden; Settings → Effects (full, calm, off) and the system's reduced motion calm
-  it. It is decoration: every state it shows is also written in the interface.
+- **The sidebar** (left; one row of sections on top on a phone): the sections in words, a count
+  on Processing when something there wants the operator (red for failures, amber for reviews),
+  and at its foot whether the server answers and who is signed in. Galicia's coastline is drawn
+  faintly behind it (Natural Earth, public domain): the one ornament, kept in the background.
+- **The page**: a header (title, one line saying what the page is for, its main action), then
+  panels with tables. Every list is a table with column headings; every state is a badge with its
+  name in words.
+- **The player bar** (bottom, everywhere): the screen being driven (a select), its state, what it
+  plays and where (click the line to jump), previous / play or pause / next / stop, the key
+  (− 0 +) and the volume.
 
-The tally colours mean the same everywhere: red on air, green cued or healthy, amber waiting for
-someone or warning, cyan information in motion, grey idle. Martian Mono is for data, Figtree for
-prose, Unbounded for the few big names (`src/lib/ui/styles/console.css`).
+One family, IBM Plex Sans, and IBM Plex Mono for times and codes (`scripts/build_web_fonts.py`
+subsets them; SIL OFL). One accent, a blue, for what can be clicked and what is selected. Status
+colours only where a state is shown: green working or done, amber waiting for someone or a
+warning, red an error. The pieces (page header, panel, table, badge, button, field, tabs, empty
+state, notice) are in `src/lib/ui/styles/app.css`; pages add only their layout.
 
 ## Sections
 
 | Path | What |
 |---|---|
-| `/` Live | The program monitor of the chosen screen (its lyrics filling in sync, as a confidence monitor), its alerts, and its queue: search and Enter adds a song, rows drag to reorder, the singer is typed in place. |
-| `/engadir` Add | One field: paste a link (or drop a file anywhere). The analysis runs at once and shows its steps live (download, metadata, fingerprint, AcoustID, MusicBrainz, lyrics); then the review: the best guess filled in, the other guesses with their source and certainty, the lyrics found (timed ones first), searched again, pasted or left out to transcribe. "Process" (or "Process and queue on SCREEN") starts the karaoke. |
-| `/traballos` Jobs | Every job as a pipeline of its tasks: state, what the worker is doing (stage and step), progress, time left, attempts; a failure says why and what to do (retry, retry on another worker); each task's log opens below, live while it runs. |
-| `/biblioteca` Library | Every song, fuzzy search, to the queue in one key. |
-| `/nodos` Nodes | Workers and screens as rack units: GPU, VRAM, CPU, RAM and temperature live, what each runs, each screen's outputs and problems; enrolment with the exact command to paste. |
-| `/saidas` Outputs | The routing matrix of the chosen screen (a patch bay), the master output, calibration, what each display shows. |
+| `/` Playback | What the chosen screen plays (a preview of its lyrics in sync, the singer, the key, what comes next, its alerts) and its queue as a table: search above it and Enter adds a song, rows drag to reorder, the singer is typed in place. |
+| `/biblioteca` Library | Every song in a table (title, artist, language, length, version), searched, to the queue in one key. |
+| `/engadir` Add song | Paste a link (or upload or drop a file). The analysis runs at once and shows its steps (download, page details, fingerprint, AcoustID, MusicBrainz, lyrics); then the review: the best guess filled in, the other matches with their source and certainty, the lyrics found (timed ones first), searched again, pasted or left out to transcribe. "Make the karaoke" (or "Make it and queue it on SCREEN") starts the work. |
+| `/procesamento` Processing | One row per song being made: status, the step it is on with its progress, the computer doing it, the time. A row opens to show every step (download, analysis, making the karaoke, or the video) with its own status, computer, attempts and time, why one failed and what to do (retry, retry on another computer), and each step's log, live while it runs. Tabs filter by in progress, to review, failed, finished. |
+| `/equipos` Devices | Two tables: processing computers (status, GPU, GPU memory, CPU, memory, temperature, current work) and screens (status, song, monitors and sound outputs, alerts); adding one shows the exact command to paste. |
+| `/saidas` Outputs | For the chosen screen: which sound output gets the music and the guide vocals (gain, delay), the main output, calibration, what happens if one disconnects, and what each monitor shows. |
 | `/editar/[id]` | The lyrics editor. |
-| `/axustes` Settings | Language (Galician, English), effects, server, song identification, shortcuts. |
+| `/axustes` Settings | Language (Galician, English), server, song identification, session, shortcuts. |
 
 ## Keyboard first
 
@@ -63,17 +61,17 @@ the shortcuts, the cheat sheet and the settings page all come from it.
 |---|---|
 | `Ctrl/⌘ K` | command palette: every command, song and node, fuzzy search |
 | `?` | every shortcut that works here |
-| `g` then `d n t b w s a` | Live, Add, Jobs, Library, Nodes, Outputs, Settings |
-| `Ctrl/⌘ N` | Add |
+| `g` then `r b n p e s a` | Playback, Library, Add song, Processing, Devices, Outputs, Settings |
+| `Ctrl/⌘ N` | Add song |
 | `Space` · `n` / `p` · `←` / `→` | play or pause · next / previous · ±5 s |
 | `+` / `-` · `[` / `]` · `Ctrl/⌘ 0` | volume · key · original key |
 | `s` | the next screen |
 | `Ctrl/⌘ Z` · `Ctrl/⌘ Shift Z` | undo · redo (queue edits, trash) |
 | `/` | search on the page |
 
-In Live `j`/`k` move, `Enter` cues the song, `Shift+Enter` plays it now, `Delete` removes it,
+In Playback `j`/`k` move, `Enter` cues the song, `Shift+Enter` plays it now, `Delete` removes it,
 `Alt+↑/↓` reorders; in the Library `a` adds to the screen's queue (`Shift+A` right after the song
-on air), `e` opens the editor, `m` exports an MP4, `Delete` sends to the trash; in Jobs `Shift+R`
+on air), `e` opens the editor, `m` exports an MP4, `Delete` sends to the trash; in Processing `Shift+R`
 retries every failed job; in Outputs `Ctrl/⌘ S` saves.
 
 ## Live and never stale
@@ -88,9 +86,9 @@ retries every failed job; in Outputs `Ctrl/⌘ S` saves.
 
 - `src/lib/control/`: the API client, the live store (`state.ts` is pure: one function applies
   each event), resumable uploads, notices.
-- `src/lib/console/`: the strip, the rail, the deck, the encoder, the program monitor, the
-  analysis and review cards, the job pipeline, the log view, the icons, and `scene/` (the 3D
-  field and the numbers it is fed).
+- `src/lib/console/`: the sidebar, the player bar, the lyrics preview, the analysis and review
+  cards, the error note, the log view, the icons.
+- `src/lib/ui/`: the fonts, `app.css` (the tokens and shared pieces), the coastline.
 - `src/lib/commands/`: shortcuts, the registry, fuzzy search, undo.
 - `src/lib/shell/`: the operator's actions and preferences, intake (a link pasted or a file
   dropped anywhere), the palette, the cheat sheet, sign-in, keyboard selection in lists.
@@ -104,6 +102,6 @@ pnpm --dir web test:e2e   # needs Playwright's Chromium (or PLAYWRIGHT_CHROMIUM=
 
 The `control` project starts a v4 server with a fake worker and a screen
 (`e2e/control/serve.py`) and drives the console: sign in, add a song and review it, follow it in
-Jobs, queue it twice, remove and undo, the singer, the palette, the cheat sheet, response times
+Processing, queue it twice, remove and undo, the singer, the palette, the cheat sheet, response times
 and axe's WCAG 2 AA rules on every section. The `lyrics` project compares screenshots of the
 lyrics component.

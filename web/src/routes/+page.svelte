@@ -1,9 +1,9 @@
 <script lang="ts">
 	/**
-	 * Live: the chosen screen's program monitor (its lyrics filling in sync), its alerts, and its
-	 * queue, which is always there to add to: search a song and Enter puts it at the end (Shift+
-	 * Enter right after the song on air). Rows drag to reorder; J/K move, Enter cues, Shift+Enter
-	 * plays now, Delete removes, Alt+↑/↓ moves.
+	 * Playback: what the chosen screen plays now (with a preview of its lyrics) and its queue. A
+	 * song is added by searching it above the queue: Enter puts it at the end, Shift+Enter right
+	 * after the one playing. Rows drag to reorder; J/K move, Enter cues, Shift+Enter plays now,
+	 * Delete removes, Alt+↑/↓ moves.
 	 */
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -13,7 +13,7 @@
 	import Icon from '#lib/console/Icon.svelte';
 	import Monitor from '#lib/console/Monitor.svelte';
 	import { now } from '#lib/console/now.svelte.js';
-	import { onAir } from '#lib/console/on-air.js';
+	import { onScreen, toneOf } from '#lib/console/screen.js';
 	import { live } from '#lib/control/live.svelte.js';
 	import { positionNow } from '#lib/control/state.js';
 	import { i18n } from '#lib/i18n';
@@ -29,10 +29,11 @@
 	} from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
 	import { Selection } from '#lib/shell/selection.svelte.js';
+	import Coast from '#lib/ui/Coast.svelte';
 
 	const t = $derived(i18n.t);
 	const target = $derived(player());
-	const air = $derived(onAir(live.state, target));
+	const on = $derived(onScreen(live.state, target));
 	const queue = $derived(queueOf(target?.id));
 	const items = $derived(queue?.items ?? []);
 	const currentIndex = $derived(items.findIndex((i) => i.id === target?.status.item_id));
@@ -45,6 +46,7 @@
 		target?.status.cache.find((c) => c.content_id === contentId);
 	const song = (id: string) => live.state.contents.find((c) => c.id === id);
 	const errors = $derived(target?.status.errors ?? []);
+	const status = $derived(target?.status.state ?? 'idle');
 
 	let search = $state('');
 	let pick = $state(0);
@@ -53,6 +55,12 @@
 	);
 	let dragging = $state<string | null>(null);
 	let over = $state<string | null>(null);
+
+	function add(id: string, next = false) {
+		void addToQueue([id], next);
+		search = '';
+		pick = 0;
+	}
 
 	function quickKey(event: KeyboardEvent) {
 		if (event.key === 'ArrowDown') {
@@ -63,9 +71,7 @@
 			event.preventDefault();
 		} else if (event.key === 'Enter' && found[pick]) {
 			event.preventDefault();
-			void addToQueue([found[pick].id], event.shiftKey);
-			search = '';
-			pick = 0;
+			add(found[pick].id, event.shiftKey);
 		}
 	}
 
@@ -73,6 +79,12 @@
 		if (dragging) void placeInQueue(dragging, beforeId);
 		dragging = null;
 		over = null;
+	}
+
+	function cacheTone(state: string): string {
+		if (state === 'failed') return 'error';
+		if (state === 'ready') return 'ok';
+		return 'info';
 	}
 
 	onMount(() => {
@@ -154,98 +166,119 @@
 	});
 </script>
 
-<div class="c-page live">
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1>{t.playback.title}{target ? ` · ${target.name}` : ''}</h1>
+			<p class="description">{t.playback.description}</p>
+		</div>
+	</header>
+
 	{#if !live.state.players.length}
-		<section class="c-panel empty-state">
-			<div class="c-empty">
-				<strong>{t.live.noPlayer}</strong>
-				<p>{t.live.noPlayerHint}</p>
-				<a class="c-btn" href={resolve('/nodos')}><Icon name="nodes" /> {t.nav.nodes}</a>
+		<section class="panel">
+			<div class="empty">
+				<Coast class="empty-coast" />
+				<strong>{t.playback.noScreens}</strong>
+				<p>{t.playback.noScreensHint}</p>
+				<a class="btn" href={resolve('/equipos')}>{t.nav.devices}</a>
 			</div>
 		</section>
 	{:else}
-		<div class="grid">
-			<section class="c-panel program" class:is-onair={air.tally === 'onair'}>
-				<header class="c-panel-head">
-					<h2>{t.live.program}</h2>
-					<span class="c-tag">{target?.name}</span>
-					<span class="spacer"></span>
-					{#if air.song}
-						{@const cache = cacheOf(air.song.id)}
-						{#if cache && cache.state !== 'ready'}
-							<span class="c-tag {cache.state === 'failed' ? 'onair' : 'info'}"
-								>{t.live.cache[cache.state]}
-								{cache.state === 'downloading' ? `${Math.round(cache.fraction * 100)} %` : ''}</span
-							>
+		<section class="panel now">
+			<div class="preview"><Monitor song={on.song} {position} /></div>
+			<div class="info">
+				<span class="badge {toneOf(target)}">
+					{target?.online ? t.player.states[status] : t.player.offline}
+				</span>
+				{#if on.song}
+					<h2 class="song-title">{on.song.title}</h2>
+					<p class="muted">{on.song.artist ?? ''}</p>
+					<dl class="details">
+						{#if on.item?.singer}
+							<dt>{t.playback.singer}</dt>
+							<dd>{on.item.singer}</dd>
 						{/if}
-					{/if}
-				</header>
-				<div class="c-panel-body">
-					<Monitor song={air.song} {position} tally={air.tally} singer={air.item?.singer ?? null} />
-				</div>
+						<dt>{t.playback.duration}</dt>
+						<dd class="mono">{clock(on.song.duration)}</dd>
+						<dt>{t.player.key}</dt>
+						<dd class="mono">{t.player.semitones(target?.status.semitones ?? 0)}</dd>
+						{#if on.next?.song}
+							<dt>{t.player.next}</dt>
+							<dd>{on.next.song.title}</dd>
+						{/if}
+					</dl>
+				{:else}
+					<p class="muted">{t.player.nothing}</p>
+				{/if}
 				{#if errors.length}
-					<div class="alerts" role="alert">
-						<span class="label">{t.live.alerts}</span>
-						{#each errors as error, i (i)}
-							<div class="alert">
-								<Icon name="warn" size={16} />
-								<span>{t.playerErrors[error.code] ?? error.code}</span>
-								<span class="dim mono small">{error.device ?? ''}</span>
-							</div>
-						{/each}
+					<div class="notice warn alerts" role="alert">
+						<Icon name="warn" size={18} />
+						<div>
+							<strong>{t.playback.alerts}</strong>
+							<ul>
+								{#each errors as error, i (i)}
+									<li>
+										{t.playerErrors[error.code] ?? error.code}
+										{#if error.device}<span class="muted">· {error.device}</span>{/if}
+									</li>
+								{/each}
+							</ul>
+						</div>
 					</div>
 				{/if}
-			</section>
+			</div>
+		</section>
 
-			<section class="c-panel queue">
-				<header class="c-panel-head">
-					<h2>{t.live.queue(target?.name ?? '')}</h2>
-					<span class="spacer"></span>
-					<span class="label">{items.length}</span>
-				</header>
-				<div class="quick">
-					<Icon name="search" />
-					<input
-						class="c-field"
-						bind:value={search}
-						onkeydown={quickKey}
-						oninput={() => (pick = 0)}
-						placeholder={t.live.quickAdd}
-						aria-label={t.live.quickAdd}
-						data-search
-					/>
-					{#if found.length}
-						<ul class="found" role="listbox">
-							{#each found as c, i (c.id)}
-								<li role="option" aria-selected={i === pick}>
-									<button
-										class:active={i === pick}
-										onclick={() => {
-											void addToQueue([c.id]);
-											search = '';
-										}}
-									>
-										<span>{c.title}</span>
-										<span class="dim">{c.artist ?? ''}</span>
-										<span class="mono dim small">{clock(c.duration)}</span>
-									</button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-				{#if items.length}
-					<ol class="c-rows list" role="listbox" aria-label={t.live.queue(target?.name ?? '')}>
+		<section class="panel">
+			<header class="panel-header">
+				<h2>{t.playback.queue}</h2>
+				<span class="muted small">{t.library.count(items.length)}</span>
+			</header>
+			<div class="quick">
+				<Icon name="search" size={16} />
+				<input
+					class="field"
+					bind:value={search}
+					onkeydown={quickKey}
+					oninput={() => (pick = 0)}
+					placeholder={t.playback.addPlaceholder}
+					aria-label={t.playback.addPlaceholder}
+					data-search
+				/>
+				{#if found.length}
+					<ul class="found" role="listbox">
+						{#each found as c, i (c.id)}
+							<li role="option" aria-selected={i === pick}>
+								<button class:active={i === pick} onclick={() => add(c.id)}>
+									<span>{c.title}</span>
+									<span class="muted">{c.artist ?? ''}</span>
+									<span class="mono muted">{clock(c.duration)}</span>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+			{#if items.length}
+				<table class="table queue">
+					<thead>
+						<tr>
+							<th class="num">{t.playback.number}</th>
+							<th>{t.playback.song}</th>
+							<th>{t.playback.singer}</th>
+							<th class="num">{t.playback.duration}</th>
+							<th>{t.playback.status}</th>
+							<th><span class="sr-only">{t.common.more}</span></th>
+						</tr>
+					</thead>
+					<tbody>
 						{#each items as item, i (item.id)}
 							{@const c = song(item.content_id)}
 							{@const cache = cacheOf(item.content_id)}
 							{@const isOn = item.id === target?.status.item_id}
-							<li
-								class="c-row row"
-								role="option"
+							<tr
 								aria-selected={selection.cursor === i}
-								class:is-cursor={selection.cursor === i}
-								class:is-marked={selection.marked.has(item.id)}
+								class:selected={selection.cursor === i || selection.marked.has(item.id)}
 								class:on={isOn}
 								class:played={currentIndex >= 0 && i < currentIndex}
 								class:over={over === item.id}
@@ -261,38 +294,42 @@
 									drop(item.id);
 								}}
 								onclick={() => (selection.cursor = i)}
-								onkeydown={() => {}}
 							>
-								<span class="grip faint" title={t.live.dragHint}
-									><Icon name="grip" size={16} /></span
-								>
-								<span class="index mono">{String(i + 1).padStart(2, '0')}</span>
-								<span class="what">
-									<span class="name">
-										{#if isOn}<span class="c-tally {air.tally}"></span>{/if}
-										{c?.title ?? item.content_id}
-									</span>
-									<span class="dim small"
-										>{c?.artist ?? ''} · <span class="mono">{clock(c?.duration)}</span></span
-									>
-								</span>
-								<input
-									class="singer"
-									value={item.singer ?? ''}
-									placeholder={t.live.singer}
-									aria-label={t.live.singer}
-									onchange={(e) =>
-										void updateItem(item.id, { singer: e.currentTarget.value || null })}
-									onclick={(e) => e.stopPropagation()}
-								/>
-								{#if cache && cache.state !== 'ready'}
-									<span class="c-tag {cache.state === 'failed' ? 'onair' : 'info'}"
-										>{t.live.cache[cache.state]}</span
-									>
-								{/if}
-								<span class="actions">
+								<td class="num faint">{i + 1}</td>
+								<td>
+									<div class="song-cell">
+										<strong class="truncate">{c?.title ?? item.content_id}</strong>
+										<span class="muted small truncate">{c?.artist ?? ''}</span>
+									</div>
+								</td>
+								<td>
+									<input
+										class="singer"
+										value={item.singer ?? ''}
+										placeholder="—"
+										aria-label={t.playback.singer}
+										onchange={(e) =>
+											void updateItem(item.id, { singer: e.currentTarget.value || null })}
+										onclick={(e) => e.stopPropagation()}
+									/>
+								</td>
+								<td class="num muted">{clock(c?.duration)}</td>
+								<td>
+									{#if isOn}
+										<span class="badge ok">{t.playback.onNow}</span>
+									{:else if currentIndex >= 0 && i < currentIndex}
+										<span class="faint small">{t.playback.played}</span>
+									{:else if cache}
+										<span class="badge {cacheTone(cache.state)}">
+											{t.playback.cache[cache.state]}{cache.state === 'downloading'
+												? ` ${Math.round(cache.fraction * 100)} %`
+												: ''}
+										</span>
+									{/if}
+								</td>
+								<td class="row-actions">
 									<button
-										class="c-btn icon ghost"
+										class="btn subtle icon"
 										title={t.cmd.playNow}
 										aria-label={t.cmd.playNow}
 										onclick={() => transport.playItem(item.id)}
@@ -300,7 +337,7 @@
 										<Icon name="play" size={16} />
 									</button>
 									<button
-										class="c-btn icon ghost"
+										class="btn subtle icon"
 										title={t.cmd.edit}
 										aria-label={t.cmd.edit}
 										onclick={() => goto(resolve('/editar/[id]', { id: item.content_id }))}
@@ -308,19 +345,18 @@
 										<Icon name="edit" size={16} />
 									</button>
 									<button
-										class="c-btn icon ghost"
+										class="btn subtle icon"
 										title={t.cmd.remove}
 										aria-label={t.cmd.remove}
 										onclick={() => removeFromQueue([item.id])}
 									>
 										<Icon name="close" size={16} />
 									</button>
-								</span>
-							</li>
+								</td>
+							</tr>
 						{/each}
-						<li
+						<tr
 							class="tail"
-							role="presentation"
 							class:over={over === '$end'}
 							ondragover={(e) => {
 								e.preventDefault();
@@ -330,178 +366,165 @@
 								e.preventDefault();
 								drop(null);
 							}}
-						></li>
-					</ol>
-				{:else}
-					<div class="c-empty">
-						<p>{t.live.queueEmpty}</p>
-						<a class="c-btn" href={resolve('/biblioteca')}
-							><Icon name="library" /> {t.nav.library}</a
 						>
-					</div>
-				{/if}
-			</section>
-		</div>
+							<td colspan="6" class="faint small">{t.playback.dragHint}</td>
+						</tr>
+					</tbody>
+				</table>
+			{:else}
+				<div class="empty">
+					<p>{t.playback.queueEmpty}</p>
+					<a class="btn" href={resolve('/biblioteca')}>{t.nav.library}</a>
+				</div>
+			{/if}
+		</section>
 	{/if}
 </div>
 
 <style>
-	.grid {
-		display: grid;
-		grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr);
-		gap: var(--gap);
-		align-items: start;
+	.empty :global(.empty-coast) {
+		height: 140px;
+		color: var(--accent);
+		opacity: 0.25;
+		margin-bottom: 8px;
 	}
-	.program {
-		position: sticky;
-		top: 0;
+	.now {
+		display: grid;
+		grid-template-columns: minmax(280px, 460px) minmax(0, 1fr);
+		gap: 20px;
+		padding: 16px;
+	}
+	.info {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		min-width: 0;
+	}
+	.song-title {
+		font-size: 18px;
+	}
+	.info .details {
+		margin-top: 8px;
 	}
 	.alerts {
-		display: grid;
-		gap: 6px;
-		padding: 12px;
-		border-top: 1px solid rgb(255 176 32 / 0.3);
-		background: rgb(255 176 32 / 0.05);
+		margin-top: 8px;
+		align-self: stretch;
+		color: var(--text);
 	}
-	.alert {
-		display: flex;
-		align-items: center;
-		gap: 10px;
+	.alerts :global(svg) {
+		flex: none;
 		color: var(--warn);
-		font-size: 13.5px;
+	}
+	.alerts ul {
+		margin: 4px 0 0;
+		padding-left: 18px;
 	}
 	.quick {
 		position: relative;
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 10px 12px;
-		border-bottom: 1px solid var(--line);
-		color: var(--dim);
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--border);
+		color: var(--muted);
 	}
 	.found {
 		position: absolute;
 		z-index: 10;
-		top: 100%;
-		left: 12px;
-		right: 12px;
+		top: calc(100% - 6px);
+		left: 42px;
+		right: 16px;
 		margin: 0;
 		padding: 4px;
 		list-style: none;
-		background: var(--panel-solid);
-		border: 1px solid var(--line-strong);
+		background: var(--surface-2);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
-		box-shadow: 0 20px 50px -10px rgb(0 0 0 / 0.8);
+		box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
 	}
 	.found button {
 		display: grid;
 		grid-template-columns: 1fr auto auto;
 		gap: 12px;
 		width: 100%;
-		padding: 8px 10px;
+		padding: 7px 10px;
 		border: 0;
+		border-radius: 4px;
 		background: none;
 		text-align: left;
 		cursor: pointer;
-		border-radius: 2px;
 	}
 	.found button.active,
 	.found button:hover {
-		background: rgb(60 200 255 / 0.1);
+		background: var(--accent-soft);
 	}
-	.list {
-		max-height: calc(100dvh - var(--strip) - var(--deck) - 160px);
-		overflow-y: auto;
+	.queue th:first-child,
+	.queue td:first-child {
+		width: 48px;
 	}
-	.row {
+	.queue tbody tr {
 		cursor: default;
 	}
-	.row.on {
-		background: rgb(255 58 70 / 0.06);
-		box-shadow: inset 2px 0 0 var(--onair);
+	.queue tr.on td:first-child {
+		box-shadow: inset 3px 0 0 var(--ok);
 	}
-	.row.played {
-		opacity: 0.45;
+	.queue tr.played {
+		opacity: 0.5;
 	}
-	.row.over,
-	.tail.over {
-		box-shadow: inset 0 2px 0 var(--info);
+	.queue tr.over td,
+	.queue tr.tail.over td {
+		box-shadow: inset 0 2px 0 var(--accent);
 	}
-	.tail {
-		height: 24px;
+	.queue tr.tail:hover {
+		background: none;
 	}
-	.grip {
-		cursor: grab;
-		display: flex;
-	}
-	.index {
-		color: var(--faint);
-		font-size: 12px;
-		width: 20px;
-	}
-	.what {
+	.song-cell {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		flex: 1;
 		min-width: 0;
-	}
-	.name {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-weight: 600;
-	}
-	.small {
-		font-size: 12px;
+		max-width: 420px;
 	}
 	.singer {
-		width: 110px;
-		padding: 5px 8px;
+		width: 140px;
+		height: 28px;
+		padding: 0 8px;
 		border: 1px solid transparent;
-		border-radius: 2px;
+		border-radius: 4px;
 		background: transparent;
-		color: var(--info);
-		font: 500 12px var(--font-mono);
 	}
 	.singer:hover,
 	.singer:focus {
-		border-color: var(--line-strong);
-		background: rgb(0 0 0 / 0.4);
+		border-color: var(--border-strong);
+		background: var(--bg);
 		outline: none;
 	}
-	.actions {
-		display: flex;
-		opacity: 0;
-		transition: opacity 0.12s;
+	.row-actions {
+		width: 120px;
 	}
-	.row:hover .actions,
-	.row.is-cursor .actions {
+	.row-actions .btn {
+		opacity: 0;
+	}
+	tr:hover .row-actions .btn,
+	tr.selected .row-actions .btn,
+	.row-actions .btn:focus-visible {
 		opacity: 1;
 	}
 
-	@media (max-width: 640px) {
-		.grip,
-		.index,
-		.singer {
-			display: none;
-		}
-	}
-	@media (max-width: 1100px) {
-		.grid {
+	@media (max-width: 1000px) {
+		.now {
 			grid-template-columns: minmax(0, 1fr);
 		}
-		.program {
-			position: static;
-		}
-		.list {
-			max-height: none;
-		}
-		.actions {
+		.row-actions .btn {
 			opacity: 1;
+		}
+	}
+	@media (max-width: 640px) {
+		.queue th:nth-child(3),
+		.queue td:nth-child(3),
+		.queue th:nth-child(4),
+		.queue td:nth-child(4) {
+			display: none;
 		}
 	}
 </style>

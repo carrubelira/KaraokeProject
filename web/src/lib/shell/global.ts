@@ -1,4 +1,4 @@
-/** The commands that work everywhere: navigation, the deck (transport), undo, the palette. */
+/** The commands that work everywhere: navigation, playback, undo, the palette. */
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
 import { commands, type Command } from '#lib/commands/registry.svelte.js';
@@ -8,11 +8,11 @@ import { nextPlayer, redo, transport, undo } from './actions.svelte';
 const t = () => i18n.t;
 
 export const SECTIONS = [
-	{ id: 'live', path: '/', key: 'g d', icon: 'live', label: () => t().nav.live },
-	{ id: 'add', path: '/engadir', key: 'g n', icon: 'add', label: () => t().nav.add },
-	{ id: 'jobs', path: '/traballos', key: 'g t', icon: 'jobs', label: () => t().nav.jobs },
+	{ id: 'playback', path: '/', key: 'g r', icon: 'playback', label: () => t().nav.playback },
 	{ id: 'library', path: '/biblioteca', key: 'g b', icon: 'library', label: () => t().nav.library },
-	{ id: 'nodes', path: '/nodos', key: 'g w', icon: 'nodes', label: () => t().nav.nodes },
+	{ id: 'add', path: '/engadir', key: 'g n', icon: 'add', label: () => t().nav.add },
+	{ id: 'jobs', path: '/procesamento', key: 'g p', icon: 'jobs', label: () => t().nav.jobs },
+	{ id: 'devices', path: '/equipos', key: 'g e', icon: 'devices', label: () => t().nav.devices },
 	{ id: 'outputs', path: '/saidas', key: 'g s', icon: 'outputs', label: () => t().nav.outputs },
 	{ id: 'settings', path: '/axustes', key: 'g a', icon: 'settings', label: () => t().nav.settings }
 ] as const;
@@ -84,7 +84,7 @@ export function registerGlobal(): () => void {
 		},
 		{ id: 'transport.stop', title: () => t().cmd.stop, keys: ['Shift+s'], run: transport.stop },
 		{ id: 'screen.next', title: () => t().cmd.nextScreen, keys: ['s'], run: nextPlayer }
-	].map((c) => ({ ...c, group: () => t().groups.transport }));
+	].map((c) => ({ ...c, group: () => t().groups.playback }));
 	const general: Command[] = [
 		{
 			id: 'palette',

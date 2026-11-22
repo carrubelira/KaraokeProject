@@ -2,6 +2,7 @@
 	import { api, ApiError } from '#lib/control/api.js';
 	import type { Session } from '#lib/control/types.js';
 	import { i18n } from '#lib/i18n';
+	import Coast from '#lib/ui/Coast.svelte';
 
 	let { onsession }: { onsession: (session: Session) => void } = $props();
 	let token = $state('');
@@ -18,17 +19,18 @@
 </script>
 
 <main class="login">
-	<form onsubmit={submit} class="c-panel">
-		<div class="c-panel-head">
-			<span class="c-tally warn">{i18n.t.strip.standby}</span>
-		</div>
-		<div class="c-panel-body body">
-			<h1>{i18n.t.app.signInTitle}</h1>
-			<label class="c-labelled">
-				<span class="label">{i18n.t.app.tokenLabel}</span>
+	<Coast class="login-coast" />
+	<form onsubmit={submit} class="panel">
+		<div class="panel-body body">
+			<div>
+				<h1>{i18n.t.app.signInTitle}</h1>
+				<p class="muted">{i18n.t.app.signInLead}</p>
+			</div>
+			<label class="form-row">
+				<span>{i18n.t.app.tokenLabel}</span>
 				<!-- svelte-ignore a11y_autofocus -->
 				<input
-					class="c-field mono"
+					class="field mono"
 					type="password"
 					bind:value={token}
 					autocomplete="current-password"
@@ -36,9 +38,9 @@
 					required
 				/>
 			</label>
-			<p class="dim hint">{i18n.t.app.tokenHint}</p>
-			{#if error}<p class="error" role="alert">{error}</p>{/if}
-			<button class="c-btn primary big" type="submit">{i18n.t.app.signIn}</button>
+			<p class="muted small">{i18n.t.app.tokenHint}</p>
+			{#if error}<p class="notice error" role="alert">{error}</p>{/if}
+			<button class="btn primary large" type="submit">{i18n.t.app.signIn}</button>
 		</div>
 	</form>
 </main>
@@ -46,31 +48,28 @@
 <style>
 	.login {
 		position: relative;
-		z-index: 1;
 		display: grid;
 		place-items: center;
 		min-height: 100vh;
 		padding: 16px;
+		overflow: hidden;
+	}
+	.login :global(.login-coast) {
+		position: absolute;
+		right: 6vw;
+		top: 50%;
+		height: 80vh;
+		transform: translateY(-50%);
+		color: var(--accent);
+		opacity: 0.1;
 	}
 	form {
-		width: min(28rem, 100%);
+		position: relative;
+		width: min(26rem, 100%);
 	}
 	.body {
 		display: grid;
 		gap: 16px;
 		padding: 24px;
-	}
-	h1 {
-		margin: 0;
-		font: 600 22px/1.1 var(--font-display);
-		text-transform: uppercase;
-	}
-	.hint {
-		margin: 0;
-		font-size: 13px;
-	}
-	.error {
-		margin: 0;
-		color: var(--onair);
 	}
 </style>

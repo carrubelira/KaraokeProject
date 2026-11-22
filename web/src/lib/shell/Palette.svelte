@@ -47,7 +47,7 @@
 				id: `node:${n.id}`,
 				title: n.name,
 				detail: n.kind === 'worker' ? t.palette.worker : t.palette.player,
-				run: () => goto(resolve('/nodos'))
+				run: () => goto(resolve('/equipos'))
 			});
 		}
 		return list;
@@ -88,7 +88,7 @@
 
 {#if commands.paletteOpen}
 	<div class="backdrop" role="presentation" onclick={() => (commands.paletteOpen = false)}></div>
-	<div class="palette" role="dialog" aria-modal="true" aria-label={t.palette.label}>
+	<div class="dialog palette" role="dialog" aria-modal="true" aria-label={t.palette.label}>
 		<input
 			bind:this={input}
 			bind:value={query}
@@ -124,35 +124,17 @@
 {/if}
 
 <style>
-	.backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 70;
-		background: rgb(2 3 5 / 0.6);
-		backdrop-filter: blur(3px);
-	}
 	.palette {
-		position: fixed;
-		z-index: 71;
-		top: 12vh;
-		left: 50%;
-		transform: translateX(-50%);
-		width: min(44rem, calc(100vw - 2rem));
-		background: var(--panel-solid);
-		border: 1px solid var(--line-strong);
-		border-top: 2px solid var(--info);
-		border-radius: var(--radius);
-		box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.9);
 		overflow: hidden;
 	}
 	input {
 		width: 100%;
-		padding: 16px 18px;
+		height: 48px;
+		padding: 0 16px;
 		border: 0;
-		border-bottom: 1px solid var(--line);
+		border-bottom: 1px solid var(--border);
 		background: transparent;
-		color: var(--text);
-		font: 500 17px var(--font-text);
+		font-size: 15px;
 		outline: none;
 	}
 	ul {
@@ -167,31 +149,25 @@
 		grid-template-columns: 1fr auto auto;
 		gap: 12px;
 		align-items: center;
-		padding: 8px 12px;
-		border-radius: 2px;
+		padding: 7px 10px;
+		border-radius: 4px;
 		cursor: pointer;
 	}
 	li.active {
-		background: rgb(60 200 255 / 0.1);
-		box-shadow: inset 2px 0 0 var(--info);
+		background: var(--accent-soft);
 	}
 	.detail {
-		color: var(--dim);
-		font: 500 10.5px var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		color: var(--muted);
+		font-size: 12.5px;
 	}
 	.empty {
-		color: var(--dim);
+		color: var(--muted);
 		cursor: default;
 	}
 	.hint {
-		margin: 0;
-		padding: 8px 18px;
-		border-top: 1px solid var(--line);
+		padding: 8px 16px;
+		border-top: 1px solid var(--border);
 		color: var(--faint);
-		font: 500 10.5px var(--font-mono);
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		font-size: 12px;
 	}
 </style>

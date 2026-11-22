@@ -1,14 +1,13 @@
 <script lang="ts">
 	/**
-	 * Outputs of the chosen screen: which sound output each stem goes to (a matrix, like a patch
-	 * bay), which output keeps time, what happens if one goes away, and what each display shows.
+	 * Outputs of the chosen screen: which sound output each part goes to (the music and the guide
+	 * vocals), which output keeps time, what happens if one goes away, and what each display shows.
 	 * Changes are a draft until saved (Mod+S). Rows are keyed by position too: a player that
 	 * reports two devices with one id must never take the page down.
 	 */
 	import type { PlayerConfig, Route, Screen } from '#lib/contracts';
 	import { onMount } from 'svelte';
 	import { commands } from '#lib/commands/registry.svelte.js';
-	import Icon from '#lib/console/Icon.svelte';
 	import { api } from '#lib/control/api.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
 	import { i18n } from '#lib/i18n';
@@ -90,48 +89,49 @@
 	});
 </script>
 
-<div class="c-page">
-	<div class="c-page-head">
-		<h1>{t.outputs.title}</h1>
-		<span class="c-tag">{target?.name ?? '—'}</span>
-		<span class="spacer"></span>
-		{#if dirty}<span class="c-tally warn">{t.outputs.unsaved}</span>{/if}
-		<button class="c-btn primary" onclick={save} disabled={!dirty}
-			>{t.outputs.save} <Kbd keys="Mod+s" /></button
-		>
-	</div>
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1>{t.outputs.title}{target ? ` · ${target.name}` : ''}</h1>
+			<p class="description">{t.outputs.description}</p>
+		</div>
+		<div class="actions">
+			{#if dirty}<span class="badge warn">{t.outputs.unsaved}</span>{/if}
+			<button class="btn primary" onclick={save} disabled={!dirty}>
+				{t.outputs.save}
+				<Kbd keys="Mod+s" />
+			</button>
+		</div>
+	</header>
 	{#if target && draft}
-		<section class="c-panel">
-			<header class="c-panel-head">
-				<Icon name="outputs" size={16} />
-				<h2>{t.outputs.matrix}</h2>
-			</header>
+		<section class="panel">
+			<header class="panel-header"><h2>{t.outputs.audio}</h2></header>
 			<div class="scroll">
-				<table class="matrix">
+				<table class="table matrix">
 					<thead>
 						<tr>
-							<th class="label">{t.outputs.audio}</th>
-							<th class="label">{t.outputs.master}</th>
-							{#each TRACKS as track (track)}<th class="label">{t.outputs[track]}</th>{/each}
-							<th class="label">{t.outputs.calibration}</th>
-							<th class="label">{t.outputs.policy}</th>
+							<th>{t.devices.name}</th>
+							<th class="center">{t.outputs.master}</th>
+							{#each TRACKS as track (track)}<th>{t.outputs[track]}</th>{/each}
+							<th>{t.outputs.calibration}</th>
+							<th>{t.outputs.policy}</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each audio as device, i (`${i}:${device.id}`)}
 							{@const problem = errorOf(device.id)}
-							<tr class:bad={!!problem}>
-								<td class="device">
-									<span class="c-tally {problem ? 'warn' : device.default ? 'cue' : ''}"></span>
-									<span>
+							<tr>
+								<td>
+									<div class="device">
 										<strong>{device.name}</strong>
 										<span class="mono faint small"
 											>{device.channels} ch · {device.sample_rate / 1000} kHz{#if target.status.sync[`${device.id}.correction_ppm`] !== undefined}
 												· {target.status.sync[`${device.id}.correction_ppm`].toFixed(1)} ppm{/if}</span
 										>
-										{#if device.bluetooth}<span class="c-tag warn">{t.outputs.bluetooth}</span>{/if}
-										{#if problem}<span class="c-tag warn">{t.playerErrors[problem.code]}</span>{/if}
-									</span>
+										{#if device.bluetooth}<span class="warn-text small">{t.outputs.bluetooth}</span
+											>{/if}
+										{#if problem}<span class="badge warn">{t.playerErrors[problem.code]}</span>{/if}
+									</div>
 								</td>
 								<td class="center">
 									<input
@@ -145,16 +145,17 @@
 								{#each TRACKS as track (track)}
 									{@const r = route(track, device.id)}
 									<td>
-										<div class="patch" class:on={!!r}>
-											<button
-												class="jack"
-												aria-pressed={!!r}
-												onclick={() => toggleRoute(track, device.id)}
-												aria-label={`${t.outputs[track]} → ${device.name}`}
-											></button>
+										<div class="patch">
+											<input
+												type="checkbox"
+												class="route"
+												checked={!!r}
+												onchange={() => toggleRoute(track, device.id)}
+												aria-label={`${t.outputs[track]}: ${device.name}`}
+											/>
 											{#if r}
 												<input
-													class="c-field num"
+													class="field num"
 													type="number"
 													step="0.5"
 													bind:value={r.gain_db}
@@ -162,7 +163,7 @@
 													title={t.outputs.gain}
 												/>
 												<input
-													class="c-field num"
+													class="field num"
 													type="number"
 													step="1"
 													min="0"
@@ -176,7 +177,7 @@
 								{/each}
 								<td>
 									<input
-										class="c-field num"
+										class="field num"
 										type="number"
 										step="1"
 										value={draft.calibration.audio_ms[device.id] ?? 0}
@@ -188,7 +189,7 @@
 								</td>
 								<td>
 									<select
-										class="c-field"
+										class="field policy"
 										value={draft.routing.policies[device.id] ?? ''}
 										onchange={(e) => {
 											if (!draft) return;
@@ -209,13 +210,11 @@
 					</tbody>
 				</table>
 			</div>
+			<p class="panel-footer faint small legend">{t.outputs.gain} · {t.outputs.delay}</p>
 		</section>
 
-		<section class="c-panel">
-			<header class="c-panel-head">
-				<Icon name="screen" size={16} />
-				<h2>{t.outputs.displays}</h2>
-			</header>
+		<section class="panel">
+			<header class="panel-header"><h2>{t.outputs.displays}</h2></header>
 			<div class="displays">
 				{#each displays as display, i (`${i}:${display.id}`)}
 					{@const s = screen(display.id)}
@@ -226,37 +225,37 @@
 								>{display.refresh_hz} Hz{display.primary ? ` · ${t.outputs.primary}` : ''}</span
 							>
 						</div>
-						<strong>{display.name}</strong>
-						{#if !display.connected}<span class="c-tag warn">{t.outputs.disconnected}</span>{/if}
-						<label class="c-labelled">
-							<span class="label">{t.outputs.shows}</span>
+						<div class="display-name">
+							<strong>{display.name}</strong>
+							{#if !display.connected}<span class="badge warn">{t.outputs.disconnected}</span>{/if}
+						</div>
+						<label class="form-row">
+							<span>{t.outputs.shows}</span>
 							<select
-								class="c-field"
+								class="field"
 								value={s.layout}
 								onchange={(e) =>
 									setScreen(display.id, { layout: e.currentTarget.value as Screen['layout'] })}
-								aria-label={display.name}
 							>
 								{#each Object.entries(t.outputs.layout) as [value, name] (value)}<option {value}
 										>{name}</option
 									>{/each}
 							</select>
 						</label>
-						<label class="c-labelled">
-							<span class="label">{t.outputs.theme}</span>
+						<label class="form-row">
+							<span>{t.outputs.theme}</span>
 							<select
-								class="c-field"
+								class="field"
 								value={s.theme}
 								onchange={(e) => setScreen(display.id, { theme: e.currentTarget.value })}
-								aria-label={t.outputs.theme}
 							>
 								{#each THEMES as theme (theme)}<option value={theme}>{theme}</option>{/each}
 							</select>
 						</label>
-						<label class="c-labelled">
-							<span class="label">{t.outputs.calibration}</span>
+						<label class="form-row">
+							<span>{t.outputs.calibration}</span>
 							<input
-								class="c-field"
+								class="field"
 								type="number"
 								step="1"
 								value={draft.calibration.display_ms[display.id] ?? 0}
@@ -270,7 +269,7 @@
 			</div>
 		</section>
 	{:else}
-		<section class="c-panel"><p class="c-empty">{t.outputs.noPlayer}</p></section>
+		<section class="panel"><div class="empty"><p>{t.outputs.noPlayer}</p></div></section>
 	{/if}
 </div>
 
@@ -278,74 +277,47 @@
 	.scroll {
 		overflow-x: auto;
 	}
-	.matrix {
-		width: 100%;
-		border-collapse: collapse;
-	}
-	th {
-		padding: 10px 12px;
-		text-align: left;
-		border-bottom: 1px solid var(--line);
-		white-space: nowrap;
-	}
-	td {
-		padding: 10px 12px;
-		border-bottom: 1px solid var(--line);
-		vertical-align: middle;
-	}
-	tr.bad {
-		background: rgb(255 176 32 / 0.04);
-	}
 	.device {
 		display: flex;
-		gap: 10px;
+		flex-direction: column;
 		align-items: flex-start;
-		min-width: 260px;
+		gap: 2px;
+		min-width: 240px;
 	}
-	.device > span:last-child {
-		display: grid;
-		gap: 4px;
-	}
-	.small {
-		font-size: 11.5px;
+	.warn-text {
+		color: var(--warn);
 	}
 	.center {
 		text-align: center;
 	}
-	.center input {
-		accent-color: var(--onair);
+	.center input,
+	.route {
 		width: 16px;
 		height: 16px;
+		accent-color: var(--accent);
 	}
 	.patch {
 		display: flex;
 		align-items: center;
 		gap: 6px;
 	}
-	.jack {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		border: 2px solid var(--line-strong);
-		background: radial-gradient(circle, #000 35%, var(--raise) 40%);
-		cursor: pointer;
-	}
-	.patch.on .jack {
-		border-color: var(--cue);
-		background: radial-gradient(circle, var(--cue) 35%, #0b2018 40%);
-		box-shadow: 0 0 10px var(--cue-glow);
-	}
 	.num {
 		width: 5.5rem;
-		min-height: 30px;
-		padding: 4px 8px;
-		font: 12px var(--font-mono);
+		height: 30px;
+		font: 12.5px var(--mono);
+	}
+	.policy {
+		width: 8rem;
+		height: 30px;
+	}
+	.legend {
+		justify-content: flex-start;
 	}
 	.displays {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 14px;
-		padding: 14px;
+		gap: 20px;
+		padding: 16px;
 	}
 	.display {
 		display: grid;
@@ -353,16 +325,22 @@
 		align-content: start;
 	}
 	.display.off .glass {
-		opacity: 0.3;
+		opacity: 0.35;
+	}
+	.display-name {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
 	.glass {
 		display: grid;
 		place-content: center;
-		gap: 4px;
-		text-align: center;
-		max-height: 140px;
-		background: linear-gradient(160deg, #0c1219, #020304);
-		border: 1px solid var(--line-strong);
+		gap: 2px;
+		max-height: 130px;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		background: var(--bg);
 		font-size: 12px;
+		text-align: center;
 	}
 </style>

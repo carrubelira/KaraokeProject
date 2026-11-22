@@ -1,6 +1,6 @@
-# 010 · La consola: control de emisión, alta por enlace y una cola por pantalla
+# 010 · La consola: interfaz tradicional, alta por enlace y una cola por pantalla
 
-- **Fecha**: 21/11/2026
+- **Fecha**: 21/11/2026 (revisada el 22/11/2026: interfaz tradicional)
 - **Estado**: aceptada (sustituye a la interfaz de `007-control` y al globo de `009-globo`)
 - **Afecta a**: web, servidor (cola de tareas, colas, eventos), worker (análisis, registro,
   telemetría), reproductor (cola, dispositivos, errores)
@@ -22,7 +22,7 @@ La primera prueba real en el equipo (RTX 4080, Windows) sacó a la luz varios pr
 El usuario pidió rehacer la interfaz desde cero, inmersiva y profesional, con efectos Three.js
 que respondan al estado de workers y reproductores. Eligió estas opciones:
 
-- **Estética**: consola de broadcast.
+- **Estética**: consola de broadcast (primera versión; ver la revisión más abajo).
 - **Identificación**: AcoustID + MusicBrainz.
 - **Colas**: una por pantalla.
 - **Idiomas**: galego e inglés.
@@ -33,27 +33,34 @@ que respondan al estado de workers y reproductores. Eligió estas opciones:
 
 ### Consola
 
-- **Lenguaje visual.** Una sala de control nocturna:
-  - paneles de cristal oscuro enmarcados como unidades de rack;
-  - pilotos tally con un significado fijo (rojo en antena, verde preparado, ámbar a la espera o
-    aviso, cian en movimiento);
-  - Martian Mono para los datos.
-- **Estructura.** Tres piezas fijas:
-  - una franja superior: pantalla que se maneja, ON AIR, reloj y salud del sistema;
-  - un rail de secciones;
-  - un deck inferior con el transporte y dos encoders (tono y volumen), siempre a mano.
-- **Fondo Three.js.** Un campo de señal:
-  - el suelo de puntos respira con el trabajo;
-  - cada worker es un núcleo que gira con su GPU y lanza partículas al hub mientras trabaja;
-  - cada pantalla es un núcleo que late en rojo en antena.
+**Revisión del 22/11/2026.** La primera versión (sala de control de emisión con un campo de
+partículas Three.js de fondo, franja ON AIR, rail y deck con encoders) resultó fea y confusa: las
+partículas no aportaban nada, cada vista tenía su propio diseño y la de trabajos costaba
+entenderla. El usuario pidió una interfaz tradicional, sin las tipografías de siempre ni
+etiquetas de jerga, con Galicia solo en segundo plano. Eligió:
 
-  Es decorativo: todo lo que muestra está escrito en la interfaz. Descansa con la pestaña
-  oculta, con «Efectos» y con el movimiento reducido del sistema.
-- **Sin `backdrop-filter` ni `mix-blend-mode`.** Algunos navegadores dejan de componer el lienzo
-  WebGL de detrás si se usan.
-- **Secciones.** Directo, Engadir, Traballos, Biblioteca, Nodos, Saídas, Axustes y el editor.
-- **El monitor de programa** de Directo pinta la letra de la canción en antena con la posición
-  del reproductor, como un monitor de confianza.
+- **Tema**: oscuro sobrio (grises, un solo acento azul).
+- **Tipografía**: IBM Plex Sans y IBM Plex Mono.
+- **Galicia**: el perfil de la costa, tenue, detrás de la barra lateral y en los estados vacíos.
+
+Queda así:
+
+- **Estructura.** Una aplicación de escritorio corriente:
+  - barra lateral con las secciones en palabras;
+  - páginas hechas de cabecera, paneles y tablas;
+  - barra de reproducción abajo: pantalla, qué suena, transporte, tono y volumen.
+- **Una sola hoja de estilos** (`app.css`) con las piezas comunes (cabecera, panel, tabla,
+  badge, botón, campo, pestañas, estado vacío, aviso). Las páginas solo añaden su maquetación.
+- **Vocabulario llano.** «Equipos de procesado» y «Pantallas» en vez de workers y players,
+  estados en palabras («En curso», «Agarda revisión», «Rematado», «Erro»), «Retirar» en vez de
+  revocar.
+- **Procesamento** es una tabla de canciones (estado, paso actual con su progreso, equipo,
+  tiempo). Cada fila se despliega para ver los pasos, el motivo de un fallo con qué hacer y el
+  registro de cada paso.
+- **Secciones.** Reprodución, Biblioteca, Engadir canción, Procesamento, Equipos, Saídas,
+  Axustes y el editor.
+- **Fuera:** Three.js, el campo de partículas, los encoders, la franja ON AIR, el ajuste
+  «Efectos» y las fuentes Figtree, Martian Mono y Unbounded.
 
 ### Alta por enlace: analizar antes, confirmar después
 

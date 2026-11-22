@@ -66,10 +66,11 @@
 		max-height: 320px;
 		overflow: auto;
 		padding: 10px 12px;
-		background: rgb(0 0 0 / 0.6);
-		border: 1px solid var(--line);
-		font: 11.5px/1.55 var(--font-mono);
-		color: var(--dim);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg);
+		color: var(--muted);
+		font: 12px/1.55 var(--mono);
 	}
 	.line {
 		display: block;
@@ -77,10 +78,10 @@
 		overflow-wrap: anywhere;
 	}
 	.stage {
-		color: var(--info);
 		margin-top: 4px;
+		color: var(--text);
 	}
 	.error {
-		color: var(--onair);
+		color: var(--error);
 	}
 </style>

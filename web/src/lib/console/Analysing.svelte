@@ -40,14 +40,15 @@
 	const worker = $derived(live.state.nodes.find((n) => n.id === active?.node_id)?.name);
 </script>
 
-<article class="analysing" class:failed={!!failed}>
+<article class="analysing">
 	<header>
-		<span class="c-tally {failed ? 'onair' : 'info'}"></span>
-		<strong class="title">{job.title}</strong>
-		{#if worker}<span class="c-tag">{t.jobs.on(worker)}</span>{/if}
-		<span class="spacer"></span>
+		<strong class="title truncate">{job.title}</strong>
+		<span class="badge {failed ? 'error' : 'info'}">
+			{failed ? t.jobs.states.failed : t.jobs.states.active}
+		</span>
+		{#if worker}<span class="muted small">{t.jobs.on(worker)}</span>{/if}
 		<button
-			class="c-btn icon ghost"
+			class="btn subtle icon cancel"
 			aria-label={t.cmd.cancel}
 			title={t.cmd.cancel}
 			onclick={() => jobs.act([job.id], 'cancel')}><Icon name="close" size={16} /></button
@@ -56,16 +57,18 @@
 	<ol class="steps">
 		{#each STEPS as step, i (step)}
 			<li class:done={i < at} class:now={i === at && !failed} class:bad={i === at && !!failed}>
-				<span class="dot"></span>
-				<span class="label">{t.add.steps[step]}</span>
+				<span class="dot" aria-hidden="true">
+					{#if i < at}<Icon name="check" size={12} />{/if}
+				</span>
+				<span class="name">{t.add.steps[step]}</span>
 			</li>
 		{/each}
 	</ol>
 	{#if failed}
 		<ErrorNote task={failed} {job} />
 	{:else}
-		<div class="c-progress" style:--value={fraction}></div>
-		<p class="message dim">{active?.message ?? active?.step ?? ''}</p>
+		<div class="progress"><span style:width="{fraction * 100}%"></span></div>
+		<p class="muted small message">{active?.message ?? active?.step ?? ''}</p>
 		{#if lines.length}
 			<pre class="tail">{lines.join('\n')}</pre>
 		{/if}
@@ -76,8 +79,8 @@
 	.analysing {
 		display: grid;
 		gap: 12px;
-		padding: 14px;
-		border-bottom: 1px solid var(--line);
+		padding: 16px;
+		border-bottom: 1px solid var(--border);
 	}
 	.analysing:last-child {
 		border-bottom: 0;
@@ -88,98 +91,68 @@
 		gap: 10px;
 		min-width: 0;
 	}
-	.title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.spacer {
-		flex: 1;
+	.cancel {
+		margin-left: auto;
 	}
 	.steps {
-		display: grid;
-		grid-template-columns: repeat(6, 1fr);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px 18px;
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 	.steps li {
-		position: relative;
 		display: flex;
-		flex-direction: column;
 		align-items: center;
-		gap: 8px;
-		text-align: center;
-	}
-	.steps li::before {
-		content: '';
-		position: absolute;
-		top: 5px;
-		left: -50%;
-		right: 50%;
-		height: 1px;
-		background: var(--line-strong);
-	}
-	.steps li:first-child::before {
-		display: none;
-	}
-	.steps li.done::before,
-	.steps li.now::before {
-		background: var(--cue);
+		gap: 6px;
+		color: var(--faint);
+		font-size: 13px;
 	}
 	.dot {
-		position: relative;
-		width: 11px;
-		height: 11px;
+		display: grid;
+		place-items: center;
+		width: 16px;
+		height: 16px;
 		border-radius: 50%;
-		border: 1px solid var(--line-strong);
-		background: var(--void);
+		border: 1px solid var(--border-strong);
+	}
+	.done {
+		color: var(--muted);
 	}
 	.done .dot {
-		background: var(--cue);
-		border-color: var(--cue);
+		background: var(--ok);
+		border-color: var(--ok);
+		color: #fff;
+	}
+	.now {
+		color: var(--text);
+		font-weight: 500;
 	}
 	.now .dot {
-		border-color: var(--info);
-		background: var(--info);
-		box-shadow: 0 0 12px var(--info);
-		animation: pulse 1s ease-in-out infinite;
+		border: 2px solid var(--accent);
+	}
+	.bad {
+		color: var(--error);
 	}
 	.bad .dot {
-		background: var(--onair);
-		border-color: var(--onair);
-	}
-	.now .label {
-		color: var(--info);
-	}
-	.done .label {
-		color: var(--text);
-	}
-	@keyframes pulse {
-		50% {
-			transform: scale(1.35);
-		}
+		border-color: var(--error);
+		background: var(--error);
 	}
 	.message {
-		margin: 0;
-		font-size: 13px;
 		min-height: 1.2em;
 	}
 	.tail {
 		margin: 0;
 		padding: 8px 10px;
-		background: rgb(0 0 0 / 0.5);
-		border: 1px solid var(--line);
-		font: 11px/1.5 var(--font-mono);
-		color: var(--dim);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg);
+		color: var(--muted);
+		font: 12px/1.5 var(--mono);
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 		max-height: 5.5em;
 		overflow: hidden;
-	}
-	@media (max-width: 640px) {
-		.steps .label {
-			display: none;
-		}
 	}
 </style>

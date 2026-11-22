@@ -172,8 +172,8 @@
 	.wave {
 		position: relative;
 		height: 9rem;
-		border: 1px solid var(--line);
-		background: var(--panel-solid);
+		border: 1px solid var(--border);
+		background: var(--surface);
 		overflow: hidden;
 		cursor: text;
 		touch-action: none;
@@ -184,12 +184,12 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
-		color: color-mix(in oklch, var(--dim) 55%, transparent);
+		color: color-mix(in oklch, var(--muted) 55%, transparent);
 		pointer-events: none;
 	}
 
 	canvas.lit {
-		color: var(--lyric);
+		color: var(--accent-strong);
 	}
 
 	.word {
@@ -197,7 +197,7 @@
 		top: 0.5rem;
 		bottom: 0.5rem;
 		min-width: 4px;
-		border: 1px solid color-mix(in oklch, var(--dim) 45%, transparent);
+		border: 1px solid color-mix(in oklch, var(--muted) 45%, transparent);
 		border-radius: 4px;
 		background: color-mix(in oklch, var(--text) 4%, transparent);
 	}
@@ -208,8 +208,8 @@
 
 	/* The word picked: blue, as everything selected. */
 	.word.selected {
-		border: 2px solid var(--info);
-		background: color-mix(in oklch, var(--info) 12%, transparent);
+		border: 2px solid var(--accent);
+		background: color-mix(in oklch, var(--accent) 12%, transparent);
 		z-index: 1;
 	}
 
@@ -221,7 +221,7 @@
 		padding: 0.1rem 0.35rem;
 		border: 0;
 		border-radius: 0 0 4px 0;
-		background: color-mix(in oklch, var(--panel-solid) 75%, transparent);
+		background: color-mix(in oklch, var(--surface) 75%, transparent);
 		color: var(--text);
 		font-size: 12px;
 		font-weight: 650;
@@ -232,7 +232,7 @@
 	}
 
 	.selected .label {
-		color: var(--info);
+		color: var(--accent);
 	}
 
 	.edge {
@@ -259,7 +259,7 @@
 		left: 4px;
 		width: 4px;
 		border-radius: 2px;
-		background: var(--info);
+		background: var(--accent);
 	}
 
 	/* Now: the amber line of the playhead. */
@@ -269,7 +269,7 @@
 		bottom: 0;
 		width: 2px;
 		margin-left: -1px;
-		background: var(--lyric);
+		background: var(--accent-strong);
 		pointer-events: none;
 		z-index: 2;
 	}

@@ -1,11 +1,11 @@
 <script lang="ts" module>
-	/** Line icons drawn for the console (24×24, 1.6 stroke): one place for every glyph. */
+	/** Line icons used across the control (24×24, 1.6 stroke): one place for every glyph. */
 	const PATHS = {
-		live: 'M4 7h16v10H4zM8 21h8M12 17v4M9.5 12a2.5 2.5 0 1 0 5 0 2.5 2.5 0 1 0-5 0',
+		playback: 'M4 6h16v12H4zM10 9.5v5l4-2.5z',
 		add: 'M12 5v14M5 12h14',
 		jobs: 'M4 6h10M4 12h16M4 18h7M17 4l3 2-3 2M15 16l3 2-3 2',
 		library: 'M5 4v16M9 4v16M13 5l5 15M3 20h18',
-		nodes:
+		devices:
 			'M6 6m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M18 6m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M12 18m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0M8 6h8M7 8l4 8M17 8l-4 8',
 		outputs: 'M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6M19.5 6.5a8 8 0 0 1 0 11',
 		settings:
@@ -32,7 +32,10 @@
 		mic: 'M12 4a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0V7a3 3 0 0 0-3-3M6 11a6 6 0 0 0 12 0M12 17v3',
 		gpu: 'M4 7h16v10H4zM8 7V4M12 7V4M16 7V4M8 17v3M12 17v3M16 17v3M8 10h8v4H8z',
 		screen: 'M3 5h18v12H3zM8 21h8',
-		bolt: 'M13 3L5 13h6l-1 8 8-10h-6z'
+		bolt: 'M13 3L5 13h6l-1 8 8-10h-6z',
+		volume: 'M4 9v6h4l5 4V5L8 9z',
+		logout: 'M10 4H5v16h5M14 8l4 4-4 4M18 12H9',
+		chevron: 'M9 6l6 6-6 6'
 	} as const;
 	export type IconName = keyof typeof PATHS;
 </script>

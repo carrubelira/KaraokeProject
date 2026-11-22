@@ -1,18 +1,15 @@
 /**
- * The operator's preferences: shortcuts, the screen they drive, how much the background moves.
+ * The operator's preferences: shortcuts, the screen they drive.
  * Kept on the server (they follow the operator to another computer) and applied at once here;
  * writes are grouped so a burst of changes sends one request.
  */
 import { api } from '#lib/control/api.js';
 import { commands } from '#lib/commands/registry.svelte.js';
 
-export type Effects = 'full' | 'calm' | 'off';
-
 export interface Preferences {
 	shortcuts: Record<string, string[]>;
-	/** The screen (player) the deck and the queue act on. */
+	/** The screen (player) the player bar and the queue act on. */
 	player: string | null;
-	effects: Effects;
 	/** Go on without a review when the analysis is sure. */
 	autoConfirm: boolean;
 }
@@ -20,7 +17,6 @@ export interface Preferences {
 const DEFAULTS: Preferences = {
 	shortcuts: {},
 	player: null,
-	effects: 'full',
 	autoConfirm: false
 };
 

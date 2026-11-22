@@ -78,9 +78,8 @@ next to its font.
 
 | Font | Copyright | Where |
 |---|---|---|
-| Unbounded | The Unbounded Project Authors | the app's menu, titles and names |
-| Figtree | The Figtree Project Authors | the app's text |
-| Martian Mono | The Martian Mono Project Authors (Evil Martians) | the app's times, counts and the party's room code |
+| IBM Plex Sans | IBM Corp. | the console's text |
+| IBM Plex Mono | IBM Corp. | the console's times and codes |
 | Atkinson Hyperlegible Next | The Atkinson Hyperlegible Next Project Authors (Braille Institute) | the `contraste` lyrics theme |
 | Nunito | The Nunito Project Authors | the `clasico` lyrics theme |
 | Inter | The Inter Project Authors | the `moderno` lyrics theme |

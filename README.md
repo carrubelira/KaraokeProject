@@ -170,7 +170,7 @@ comunícanse en privado ([`SECURITY.md`](SECURITY.md)).
 ## Licenza e créditos
 
 O proxecto publícase baixo a [licenza MIT](LICENSE). Apóiase no traballo doutras persoas: os modelos
-de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes Unbounded, Figtree, Martian Mono,
+de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes IBM Plex,
 Atkinson Hyperlegible, Nunito e Inter; as bases abertas AcoustID, MusicBrainz e LRCLIB;
 e as cancións de artistas que comparten a súa música libremente. As súas licenzas están en
 [`NOTICE.md`](NOTICE.md). As capturas amosan cancións con licenzas Creative Commons e compártense

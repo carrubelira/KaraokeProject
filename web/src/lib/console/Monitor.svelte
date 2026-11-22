@@ -1,23 +1,15 @@
 <script lang="ts">
 	/**
-	 * The program monitor: what the chosen screen shows, as a confidence monitor would. The lyrics
-	 * fill word by word at the player's position (from its last status, moved on locally), the
-	 * line after waits below. It is a preview: the screen itself draws with its own clock.
+	 * A preview of the chosen screen's lyrics: they fill word by word at the player's position
+	 * (from its last status, moved on locally), the line after waits below. Only a preview: the
+	 * screen itself draws with its own clock.
 	 */
 	import type { Lyrics } from '#lib/contracts';
 	import { api } from '#lib/control/api.js';
 	import type { Content } from '#lib/control/types.js';
 	import { i18n } from '#lib/i18n';
-	import { clock } from '#lib/shell/format.js';
-	import type { Tally } from './on-air';
 
-	let {
-		song,
-		position,
-		tally,
-		singer
-	}: { song: Content | null; position: number | null; tally: Tally; singer: string | null } =
-		$props();
+	let { song, position }: { song: Content | null; position: number | null } = $props();
 
 	// Plain (not reactive): a cache of promises nothing renders from.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -60,156 +52,72 @@
 	}
 </script>
 
-<div class="monitor {tally}">
-	<div class="frame">
-		<div class="corner tl"></div>
-		<div class="corner br"></div>
-		<div class="safe"></div>
-		{#if song}
-			<div class="lyrics" aria-hidden={tally !== 'onair'}>
-				{#if line}
-					<p class="line">
-						{#each line.words as word, w (w)}
-							<span class="word" style:--fill={fill(word.start, word.end)}>
-								<span class="base">{word.text}</span>
-								<span class="lit" aria-hidden="true">{word.text}</span>
-							</span>
-						{/each}
-					</p>
-					{#if after}
-						<p class="line next">{after.words.map((w) => w.text).join(' ')}</p>
-					{/if}
-				{:else if lyrics === null}
-					<p class="title">{song.title}</p>
-				{/if}
-			</div>
-			<div class="slate">
-				<span class="mono">{clock(position)}</span>
-				<span class="dim">{song.title}{song.artist ? ` · ${song.artist}` : ''}</span>
-				{#if singer}<span class="c-tag info">♪ {singer}</span>{/if}
-			</div>
-		{:else}
-			<div class="bars" aria-hidden="true">
-				{#each ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'] as colour (colour)}
-					<span style:background={colour}></span>
+<div class="monitor" aria-label={i18n.t.playback.lyrics}>
+	{#if song}
+		{#if line}
+			<p class="line">
+				{#each line.words as word, w (w)}
+					<span class="word" style:--fill={fill(word.start, word.end)}>
+						<span class="base">{word.text}</span>
+						<span class="lit" aria-hidden="true">{word.text}</span>
+					</span>
 				{/each}
-			</div>
-			<p class="idle label">{i18n.t.deck.nothing}</p>
+			</p>
+			{#if after}
+				<p class="line next">{after.words.map((w) => w.text).join(' ')}</p>
+			{/if}
+		{:else}
+			<p class="title">{song.title}</p>
 		{/if}
-	</div>
+	{:else}
+		<p class="idle">{i18n.t.player.nothing}</p>
+	{/if}
 </div>
 
 <style>
 	.monitor {
-		position: relative;
-		padding: 10px;
-		background: #000;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius);
-	}
-	.monitor.onair {
-		border-color: var(--onair);
-		box-shadow:
-			0 0 0 3px rgb(255 58 70 / 0.18),
-			0 0 60px -10px var(--onair-glow);
-	}
-	.monitor.cue {
-		border-color: rgb(36 227 143 / 0.6);
-	}
-	.monitor.warn {
-		border-color: rgb(255 176 32 / 0.6);
-	}
-	.frame {
-		position: relative;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 10px;
 		aspect-ratio: 16 / 9;
-		overflow: hidden;
-		background:
-			radial-gradient(ellipse at 50% 120%, rgb(255 201 77 / 0.09), transparent 60%),
-			radial-gradient(ellipse at 50% -20%, rgb(60 200 255 / 0.06), transparent 50%), #020304;
-		display: grid;
-		place-items: center;
-	}
-	.safe {
-		position: absolute;
-		inset: 7% 7%;
-		border: 1px dashed rgb(150 175 205 / 0.12);
-		pointer-events: none;
-	}
-	.corner {
-		position: absolute;
-		width: 18px;
-		height: 18px;
-		border: 2px solid rgb(150 175 205 / 0.35);
-	}
-	.tl {
-		top: 10px;
-		left: 10px;
-		border-right: 0;
-		border-bottom: 0;
-	}
-	.br {
-		right: 10px;
-		bottom: 10px;
-		border-left: 0;
-		border-top: 0;
-	}
-	.lyrics {
-		width: 86%;
+		padding: 6%;
+		border-radius: var(--radius);
+		background: #0c0d0f;
+		border: 1px solid var(--border);
 		text-align: center;
+		overflow: hidden;
 	}
 	.line {
-		margin: 0;
-		font: 700 clamp(18px, 2.4vw, 34px) / 1.25 var(--font-text);
-		letter-spacing: -0.01em;
+		font-size: clamp(16px, 1.9vw, 26px);
+		font-weight: 600;
+		line-height: 1.3;
 		text-wrap: balance;
 	}
 	.line.next {
-		margin-top: 0.6em;
-		font-size: clamp(14px, 1.6vw, 22px);
-		color: rgb(232 237 243 / 0.35);
+		font-size: clamp(13px, 1.3vw, 18px);
+		font-weight: 500;
+		color: var(--faint);
 	}
 	.word {
 		position: relative;
 		display: inline-block;
-		margin: 0 0.14em;
+		margin: 0 0.13em;
 	}
 	.base {
-		color: rgb(232 237 243 / 0.9);
+		color: var(--text);
 	}
 	.lit {
 		position: absolute;
 		inset: 0;
-		color: var(--lyric);
+		color: var(--accent-strong);
 		clip-path: inset(0 calc((1 - var(--fill)) * 100%) 0 0);
-		text-shadow: 0 0 18px rgb(255 201 77 / 0.55);
 	}
 	.title {
-		font: 600 28px var(--font-display);
-		text-transform: uppercase;
-		margin: 0;
-	}
-	.slate {
-		position: absolute;
-		left: 16px;
-		right: 16px;
-		bottom: 12px;
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		font-size: 12px;
-		white-space: nowrap;
-		overflow: hidden;
-	}
-	.bars {
-		position: absolute;
-		inset: 0 0 30% 0;
-		display: grid;
-		grid-template-columns: repeat(7, 1fr);
-		opacity: 0.18;
-		filter: saturate(0.7);
+		font-size: 20px;
+		font-weight: 600;
 	}
 	.idle {
-		position: relative;
-		margin-top: 24%;
+		color: var(--faint);
 	}
 </style>

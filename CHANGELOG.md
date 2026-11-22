@@ -28,11 +28,13 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 - `kp-player`: one clock for every output and screen, routing with gain and delay, pitch on the
   guide vocals and the music, calibration, outputs that come and go, a waiting screen; the
   software sync bench `kp-syncbench` and `make e2e-v4`.
-- The console: a broadcast control room over a live Three.js signal field that follows the
-  workers and the screens; a strip with the screen driven and its ON AIR tally, a rail of
-  sections, and a deck with the transport and rotary encoders everywhere; a program monitor with
-  the lyrics in sync; command palette, rebindable shortcuts, undo, and the lyrics editor
-  ([`docs/web.md`](docs/web.md), decision `plan-v4/decisiones/010-consola.md`).
+- The console: a plain desktop application, the same in every section: a sidebar of sections,
+  pages of panels and tables with states in words, and a player bar at the foot with the screen
+  driven, what it plays, the transport, the key and the volume; IBM Plex Sans and Mono; Galicia's
+  coastline drawn faintly behind the sidebar. Processing is one table of songs whose rows open
+  to every step, its log and what to do when it fails. Command palette, rebindable shortcuts,
+  undo, and the lyrics editor ([`docs/web.md`](docs/web.md), decision
+  `plan-v4/decisiones/010-consola.md`).
 - Songs from a link with an analysis first: the page's metadata, a Chromaprint fingerprint looked
   up in AcoustID and MusicBrainz (language and cover), and lyrics from LRCLIB; the operator
   reviews and corrects before anything heavy runs, and can send the song straight to a screen's

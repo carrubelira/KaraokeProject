@@ -3,7 +3,7 @@
  * change shows at once (optimistic) and is reverted with a notice if the server says no.
  *
  * Every screen (player) has its own queue, so "add" always has a target: the screen the operator
- * drives (chosen in the top strip), else the first one online.
+ * drives (chosen in the player bar), else the first one online.
  */
 import type { Queue, QueueItem } from '#lib/contracts';
 import { api, ApiError } from '#lib/control/api.js';
@@ -209,7 +209,7 @@ export function moveInQueue(ids: string[], step: -1 | 1): Promise<void> {
 
 /** Puts `id` where `beforeId` is (or at the end): drag and drop. */
 export function placeInQueue(id: string, beforeId: string | null): Promise<void> {
-	return editQueue(i18n.t.live.dragHint, (items) => {
+	return editQueue(i18n.t.playback.dragHint, (items) => {
 		const moving = items.find((i) => i.id === id);
 		if (!moving || id === beforeId) return items;
 		const rest = items.filter((i) => i.id !== id);
@@ -219,7 +219,7 @@ export function placeInQueue(id: string, beforeId: string | null): Promise<void>
 }
 
 export function updateItem(id: string, change: Partial<QueueItem>): Promise<void> {
-	return editQueue(i18n.t.live.singer, (items) =>
+	return editQueue(i18n.t.playback.singer, (items) =>
 		items.map((i) => (i.id === id ? { ...i, ...change } : i))
 	);
 }
@@ -247,14 +247,6 @@ export const jobs = {
 			// Retried first (its tasks go back to the queue), then pinned while nobody holds it.
 			const retried = await api.jobAction(id, 'retry');
 			setJob(id, other ? await api.changeJob(id, { pinned_node: other.id }) : retried);
-		} catch (error) {
-			fail(error);
-		}
-	},
-	async priority(id: string, step: number) {
-		const now = live.state.jobs.find((j) => j.id === id)?.tasks[0]?.priority ?? 0;
-		try {
-			setJob(id, await api.changeJob(id, { priority: now + step }));
 		} catch (error) {
 			fail(error);
 		}

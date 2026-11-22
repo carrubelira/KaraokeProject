@@ -137,100 +137,113 @@
 	});
 </script>
 
-<div class="c-page">
-	<div class="c-page-head">
-		<h1>{t.library.title}</h1>
-		<span class="label">{t.library.count(live.state.contents.length)}</span>
-		<span class="spacer"></span>
-		<label class="search">
-			<Icon name="search" size={16} />
-			<input
-				class="c-field"
-				data-search
-				bind:value={query}
-				placeholder={t.library.search}
-				aria-label={t.library.search}
-				onkeydown={(e) => {
-					if (e.key === 'Enter' || e.key === 'ArrowDown') {
-						e.currentTarget.blur();
-						e.preventDefault();
-					}
-				}}
-			/>
-			<Kbd keys="/" />
-		</label>
-	</div>
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1>{t.library.title}</h1>
+			<p class="description">{t.library.count(live.state.contents.length)}</p>
+		</div>
+		<div class="actions">
+			<label class="search">
+				<Icon name="search" size={16} />
+				<input
+					class="field"
+					data-search
+					bind:value={query}
+					placeholder={t.library.search}
+					aria-label={t.library.search}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === 'ArrowDown') {
+							e.currentTarget.blur();
+							e.preventDefault();
+						}
+					}}
+				/>
+			</label>
+			<a class="btn primary" href={resolve('/engadir')}>
+				<Icon name="add" size={16} />
+				{t.nav.add}
+			</a>
+		</div>
+	</header>
 
-	<section class="c-panel">
+	<section class="panel">
 		{#if songs.length === 0}
-			<div class="c-empty">
+			<div class="empty">
 				<p>{t.library.empty}</p>
-				<a class="c-btn" href={resolve('/engadir')}><Icon name="add" size={16} /> {t.nav.add}</a>
 			</div>
 		{:else}
-			<ul class="c-rows" role="listbox" aria-label={t.library.title} aria-multiselectable="true">
-				{#each songs as song, i (song.id)}
-					<li
-						id={`song-${song.id}`}
-						class="c-row song"
-						class:is-cursor={i === selection.cursor}
-						class:is-marked={selection.marked.has(song.id)}
-						role="option"
-						aria-selected={i === selection.cursor}
-						onclick={() => (selection.cursor = i)}
-						ondblclick={() => addToQueue([song.id])}
-						onkeydown={() => {}}
-					>
-						<span class="what">
-							<span class="title">{song.title}</span>
-							<span class="dim small">{song.artist ?? ''}</span>
-						</span>
-						<span class="c-tag">{song.language}</span>
-						<span class="mono dim small">{clock(song.duration)}</span>
-						<span class="mono faint small">{t.library.version(song.version)}</span>
-						<span class="mark"
-							>{#if queued.has(song.id)}<span class="c-tally cue" title={target?.name}
-								></span>{/if}</span
+			<table class="table songs">
+				<thead>
+					<tr>
+						<th>{t.library.songTitle}</th>
+						<th>{t.library.artist}</th>
+						<th>{t.library.language}</th>
+						<th class="num">{t.library.duration}</th>
+						<th class="num">{t.library.version}</th>
+						<th><span class="sr-only">{t.common.more}</span></th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each songs as song, i (song.id)}
+						<tr
+							id={`song-${song.id}`}
+							class:selected={i === selection.cursor || selection.marked.has(song.id)}
+							aria-selected={i === selection.cursor}
+							onclick={() => (selection.cursor = i)}
+							ondblclick={() => addToQueue([song.id])}
 						>
-						<span class="actions">
-							<button
-								class="c-btn"
-								onclick={(e) => (e.stopPropagation(), void addToQueue([song.id]))}
-							>
-								<Icon name="add" size={14} />
-								{t.cmd.addToQueue}
-							</button>
-							<button
-								class="c-btn icon ghost"
-								title={t.cmd.edit}
-								aria-label={t.cmd.edit}
-								onclick={() => goto(resolve('/editar/[id]', { id: song.id }))}
-							>
-								<Icon name="edit" size={16} />
-							</button>
-							<button
-								class="c-btn icon ghost"
-								title={t.cmd.export}
-								aria-label={t.cmd.export}
-								onclick={() => library.exportMp4([song.id])}
-							>
-								<Icon name="export" size={16} />
-							</button>
-							<button
-								class="c-btn icon ghost"
-								title={t.cmd.trash}
-								aria-label={t.cmd.trash}
-								onclick={() => library.trash([song.id])}
-							>
-								<Icon name="trash" size={16} />
-							</button>
-						</span>
-					</li>
-				{/each}
-			</ul>
+							<td>
+								<span class="title">
+									<strong class="truncate">{song.title}</strong>
+									{#if queued.has(song.id)}
+										<span class="badge ok plain" title={target?.name}>{t.library.inQueue}</span>
+									{/if}
+								</span>
+							</td>
+							<td class="muted">{song.artist ?? ''}</td>
+							<td class="muted">{t.languages[song.language] ?? song.language}</td>
+							<td class="num muted">{clock(song.duration)}</td>
+							<td class="num faint">{song.version}</td>
+							<td class="row-actions">
+								<button
+									class="btn"
+									onclick={(e) => (e.stopPropagation(), void addToQueue([song.id]))}
+								>
+									{t.cmd.addToQueue}
+								</button>
+								<button
+									class="btn subtle icon"
+									title={t.cmd.edit}
+									aria-label={t.cmd.edit}
+									onclick={() => goto(resolve('/editar/[id]', { id: song.id }))}
+								>
+									<Icon name="edit" size={16} />
+								</button>
+								<button
+									class="btn subtle icon"
+									title={t.cmd.export}
+									aria-label={t.cmd.export}
+									onclick={() => library.exportMp4([song.id])}
+								>
+									<Icon name="export" size={16} />
+								</button>
+								<button
+									class="btn subtle icon"
+									title={t.cmd.trash}
+									aria-label={t.cmd.trash}
+									onclick={() => library.trash([song.id])}
+								>
+									<Icon name="trash" size={16} />
+								</button>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
 		{/if}
 	</section>
-	<p class="keys faint">
+	<p class="keys faint small">
 		<Kbd keys="a" />
 		{t.cmd.addToQueue} · <Kbd keys="Shift+a" />
 		{t.cmd.addNext} · <Kbd keys="x" />
@@ -243,55 +256,45 @@
 
 <style>
 	.search {
+		position: relative;
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		width: min(30rem, 100%);
-		color: var(--dim);
+		width: min(22rem, 100%);
+		color: var(--faint);
 	}
-	.song {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto 3.5rem 2.5rem 1rem auto;
+	.search :global(svg) {
+		position: absolute;
+		left: 10px;
 	}
-	.what {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		min-width: 0;
+	.search .field {
+		height: 32px;
+		padding-left: 32px;
+	}
+	.songs tbody tr {
+		cursor: default;
 	}
 	.title {
-		font-weight: 600;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.small {
-		font-size: 12px;
-	}
-	.actions {
 		display: flex;
-		gap: 4px;
-		opacity: 0;
-		transition: opacity 0.12s;
+		align-items: center;
+		gap: 8px;
+		max-width: 380px;
+		min-width: 0;
 	}
-	.song:hover .actions,
-	.song.is-cursor .actions {
+	.row-actions .btn {
+		opacity: 0;
+	}
+	tr:hover .row-actions .btn,
+	tr.selected .row-actions .btn,
+	.row-actions .btn:focus-visible {
 		opacity: 1;
 	}
-	.keys {
-		font-size: 12px;
-		margin: 0 4px;
-	}
 	@media (max-width: 760px) {
-		.song {
-			grid-template-columns: minmax(0, 1fr) auto;
-		}
-		.song > :nth-child(n + 3):not(.actions) {
+		.songs th:nth-child(n + 3):nth-child(-n + 5),
+		.songs td:nth-child(n + 3):nth-child(-n + 5) {
 			display: none;
 		}
-		.actions {
+		.row-actions .btn {
 			opacity: 1;
-			grid-column: 1 / -1;
 		}
 	}
 </style>

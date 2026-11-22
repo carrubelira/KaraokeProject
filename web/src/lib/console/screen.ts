@@ -1,34 +1,34 @@
-/** What is on air on a screen: its queue item, the song, and its tally, from the live state. */
+/** What a screen is playing: its queue item, the song, and what comes after, from the live state. */
 import type { QueueItem } from '#lib/contracts';
 import type { LiveState } from '#lib/control/state.js';
 import type { Content, PlayerView } from '#lib/control/types.js';
 
-export type Tally = 'onair' | 'cue' | 'warn' | 'info' | 'off';
+export type Tone = 'ok' | 'warn' | 'info' | 'error' | 'plain';
 
-export interface OnAir {
+export interface OnScreen {
 	item: QueueItem | null;
 	song: Content | null;
 	next: { item: QueueItem; song: Content | null } | null;
-	tally: Tally;
 }
 
-export function tallyOf(player: PlayerView | undefined): Tally {
-	if (!player?.online) return 'off';
+/** The colour a screen's state is shown in: green playing, amber paused or with alerts. */
+export function toneOf(player: PlayerView | undefined): Tone {
+	if (!player?.online) return 'plain';
 	if ((player.status.errors ?? []).length) return 'warn';
 	switch (player.status.state) {
 		case 'playing':
-			return 'onair';
+			return 'ok';
 		case 'loading':
 		case 'waiting':
 			return 'info';
 		case 'paused':
-			return 'cue';
+			return 'warn';
 		default:
-			return 'off';
+			return 'plain';
 	}
 }
 
-export function onAir(state: LiveState, player: PlayerView | undefined): OnAir {
+export function onScreen(state: LiveState, player: PlayerView | undefined): OnScreen {
 	const queue = state.queues.find((q) => q.player_id === player?.id);
 	const items = queue?.items ?? [];
 	const itemId = player?.status.item_id ?? player?.item_id ?? null;
@@ -39,7 +39,6 @@ export function onAir(state: LiveState, player: PlayerView | undefined): OnAir {
 	return {
 		item,
 		song: song(item?.content_id),
-		next: following ? { item: following, song: song(following.content_id) } : null,
-		tally: tallyOf(player)
+		next: following ? { item: following, song: song(following.content_id) } : null
 	};
 }

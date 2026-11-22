@@ -365,35 +365,40 @@
 
 <svelte:window onbeforeunload={(e) => dirty && e.preventDefault()} />
 
-<div class="c-page editor">
-	<div class="c-page-head">
-		<h1>{t.editor.title}</h1>
-		<span class="c-tag">{manifest?.title ?? ''}</span>
-		<span class="spacer"></span>
-		<button class="c-btn primary" onclick={save} disabled={!dirty}
-			>{t.editor.save} <Kbd keys="Mod+s" /></button
-		>
-	</div>
+<div class="page editor">
+	<header class="page-header">
+		<div>
+			<h1>{t.editor.title}</h1>
+			<p class="description">{manifest?.title ?? ''}</p>
+		</div>
+		<div class="actions">
+			<button class="btn" onclick={() => window.history.back()}>{t.editor.back}</button>
+			<button class="btn primary" onclick={save} disabled={!dirty}>
+				{t.editor.save}
+				<Kbd keys="Mod+s" />
+			</button>
+		</div>
+	</header>
 	{#if !doc}
-		<p class="label">{t.common.loading}</p>
+		<p class="muted">{t.common.loading}</p>
 	{:else}
 		<div class="layout">
-			<ol class="c-rows c-panel lines" aria-label={t.editor.title}>
+			<ol class="panel lines" aria-label={t.editor.title}>
 				{#each doc.lines as l, i (l.id)}
 					<li
-						class="c-row"
-						class:is-cursor={i === lineIndex}
+						class="line"
+						class:selected={i === lineIndex}
 						onclick={() => selectLine(i)}
 						onkeydown={() => {}}
 						role="option"
 						aria-selected={i === lineIndex}
 					>
-						<span class="dim mono time">{clock(l.start)}</span>
+						<span class="faint mono time">{clock(l.start)}</span>
 						<span>{l.words.map((w) => w.text).join(' ')}</span>
 					</li>
 				{/each}
 			</ol>
-			<section class="c-panel c-panel-body detail">
+			<section class="panel panel-body detail">
 				{#if line}
 					<Waveform
 						buffer={vocals}
@@ -431,7 +436,7 @@
 								{#if editing && j === wordIndex}
 									<!-- svelte-ignore a11y_autofocus -->
 									<input
-										class="c-field"
+										class="field"
 										autofocus
 										value={w.text}
 										onkeydown={(e) => {
@@ -447,8 +452,8 @@
 							</span>
 						{/each}
 					</p>
-					{#if word}<p class="dim mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
-					{#if mode === 'tap'}<p class="c-tag warn">
+					{#if word}<p class="muted mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
+					{#if mode === 'tap'}<p class="badge warn plain">
 							Tap {taps.length}/{line.words.length} · <Kbd keys="Space" />
 						</p>{/if}
 				{/if}
@@ -477,20 +482,32 @@
 	.layout {
 		display: grid;
 		grid-template-columns: minmax(16rem, 1fr) minmax(0, 2.2fr);
-		gap: var(--gap);
-		height: calc(100dvh - var(--strip) - var(--deck) - 90px);
+		gap: 16px;
+		height: calc(100dvh - var(--player-height) - 150px);
 	}
 	.lines {
 		overflow: auto;
+		margin: 0;
+		padding: 4px 0;
+		list-style: none;
 	}
-	.lines .c-row {
-		min-height: 40px;
-		font-size: 14px;
+	.line {
+		display: flex;
+		gap: 12px;
+		align-items: baseline;
+		padding: 8px 14px;
+		cursor: pointer;
+	}
+	.line:hover {
+		background: var(--surface-2);
+	}
+	.line.selected {
+		background: var(--accent-soft);
 	}
 	.time {
-		font-size: 11.5px;
 		width: 3.5rem;
 		flex: none;
+		font-size: 12px;
 	}
 	.detail {
 		display: flex;
@@ -502,28 +519,28 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
-		margin: 0;
 		font-size: 18px;
 	}
 	.words span {
 		padding: 0 4px;
-		border-radius: 2px;
+		border-radius: 3px;
 	}
 	.words .selected {
-		outline: 2px solid var(--info);
+		outline: 2px solid var(--accent);
 	}
 	.words .doubtful {
-		text-decoration: underline wavy var(--onair);
+		text-decoration: underline wavy var(--warn);
 	}
 	.preview {
 		position: relative;
 		height: 14rem;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
 		overflow: hidden;
 		background: #000;
 	}
 	.problems {
-		color: var(--onair);
+		color: var(--error);
 	}
 	.keys {
 		font-size: 12px;

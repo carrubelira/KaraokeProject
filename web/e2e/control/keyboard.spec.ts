@@ -47,7 +47,7 @@ async function signIn(page: Page) {
 	await expect(page.getByLabel('Token de operador')).toBeFocused();
 	await page.keyboard.type(token());
 	await page.keyboard.press('Enter');
-	await expect(page.getByRole('navigation', { name: 'Seccións' })).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Menú principal' })).toBeVisible();
 }
 
 test('a song from upload to a screen queue, from the keyboard', async ({ page }) => {
@@ -57,7 +57,7 @@ test('a song from upload to a screen queue, from the keyboard', async ({ page })
 	await page.keyboard.press('g');
 	await page.keyboard.press('n');
 	await expect(page).toHaveURL(/\/engadir$/);
-	await expect(page.getByRole('heading', { name: 'Engadir' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Engadir canción' })).toBeVisible();
 	await page.locator('input[type="file"]').setInputFiles({
 		name: 'Proba.mp3',
 		mimeType: 'audio/mpeg',
@@ -65,38 +65,38 @@ test('a song from upload to a screen queue, from the keyboard', async ({ page })
 	});
 
 	// The review: what the analysis found, corrected before anything heavy runs.
-	await expect(page.getByRole('heading', { name: 'Que canción é?' })).toBeVisible({
+	await expect(page.getByRole('heading', { name: 'Revisar os datos da canción' })).toBeVisible({
 		timeout: 30_000
 	});
 	const title = page.getByLabel('Título');
 	await title.fill('Proba de teclado');
-	await page.getByLabel('Pegar a miña').check();
-	await page.getByRole('textbox', { name: 'Pegar a miña' }).fill('la la la');
+	await page.getByLabel('Pegar a letra a man').check();
+	await page.getByRole('textbox', { name: 'Pegar a letra a man' }).fill('la la la');
 	await title.focus();
 	await page.keyboard.press('Enter');
-	await expect(page.getByText('«Proba de teclado» procesándose')).toBeVisible();
+	await expect(page.getByText('Creando o karaoke de «Proba de teclado»')).toBeVisible();
 
 	// Jobs: the fake worker makes it in a few seconds.
 	await page.keyboard.press('Escape');
 	await page.keyboard.press('g');
-	await page.keyboard.press('t');
-	await expect(page.getByRole('heading', { name: 'Traballos' })).toBeVisible();
-	const job = page.locator('article').filter({ hasText: 'Proba de teclado' });
-	await expect(job.getByText('Feito')).toBeVisible({ timeout: 60_000 });
+	await page.keyboard.press('p');
+	await expect(page.getByRole('heading', { name: 'Procesamento' })).toBeVisible();
+	const job = page.locator('tr.job').filter({ hasText: 'Proba de teclado' });
+	await expect(job.getByText('Rematado')).toBeVisible({ timeout: 60_000 });
 
 	// The library: A puts it in the screen's queue, twice.
 	await page.keyboard.press('g');
 	await page.keyboard.press('b');
 	await expect(page.getByRole('heading', { name: 'Biblioteca' })).toBeVisible();
-	await expect(page.getByRole('option').filter({ hasText: 'Proba de teclado' })).toBeVisible();
+	await expect(page.locator('tbody tr').filter({ hasText: 'Proba de teclado' })).toBeVisible();
 	await page.keyboard.press('a');
-	await expect(page.getByText('«Proba de teclado» na cola de sala')).toBeVisible();
+	await expect(page.getByText('«Proba de teclado» engadida á cola de sala')).toBeVisible();
 	await page.keyboard.press('a');
 
-	// Live: the queue, Delete removes, Mod+Z puts it back.
+	// Playback: the queue, Delete removes, Mod+Z puts it back.
 	await page.keyboard.press('g');
-	await page.keyboard.press('d');
-	const items = page.getByRole('listbox', { name: 'Cola · sala' }).getByRole('option');
+	await page.keyboard.press('r');
+	const items = page.locator('table.queue tbody tr').filter({ hasText: 'Proba de teclado' });
 	await expect(items).toHaveCount(2);
 	await page.keyboard.press('Delete');
 	await expect(items).toHaveCount(1);
@@ -120,16 +120,16 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 	const palette = await responseTime(
 		page,
 		`${MOD}+k`,
-		'[role="dialog"][aria-label="Paleta de ordes"]'
+		'[role="dialog"][aria-label="Buscar ordes"]'
 	);
 	expect(palette).toBeLessThan(100);
-	await page.keyboard.type('traballos');
+	await page.keyboard.type('procesamento');
 	await page.keyboard.press('Enter');
-	await expect(page).toHaveURL(/\/traballos$/);
+	await expect(page).toHaveURL(/\/procesamento$/);
 
 	const sheet = await responseTime(page, '?', '[role="dialog"][aria-label="Atallos de teclado"]');
 	expect(sheet).toBeLessThan(100);
-	await expect(page.getByRole('dialog').getByText('Reintentar os fallidos')).toBeVisible();
+	await expect(page.getByRole('dialog').getByText('Reintentar os que fallaron')).toBeVisible();
 	await page.keyboard.press('Escape');
 
 	await page.keyboard.press('g');
@@ -140,9 +140,9 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 	for (const path of [
 		'/',
 		'/engadir',
-		'/traballos',
+		'/procesamento',
 		'/biblioteca',
-		'/nodos',
+		'/equipos',
 		'/saidas',
 		'/axustes'
 	]) {

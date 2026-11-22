@@ -18,26 +18,26 @@
 	);
 </script>
 
-<div class="note" role="alert">
+<div class="notice error note" role="alert">
 	<Icon name="warn" size={20} />
 	<div class="body">
 		<strong>{known.title}</strong>
 		<p>{known.hint}</p>
-		{#if task.error}<p class="raw mono">{task.error}</p>{/if}
+		{#if task.error}<p class="raw mono faint">{task.error}</p>{/if}
 		<div class="actions">
 			{#if job.state === 'failed'}
-				<button class="c-btn go" onclick={() => jobs.act([job.id], 'retry')}>
+				<button class="btn primary" onclick={() => jobs.act([job.id], 'retry')}>
 					<Icon name="retry" size={16} />
 					{t.cmd.retry}
 				</button>
 				{#if elsewhere}
-					<button class="c-btn" onclick={() => jobs.retryElsewhere(job.id, task.node_id)}>
+					<button class="btn" onclick={() => jobs.retryElsewhere(job.id, task.node_id)}>
 						{t.cmd.retryElsewhere}
 					</button>
 				{/if}
 			{/if}
 			{#if onlog}
-				<button class="c-btn ghost" onclick={onlog}
+				<button class="btn subtle" onclick={onlog}
 					><Icon name="log" size={16} /> {t.jobs.log}</button
 				>
 			{/if}
@@ -46,35 +46,26 @@
 </div>
 
 <style>
-	.note {
-		display: flex;
-		gap: 12px;
-		padding: 12px 14px;
-		border: 1px solid rgb(255 58 70 / 0.35);
-		border-left: 2px solid var(--onair);
-		background: rgb(255 58 70 / 0.06);
-		color: var(--onair);
+	.note > :global(svg) {
+		flex: none;
+		color: var(--error);
 	}
 	.body {
 		display: grid;
-		gap: 6px;
-		color: var(--text);
+		gap: 4px;
 		min-width: 0;
 	}
 	p {
-		margin: 0;
-		color: var(--dim);
-		font-size: 13.5px;
+		color: var(--muted);
 	}
 	.raw {
-		font-size: 11.5px;
-		color: var(--faint);
+		font-size: 12px;
 		overflow-wrap: anywhere;
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 8px;
-		margin-top: 4px;
+		margin-top: 6px;
 	}
 </style>

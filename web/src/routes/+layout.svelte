@@ -1,12 +1,11 @@
 <script lang="ts">
 	/*
-	 * The console (plan v4 §7, docs/web.md): a live 3D signal field behind a broadcast desk. The
-	 * strip on top says which screen is driven and how the system is; the rail on the left opens
-	 * the sections; the deck at the bottom keeps the transport at hand everywhere. Every key goes
-	 * through the command registry. A link pasted or a file dropped anywhere is analysed at once.
+	 * The control (docs/web.md): a sidebar with the sections, the page, and the player bar at the
+	 * foot. Every key goes through the command registry. A link pasted or a file dropped anywhere
+	 * is analysed at once.
 	 */
 	import '../lib/ui/styles/fonts.css';
-	import '../lib/ui/styles/console.css';
+	import '../lib/ui/styles/app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -14,10 +13,8 @@
 	import { onMount } from 'svelte';
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import { isTyping } from '#lib/commands/keys.js';
-	import Deck from '#lib/console/Deck.svelte';
-	import Rail from '#lib/console/Rail.svelte';
-	import Scene from '#lib/console/scene/Scene.svelte';
-	import Strip from '#lib/console/Strip.svelte';
+	import PlayerBar from '#lib/console/PlayerBar.svelte';
+	import Sidebar from '#lib/console/Sidebar.svelte';
 	import { api, ApiError } from '#lib/control/api.js';
 	import { live } from '#lib/control/live.svelte.js';
 	import { toasts } from '#lib/control/toasts.svelte.js';
@@ -88,7 +85,7 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>{i18n.t.app.name} · Karaoke</title>
+	<title>{i18n.t.app.name}</title>
 </svelte:head>
 
 <svelte:window
@@ -105,26 +102,26 @@
 />
 
 {#if page.route.id === '/proba-letra'}
-	<!-- A development test page for the lyrics, outside the console. -->
+	<!-- A development test page for the lyrics, outside the control. -->
 	{@render children()}
 {:else}
-	<Scene />
 	{#if !checked}
-		<p class="boot label">{i18n.t.common.loading}</p>
+		<p class="boot muted">{i18n.t.common.loading}</p>
 	{:else if !session}
 		<Login onsession={start} />
 	{:else}
-		<div class="console">
-			<Strip />
-			<Rail />
-			<main class="stage">{@render children()}</main>
-			<Deck />
+		<div class="app">
+			<Sidebar name={session.name} />
+			<main class="content">
+				{#if !live.connected}
+					<p class="notice warn offline" role="status">{i18n.t.app.reconnecting}</p>
+				{/if}
+				{@render children()}
+			</main>
+			<PlayerBar />
 		</div>
 		<Palette />
 		<Cheatsheet />
-		{#if !live.connected}<p class="offline c-tally onair" role="status">
-				{i18n.t.app.reconnecting}
-			</p>{/if}
 		{#if dragging}<div class="drop"><span>{i18n.t.app.dropHere}</span></div>{/if}
 	{/if}
 	<Toasts />
@@ -132,40 +129,32 @@
 
 <style>
 	.boot {
-		position: relative;
-		z-index: 1;
 		padding: 32px;
 	}
-	.console {
-		/* Fixed to the window: only the stage scrolls, never the page. */
+	.app {
+		/* Fixed to the window: only the page scrolls. */
 		position: fixed;
 		inset: 0;
-		z-index: 1;
 		display: grid;
 		grid-template-areas:
-			'rail strip'
-			'rail stage'
-			'rail deck';
-		grid-template-columns: var(--rail) minmax(0, 1fr);
-		grid-template-rows: var(--strip) minmax(0, 1fr) var(--deck);
+			'sidebar content'
+			'player player';
+		grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		grid-template-rows: minmax(0, 1fr) var(--player-height);
 	}
-	.stage {
-		grid-area: stage;
+	.app > :global(.sidebar) {
+		grid-area: sidebar;
+	}
+	.app > :global(.player-bar) {
+		grid-area: player;
+	}
+	.content {
+		grid-area: content;
 		overflow-y: auto;
 		overflow-x: hidden;
-		scrollbar-color: var(--line-strong) transparent;
 	}
 	.offline {
-		position: fixed;
-		top: calc(var(--strip) + 10px);
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 30;
-		margin: 0;
-		padding: 8px 16px;
-		background: var(--panel-solid);
-		border: 1px solid var(--onair);
-		border-radius: var(--radius);
+		margin: 16px 28px 0;
 	}
 	.drop {
 		position: fixed;
@@ -173,26 +162,26 @@
 		z-index: 80;
 		display: grid;
 		place-items: center;
-		background: rgb(3 5 7 / 0.82);
+		background: rgb(10 12 14 / 0.8);
 		pointer-events: none;
 	}
 	.drop span {
-		padding: 40px 60px;
-		border: 1px dashed var(--info);
-		color: var(--info);
-		font: 600 20px var(--font-display);
-		text-transform: uppercase;
-		box-shadow: 0 0 80px -20px var(--info-glow);
+		padding: 32px 48px;
+		border: 2px dashed var(--accent);
+		border-radius: 10px;
+		background: var(--surface);
+		font-size: 17px;
+		font-weight: 500;
 	}
 
-	@media (max-width: 860px) {
-		.console {
+	@media (max-width: 900px) {
+		.app {
 			grid-template-areas:
-				'strip'
-				'stage'
-				'deck';
+				'sidebar'
+				'content'
+				'player';
 			grid-template-columns: minmax(0, 1fr);
-			grid-template-rows: var(--strip) minmax(0, 1fr) calc(var(--deck) + 60px);
+			grid-template-rows: auto minmax(0, 1fr) auto;
 		}
 	}
 </style>
