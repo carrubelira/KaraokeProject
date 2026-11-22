@@ -1,590 +1,459 @@
-import asyncio
-from pathlib import Path
+"""The task queue end to end over the API, with fake workers."""
 
-import anyio
-import pytest
+import time
+from typing import Any
 
-from karaoke_server.config import Settings
-from karaoke_server.db import Database
-from karaoke_server.jobs.queue import JobQueue
-from karaoke_server.jobs.store import JobStore
-from karaoke_server.jobs.types import DownloadError, Outcome, RemoteInfo
-from karaoke_server.library import Library
-from karaoke_server.models import ExportRequest, Job, MakeRequest
+from fastapi.testclient import TestClient
 
-from .conftest import write_package
+from karaoke_server.services import Services
 
-pytestmark = pytest.mark.anyio
+from .conftest import Clients
 
-
-class FakeSpawner:
-    """Runs jobs only when the test lets them, reporting the stages the engine would."""
-
-    def __init__(self) -> None:
-        self.running: list[str] = []
-        self.started: list[str] = []
-        self.gates: dict[str, asyncio.Event] = {}
-        self.outcomes: dict[str, list[Outcome]] = {}
-        self.max_parallel = 0
-        self.specs: dict[str, dict[str, object]] = {}
-
-    leftovers_stopped = 0
-
-    def stop_leftovers(self) -> None:
-        self.leftovers_stopped += 1
-        self.started_when_stopped = list(self.started)
-
-    def gate(self, job_id: str) -> asyncio.Event:
-        return self.gates.setdefault(job_id, asyncio.Event())
-
-    async def run(self, job_id, spec, log, on_event):  # type: ignore[no-untyped-def]
-        self.specs[job_id] = spec
-        self.started.append(job_id)
-        self.running.append(job_id)
-        self.max_parallel = max(self.max_parallel, len(self.running))
-        try:
-            on_event({"event": "stage", "stage": "decode"})
-            await self.gate(job_id).wait()
-            self.gates.pop(job_id)
-            outcomes = self.outcomes.get(job_id) or [Outcome(ok=True)]
-            outcome = outcomes.pop(0) if len(outcomes) > 1 else outcomes[0]
-            if outcome.ok and spec["kind"] == "make":
-                write_package(Path(spec["out"]), title=spec.get("title") or "Made")
-            if outcome.ok and spec["kind"] == "export":
-                Path(spec["out"]).write_bytes(b"mp4")
-            return outcome
-        finally:
-            self.running.remove(job_id)
+ANALYSIS = {
+    "best": {"title": "Pálida Luna", "artist": "Los Suaves", "language": "es",
+             "confidence": 0.9, "source": "acoustid"},
+    "lyrics": [{"id": 7, "text": "la la", "synced": False, "source": "lrclib"}],
+}  # fmt: skip
 
 
-class FakeDownloader:
-    def __init__(self, info: RemoteInfo | None = None, fail: DownloadError | None = None) -> None:
-        self.info = info or RemoteInfo(
-            title="Song (Official Video)",
-            artist="Band - Topic",
-            track=None,
-            duration=200.0,
-            is_live=False,
+def _upload(clients: Clients, data: bytes = b"song" * 100) -> str:
+    op = clients.operator()
+    upload = op.post("/api/uploads", json={"filename": "song.mp3", "size": len(data)}).json()
+    op.patch(f"/api/uploads/{upload['id']}", content=data, headers={"Upload-Offset": "0"})
+    return str(upload["id"])
+
+
+def _lease(worker: TestClient, **body: Any) -> dict[str, Any] | None:
+    answer = worker.post("/api/worker/lease", json={"wait": False, **body})
+    assert answer.status_code in (200, 204), answer.text
+    return answer.json() if answer.status_code == 200 else None
+
+
+def _finish(
+    worker: TestClient,
+    lease: dict[str, Any],
+    outputs: dict[str, str],
+    data: dict[str, Any] | None = None,
+) -> None:
+    task = lease["task"]["id"]
+    answer = worker.post(
+        f"/api/tasks/{task}/complete",
+        json={"lease_id": lease["lease_id"], "result": {"outputs": outputs, "data": data or {}}},
+    )
+    assert answer.status_code == 204, answer.text
+
+
+def _progress(worker: TestClient, lease: dict[str, Any], **progress: Any) -> Any:
+    return worker.post(
+        f"/api/tasks/{lease['task']['id']}/progress",
+        json={"lease_id": lease["lease_id"], "progress": progress},
+    )
+
+
+def _analyse(worker: TestClient) -> dict[str, Any]:
+    lease = _lease(worker)
+    assert lease is not None
+    assert lease["task"]["kind"] == "analyze"
+    _finish(worker, lease, {}, ANALYSIS)
+    return lease
+
+
+def _reviewed(op: TestClient, job_id: str, **choice: Any) -> dict[str, Any]:
+    body = {"title": "Pálida Luna", "artist": "Los Suaves", "language": "es", "lyrics": "la la"}
+    answer = op.post(f"/api/jobs/{job_id}/confirm", json={**body, **choice})
+    assert answer.status_code == 200, answer.text
+    return dict(answer.json())
+
+
+def _upload_ready_to_make(clients: Clients, op: TestClient, **job: Any) -> dict[str, Any]:
+    """An upload job whose analysis is done and confirmed: its `make` is ready."""
+    created = op.post("/api/jobs", json={"upload": _upload(clients), **job}).json()
+    _, analyst = clients.enrol("worker", name=f"analyst-{created['id']}", gpus=[])
+    _analyse(analyst)
+    return _reviewed(op, created["id"])
+
+
+def test_an_upload_is_analysed_reviewed_and_becomes_a_song(
+    clients: Clients, demo_manifest: str
+) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    assert [(t["kind"], t["state"]) for t in job["tasks"]] == [
+        ("analyze", "ready"),
+        ("make", "waiting"),
+    ]
+    _, worker = clients.enrol("worker")
+    _analyse(worker)
+    review = op.get(f"/api/jobs/{job['id']}").json()
+    assert review["state"] == "review"
+    assert review["tasks"][1]["state"] == "held"
+    assert review["tasks"][0]["data"]["best"]["title"] == "Pálida Luna"
+    assert _lease(worker) is None, "make waits for the operator"
+    confirmed = _reviewed(op, job["id"], title="Pálida luna")
+    assert confirmed["state"] == "active"
+    assert confirmed["title"] == "Pálida luna"
+    lease = _lease(worker, free_vram_mb=4000)
+    assert lease is not None
+    assert lease["task"]["kind"] == "make"
+    params = lease["task"]["params"]
+    assert (params["title"], params["artist"], params["language"]) == (
+        "Pálida luna",
+        "Los Suaves",
+        "es",
+    )
+    assert params["lyrics"] == "la la"
+    assert params["lrclib"] is False
+    assert lease["task"]["inputs"] == [job["params"]["source"]]
+    assert _progress(worker, lease, stage="separate", fraction=0.4, step="voz").json() == {
+        "keep_going": True
+    }
+    running = op.get(f"/api/jobs/{job['id']}").json()["tasks"][1]
+    assert (running["state"], running["step"]) == ("running", "voz")
+    _finish(worker, lease, {"manifest": demo_manifest})
+    done = op.get(f"/api/jobs/{job['id']}").json()
+    assert done["state"] == "done"
+    assert done["result"]["content_id"] == "demo"
+    assert [c["id"] for c in op.get("/api/contents").json()] == ["demo"]
+    assert op.get("/api/contents/demo/lyrics").json()["lines"]
+
+
+def test_a_link_is_fetched_analysed_then_made_on_the_same_worker(clients: Clients) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    assert [t["state"] for t in job["tasks"]] == ["ready", "waiting", "waiting"]
+    _, offline = clients.enrol("worker", name="offline", internet=False)
+    assert _lease(offline) is None, "fetch needs internet"
+    _, online = clients.enrol("worker", name="online")
+    fetch = _lease(online)
+    assert fetch is not None
+    assert fetch["task"]["kind"] == "fetch"
+    source = clients.services.store.put_bytes(b"downloaded", "audio/mpeg").sha256
+    _finish(online, fetch, {"source": source}, {"title": "Pálida Luna (Official)"})
+    named = op.get(f"/api/jobs/{job['id']}").json()
+    assert named["title"] == "Pálida Luna (Official)", "named by the page, not the link"
+    analyse = _lease(online)
+    assert analyse is not None
+    assert analyse["task"]["kind"] == "analyze"
+    assert analyse["task"]["inputs"] == [source]
+    _finish(online, analyse, {}, ANALYSIS)
+    _reviewed(op, job["id"])
+    make = _lease(online)
+    assert make is not None
+    assert make["task"]["kind"] == "make"
+    assert make["task"]["inputs"] == [source], "the analysis adds no blob"
+    assert make["task"]["params"]["from"]["fetch"]["source"] == source
+    assert make["task"]["params"]["from"]["analyze"]["best"]["artist"] == "Los Suaves"
+
+
+def test_auto_confirm_skips_the_review_only_when_the_analysis_is_sure(clients: Clients) -> None:
+    op = clients.operator()
+    sure = op.post("/api/jobs", json={"upload": _upload(clients), "auto_confirm": True}).json()
+    _, worker = clients.enrol("worker")
+    _analyse(worker)
+    job = op.get(f"/api/jobs/{sure['id']}").json()
+    assert job["state"] == "active"
+    make = _lease(worker)
+    assert make is not None
+    assert make["task"]["params"]["title"] == "Pálida Luna"
+    assert make["task"]["params"]["lyrics"] == "la la"
+    unsure = op.post("/api/jobs", json={"upload": _upload(clients), "auto_confirm": True}).json()
+    lease = _lease(worker)
+    assert lease is not None
+    _finish(worker, lease, {}, {"best": {"title": "?", "confidence": 0.3}, "lyrics": []})
+    assert op.get(f"/api/jobs/{unsure['id']}").json()["state"] == "review"
+
+
+def test_confirming_without_lyrics_transcribes(clients: Clients) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    _, worker = clients.enrol("worker")
+    _analyse(worker)
+    assert op.post(f"/api/jobs/{job['id']}/confirm", json={"title": "x"}).status_code == 422
+    _reviewed(op, job["id"], lyrics=None)
+    make = _lease(worker)
+    assert make is not None
+    assert make["task"]["params"]["lyrics"] is None
+    assert (
+        op.post(f"/api/jobs/{job['id']}/confirm", json={"title": "x", "language": "gl"}).status_code
+        == 409
+    )
+
+
+def test_a_late_progress_never_brings_a_finished_task_back(
+    clients: Clients, services: Services
+) -> None:
+    """The bug seen on the first real song: a progress call that arrived after `complete`
+    made the fetch `running` again, its lease expired and it ran twice."""
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    _, worker = clients.enrol("worker")
+    fetch = _lease(worker)
+    assert fetch is not None
+    source = services.store.put_bytes(b"downloaded", "audio/mpeg").sha256
+    _finish(worker, fetch, {"source": source})
+    late = _progress(worker, fetch, stage="download", fraction=1.0)
+    assert late.json() == {"keep_going": False}
+    assert services.queue.expire(now=time.time() + 600) == 0
+    task = op.get(f"/api/jobs/{job['id']}").json()["tasks"][0]
+    assert (task["state"], task["attempts"], task["error"]) == ("done", 1, None)
+
+
+def test_a_success_after_a_retry_clears_the_error(clients: Clients, services: Services) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    _, worker = clients.enrol("worker")
+    assert _lease(worker) is not None
+    assert services.queue.expire(now=time.time() + 600) == 1
+    again = _lease(worker)
+    assert again is not None
+    _finish(worker, again, {"source": services.store.put_bytes(b"x", "audio/mpeg").sha256})
+    task = op.get(f"/api/jobs/{job['id']}").json()["tasks"][0]
+    assert (task["state"], task["error"], task["error_code"]) == ("done", None, None)
+
+
+def test_a_cancelled_job_never_becomes_done(clients: Clients, demo_manifest: str) -> None:
+    op = clients.operator()
+    job = _upload_ready_to_make(clients, op)
+    _, worker = clients.enrol("worker")
+    lease = _lease(worker)
+    assert lease is not None
+    op.post(f"/api/jobs/{job['id']}/cancel")
+    assert _progress(worker, lease, stage="align").json() == {"keep_going": False}
+    late = worker.post(
+        f"/api/tasks/{lease['task']['id']}/complete",
+        json={"lease_id": lease["lease_id"], "result": {"outputs": {"manifest": demo_manifest}}},
+    )
+    assert late.status_code == 409
+    assert op.get(f"/api/jobs/{job['id']}").json()["state"] == "cancelled"
+    assert op.get("/api/contents").json() == []
+
+
+def test_a_retry_on_a_paused_job_waits_for_resume(clients: Clients, services: Services) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    _, worker = clients.enrol("worker")
+    assert _lease(worker) is not None
+    op.post(f"/api/jobs/{job['id']}/pause")
+    services.queue.expire(now=time.time() + 600)
+    assert op.get(f"/api/jobs/{job['id']}").json()["tasks"][0]["state"] == "paused"
+    assert _lease(worker) is None
+    op.post(f"/api/jobs/{job['id']}/resume")
+    assert _lease(worker) is not None
+
+
+def test_a_broken_finish_fails_the_job_instead_of_leaving_it_active(
+    clients: Clients, services: Services
+) -> None:
+    def broken(job: dict[str, Any]) -> None:
+        raise RuntimeError("disk on fire")
+
+    services.queue.on_job_done = broken
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"kind": "render", "content_id": "x"})
+    assert job.status_code == 404  # no such song: nothing was queued
+    done = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    _, worker = clients.enrol("worker")
+    fetch = _lease(worker)
+    assert fetch is not None
+    _finish(worker, fetch, {"source": services.store.put_bytes(b"x", "audio/mpeg").sha256})
+    analyse = _lease(worker)
+    assert analyse is not None
+    _finish(worker, analyse, {}, ANALYSIS)
+    _reviewed(op, done["id"])
+    make = _lease(worker)
+    assert make is not None
+    _finish(worker, make, {})
+    failed = op.get(f"/api/jobs/{done['id']}").json()
+    assert (failed["state"], failed["error"]) == ("failed", "disk on fire")
+
+
+def test_task_logs_are_kept_for_the_live_view(clients: Clients) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    _, worker = clients.enrol("worker")
+    fetch = _lease(worker)
+    assert fetch is not None
+    answer = worker.post(
+        f"/api/tasks/{fetch['task']['id']}/log",
+        json={
+            "lease_id": fetch["lease_id"],
+            "log": {"lines": ["[download] 10%", "[download] 20%"]},
+        },
+    )
+    assert answer.status_code == 204
+    log = op.get(f"/api/jobs/{job['id']}/tasks/fetch/log")
+    assert log.text == "[download] 10%\n[download] 20%"
+    whole = clients.services.store.put_bytes(b"the whole log", "text/plain").sha256
+    _finish(worker, fetch, {"source": whole, "log": whole})
+    assert op.get(f"/api/jobs/{job['id']}/tasks/fetch/log").text == "the whole log"
+
+
+def test_affinity_prefers_the_worker_that_made_the_inputs(
+    clients: Clients, services: Services
+) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"url": "https://example.com/v"}).json()
+    first_id, first = clients.enrol("worker", name="first")
+    second_id, second = clients.enrol("worker", name="second")
+    fetch = _lease(first)
+    assert fetch is not None
+    _finish(first, fetch, {"source": services.store.put_bytes(b"x", "audio/mpeg").sha256})
+    analyse = services.db.one("SELECT * FROM tasks WHERE id = ?", (f"{job['id']}:analyze",))
+    assert services.queue._affinity(analyse, first_id) == 1
+    assert services.queue._affinity(analyse, second_id) == 0
+    # A later job of the same priority is created after; `second` still gets work.
+    op.post("/api/jobs", json={"url": "https://example.com/w"})
+    assert _lease(first) is not None
+    assert _lease(second) is not None
+
+
+def test_a_worker_that_vanishes_loses_its_task(clients: Clients, services: Services) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    _, lost = clients.enrol("worker", name="lost")
+    lease = _lease(lost)
+    assert lease is not None
+    assert services.queue.expire(now=time.time() + 60) == 1
+    _, other = clients.enrol("worker", name="other")
+    again = _lease(other)
+    assert again is not None
+    assert again["task"]["id"] == lease["task"]["id"]
+    # The old lease is refused.
+    late = lost.post(
+        f"/api/tasks/{lease['task']['id']}/complete",
+        json={"lease_id": lease["lease_id"], "result": {"outputs": {}, "data": {}}},
+    )
+    assert late.status_code == 409
+    task = op.get(f"/api/jobs/{job['id']}").json()["tasks"][0]
+    assert (task["attempts"], task["error_code"]) == (2, "worker_lost")
+
+
+def test_heartbeat_renews_and_tells_to_stop_cancelled_tasks(clients: Clients) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    _, worker = clients.enrol("worker")
+    lease = _lease(worker)
+    assert lease is not None
+    task = lease["task"]["id"]
+    beat = worker.post(
+        "/api/worker/heartbeat",
+        json={"running": [task], "telemetry": {"gpu_util": 90, "cpu_util": 12, "ram_total_mb": 9}},
+    )
+    assert beat.json()["stop"] == []
+    node = op.get("/api/nodes").json()[0]
+    assert (node["telemetry"]["gpu_util"], node["running"]) == (90, [task])
+    op.post(f"/api/jobs/{job['id']}/cancel")
+    assert worker.post("/api/worker/heartbeat", json={"running": [task]}).json()["stop"] == [task]
+
+
+def test_capabilities_filter_tasks(clients: Clients) -> None:
+    op = clients.operator()
+    _upload_ready_to_make(clients, op)
+    _, small = clients.enrol("worker", name="small", gpus=[{"name": "GT", "vram_total_mb": 2048}])
+    assert _lease(small) is None, "make needs 3.2 GB"
+    _, cpu = clients.enrol("worker", name="cpu", gpus=[])
+    assert _lease(cpu) is None
+    _, big = clients.enrol("worker", name="big")
+    assert _lease(big, busy_playing=True) is None, "a player is playing on that machine"
+    assert _lease(big) is not None
+
+
+def test_priority_pause_resume_and_pin(clients: Clients) -> None:
+    op = clients.operator()
+    low = op.post("/api/jobs", json={"upload": _upload(clients), "batch": True}).json()
+    high = op.post("/api/jobs", json={"upload": _upload(clients, b"other" * 10)}).json()
+    _, worker = clients.enrol("worker", name="w1")
+    _, other = clients.enrol("worker", name="w2")
+    op.post(f"/api/jobs/{high['id']}/pause")
+    op.patch(f"/api/jobs/{low['id']}", json={"pinned_node": "nobody"})
+    assert _lease(worker) is None
+    op.post(f"/api/jobs/{high['id']}/resume")
+    first = _lease(worker)
+    assert first is not None
+    assert first["task"]["job_id"] == high["id"]
+    op.patch(f"/api/jobs/{low['id']}", json={"unpin": True, "priority": 50})
+    second = _lease(other)
+    assert second is not None
+    assert second["task"]["job_id"] == low["id"]
+
+
+def test_failure_retries_then_fails_and_can_be_retried(clients: Clients) -> None:
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    _, worker = clients.enrol("worker")
+    for attempt in range(3):
+        lease = _lease(worker)
+        assert lease is not None, attempt
+        worker.post(
+            f"/api/tasks/{lease['task']['id']}/fail",
+            json={
+                "lease_id": lease["lease_id"],
+                "failure": {"code": "download_failed", "message": "HTTP 403"},
+            },
         )
-        self.fail = fail
-        self.gate = asyncio.Event()
-        self.gate.set()
-        self.downloads = 0
-
-    async def probe(self, url: str) -> RemoteInfo:
-        if self.fail:
-            raise self.fail
-        return self.info
-
-    async def download(self, url, dest, on_progress, parts=1):  # type: ignore[no-untyped-def]
-        self.downloads += 1
-        on_progress(0.5)
-        await self.gate.wait()
-        dest.mkdir(parents=True, exist_ok=True)
-        path = dest / "source.mkv"
-        path.write_bytes(b"video")
-        return path
+    failed = op.get(f"/api/jobs/{job['id']}").json()
+    assert failed["state"] == "failed"
+    assert failed["tasks"][0]["error_code"] == "download_failed"
+    assert failed["tasks"][1]["state"] == "cancelled"
+    assert _lease(worker) is None
+    assert op.post(f"/api/jobs/{job['id']}/retry").json()["state"] == "active"
+    assert _lease(worker) is not None
 
 
-async def until(predicate, timeout: float = 5.0) -> None:  # type: ignore[no-untyped-def]
-    with anyio.fail_after(timeout):
-        while not predicate():
-            await asyncio.sleep(0.01)
+def test_a_job_needs_a_finished_upload_or_a_link(clients: Clients) -> None:
+    op = clients.operator()
+    upload = op.post("/api/uploads", json={"filename": "a.mp3", "size": 10}).json()
+    assert op.post("/api/jobs", json={"upload": upload["id"]}).status_code == 409
+    assert op.post("/api/jobs", json={}).status_code == 422
+    assert op.post("/api/jobs", json={"url": "ftp://x"}).status_code == 422
 
 
-@pytest.fixture
-def library(settings: Settings, db: Database) -> Library:
-    return Library(settings, db)
+def test_completing_needs_the_outputs_uploaded(clients: Clients) -> None:
+    op = clients.operator()
+    _upload_ready_to_make(clients, op)
+    _, worker = clients.enrol("worker")
+    lease = _lease(worker)
+    assert lease is not None
+    answer = worker.post(
+        f"/api/tasks/{lease['task']['id']}/complete",
+        json={"lease_id": lease["lease_id"], "result": {"outputs": {"manifest": "a" * 64}}},
+    )
+    assert answer.status_code == 409
+    assert answer.json()["missing"] == ["a" * 64]
 
 
-def make_queue(
-    settings: Settings,
-    db: Database,
-    library: Library,
-    spawner: FakeSpawner,
-    downloader: FakeDownloader | None = None,
-) -> JobQueue:
-    return JobQueue(settings, JobStore(db), library, spawner, downloader or FakeDownloader())
+def test_render_job_exports_the_current_version(clients: Clients, demo_manifest: str) -> None:
+    clients.services.library.register(demo_manifest)
+    op = clients.operator()
+    job = op.post("/api/jobs", json={"kind": "render", "content_id": "demo", "vocals": 0.3}).json()
+    assert job["tasks"][0]["kind"] == "render"
+    _, worker = clients.enrol("worker")
+    lease = _lease(worker)
+    assert lease is not None
+    assert lease["task"]["inputs"] == [demo_manifest]
+    video = clients.services.store.put_bytes(b"mp4", "video/mp4").sha256
+    _finish(worker, lease, {"video": video})
+    assert op.get(f"/api/jobs/{job['id']}").json()["result"]["outputs"] == {"video": video}
 
 
-def upload(
-    queue: JobQueue, settings: Settings, title: str = "Mar", lyrics: str | None = "la"
-) -> Job:
-    job_id = queue.new_id()
-    source = settings.jobs_dir / job_id / "source.mp3"
-    source.parent.mkdir(parents=True)
-    source.write_bytes(b"mp3")
-    request = MakeRequest(language="gl", lyrics=lyrics, title=title)
-    return queue.submit_make(job_id, request, source=source, duration=180.0)
-
-
-async def test_jobs_run_one_at_a_time_in_order(
-    settings: Settings, db: Database, library: Library
+def test_a_confirmed_song_can_go_straight_to_a_screens_queue(
+    clients: Clients, demo_manifest: str
 ) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        first, second = upload(queue, settings, "Un"), upload(queue, settings, "Dous")
-        await until(lambda: spawner.started == [first.id])
-        assert queue.get(second.id).stage == "queued"  # type: ignore[union-attr]
-        assert queue.get(first.id).stage == "separate"  # type: ignore[union-attr]
-        spawner.gate(first.id).set()
-        await until(lambda: spawner.started == [first.id, second.id])
-        spawner.gate(second.id).set()
-        await until(lambda: queue.get(second.id).stage == "done")  # type: ignore[union-attr]
-        assert spawner.max_parallel == 1
-        done = queue.get(first.id)
-        assert done is not None
-        assert done.song_id == "un"
-        assert done.overall == 1.0
-        assert library.summary("un") is not None
-        assert not (settings.jobs_dir / first.id / "source.mp3").exists()
-    finally:
-        await queue.stop()
-
-
-async def test_download_overlaps_the_gpu(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    downloader = FakeDownloader()
-    queue = make_queue(settings, db, library, spawner, downloader)
-    await queue.start()
-    try:
-        busy = upload(queue, settings, "Busy")
-        await until(lambda: spawner.started == [busy.id])
-        link = queue.submit_make(queue.new_id(), MakeRequest(language="gl", url="https://x/v"))
-        await until(lambda: queue.get(link.id).stage == "queued" and downloader.downloads == 1)  # type: ignore[union-attr]
-        job = queue.get(link.id)
-        assert job is not None
-        assert job.title == "Song"
-        spawner.gate(busy.id).set()
-        await until(lambda: link.id in spawner.started)
-        spawner.gate(link.id).set()
-        await until(lambda: queue.get(link.id).stage == "done")  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_events_tell_subscribers(settings: Settings, db: Database, library: Library) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        seen: list[str] = []
-        job = upload(queue, settings)
-        queue.subscribe(job.id, lambda j: seen.append(j.stage))
-        spawner.gate(job.id).set()
-        await until(lambda: "done" in seen)
-        assert seen[-1] == "done"
-    finally:
-        await queue.stop()
-
-
-async def test_cancel_queued_and_running(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        running, waiting = upload(queue, settings, "A"), upload(queue, settings, "B")
-        await until(lambda: spawner.started == [running.id])
-        assert await queue.cancel(waiting.id) is True
-        assert queue.get(waiting.id).stage == "cancelled"  # type: ignore[union-attr]
-        assert await queue.cancel(running.id) is True
-        await until(lambda: queue.get(running.id).stage == "cancelled")  # type: ignore[union-attr]
-        assert spawner.running == []
-        assert await queue.cancel(running.id) is False
-        cancelled = queue.get(running.id)
-        assert cancelled is not None
-        assert cancelled.can_retry is True
-        assert cancelled.overall is None
-    finally:
-        await queue.stop()
-
-
-async def test_transient_failure_is_retried_once(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = upload(queue, settings)
-        oom = Outcome(ok=False, code="gpu_memory", message="CUDA out of memory", transient=True)
-        spawner.outcomes[job.id] = [oom, oom]
-        spawner.gate(job.id).set()
-        await until(lambda: spawner.started.count(job.id) == 2)
-        assert queue.get(job.id).attempt == 2  # type: ignore[union-attr]
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        failed = queue.get(job.id)
-        assert failed is not None
-        assert failed.error_code == "gpu_memory"
-        assert failed.can_retry is True
-    finally:
-        await queue.stop()
-
-
-async def test_input_error_is_not_retried(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = upload(queue, settings)
-        spawner.outcomes[job.id] = [Outcome(ok=False, code="bad_lyrics", message="no lines")]
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        assert spawner.started.count(job.id) == 1
-        assert queue.get(job.id).error == "no lines"  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_retry_runs_a_failed_job_again(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = upload(queue, settings)
-        spawner.outcomes[job.id] = [
-            Outcome(ok=False, code="engine_failed", message="x"),
-            Outcome(ok=True),
-        ]
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        assert queue.retry("nope") is None
-        again = queue.retry(job.id)
-        assert again is not None
-        assert again.stage == "queued"
-        assert again.error is None
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "done")  # type: ignore[union-attr]
-        assert queue.retry(job.id) is None
-    finally:
-        await queue.stop()
-
-
-async def test_download_errors(settings: Settings, db: Database, library: Library) -> None:
-    downloader = FakeDownloader(fail=DownloadError("too_long", "The video is longer than 20 min"))
-    queue = make_queue(settings, db, library, FakeSpawner(), downloader)
-    await queue.start()
-    try:
-        job = queue.submit_make(queue.new_id(), MakeRequest(language="gl", url="https://x/v"))
-        await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        assert queue.get(job.id).error_code == "too_long"  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_recover_requeues_running_jobs(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    store = JobStore(db)
-    first = make_queue(settings, db, library, FakeSpawner())
-    job = upload(first, settings)
-    store.update(job.id, stage="align", stage_started=1.0)
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        await until(lambda: spawner.started == [job.id])
-        assert queue.get(job.id).attempt == 2  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_engines_left_by_a_server_that_died_are_stopped_before_resuming(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    store = JobStore(db)
-    job = upload(make_queue(settings, db, library, FakeSpawner()), settings)
-    store.update(job.id, stage="separate", stage_started=1.0)
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        await until(lambda: spawner.started == [job.id])
-        assert spawner.leftovers_stopped == 1
-        assert spawner.started_when_stopped == []  # before the job ran again
-    finally:
-        await queue.stop()
-
-
-async def test_recover_marks_jobs_without_input_interrupted(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    store = JobStore(db)
-    first = make_queue(settings, db, library, FakeSpawner())
-    job = upload(first, settings)
-    store.update(job.id, stage="separate", stage_started=1.0)
-    (settings.jobs_dir / job.id / "source.mp3").unlink()
-    queue = make_queue(settings, db, library, FakeSpawner())
-    await queue.start()
-    try:
-        recovered = queue.get(job.id)
-        assert recovered is not None
-        assert recovered.stage == "error"
-        assert recovered.error_code == "interrupted"
-        assert recovered.can_retry is False
-    finally:
-        await queue.stop()
-
-
-async def test_export_puts_the_mp4_in_exports(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    write_package(settings.library_dir / "song")
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = queue.submit_export("song", ExportRequest(aspect="9:16", theme="moderno"))
-        assert job is not None
-        assert job.kind == "export"
-        # Whose video it is, from the start: the player follows it and offers it when done.
-        assert job.song_id == "song"
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "done")  # type: ignore[union-attr]
-        done = queue.get(job.id)
-        assert done is not None
-        assert done.song_id == "song"
-        assert done.file == "exports/song-9x16-moderno.mp4"
-        assert (settings.library_dir / "song" / done.file).is_file()
-        assert queue.submit_export("missing", ExportRequest()) is None
-    finally:
-        await queue.stop()
-
-
-async def test_a_video_asked_for_again_while_it_is_made_is_the_same_job(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    # Pressing «make» again (or on another device) must not queue the same video once more: the
-    # GPU makes one at a time, and each copy would only overwrite the last.
-    write_package(settings.library_dir / "song")
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        first = queue.submit_export("song", ExportRequest(aspect="16:9", theme="moderno"))
-        again = queue.submit_export("song", ExportRequest(aspect="16:9", theme="moderno"))
-        other = queue.submit_export("song", ExportRequest(aspect="9:16", theme="moderno"))
-        assert first is not None
-        assert again is not None
-        assert other is not None
-        assert again.id == first.id
-        assert other.id != first.id
-        assert len([j for j in queue.list() if j.kind == "export"]) == 2
-        await until(lambda: first.id in spawner.started)
-        spawner.gate(first.id).set()
-        await until(lambda: queue.get(first.id).stage == "done")  # type: ignore[union-attr]
-        # Once made, asking again makes it again (the lyrics may have been corrected).
-        later = queue.submit_export("song", ExportRequest(aspect="16:9", theme="moderno"))
-        assert later is not None
-        assert later.id != first.id
-    finally:
-        await queue.stop()
-
-
-async def test_a_video_with_the_guide_vocals_is_a_file_of_its_own(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    write_package(settings.library_dir / "song")
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = queue.submit_export("song", ExportRequest(aspect="16:9", theme="clasico", vocals=0.3))
-        assert job is not None
-        await until(lambda: job.id in spawner.started)
-        assert spawner.specs[job.id]["vocals"] == 0.3
-        spawner.gate(job.id).set()
-        await until(lambda: queue.get(job.id).stage == "done")  # type: ignore[union-attr]
-        assert queue.get(job.id).file == "exports/song-16x9-clasico-v30.mp4"  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_export_of_a_deleted_song_fails_song_missing(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    write_package(settings.library_dir / "song")
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        busy = upload(queue, settings, "Busy")
-        await until(lambda: spawner.started == [busy.id])
-        job = queue.submit_export("song", ExportRequest())
-        assert job is not None
-        library.delete("song")
-        spawner.gate(busy.id).set()
-        await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        assert queue.get(job.id).error_code == "song_missing"  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-@pytest.mark.parametrize("ending", ["cancel", "fail"])
-async def test_an_export_that_does_not_finish_leaves_no_partial_video(
-    settings: Settings, db: Database, library: Library, ending: str
-) -> None:
-    folder = write_package(settings.library_dir / "song")
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = queue.submit_export("song", ExportRequest())
-        assert job is not None
-        await until(lambda: job.id in spawner.started)
-        partial = Path(str(spawner.specs[job.id]["out"]))
-        partial.write_bytes(b"half a video")  # what ffmpeg had written so far
-        partial.with_suffix(".jpg").write_bytes(b"thumb")
-        # And the encoder's own scratch file, left when the runner is killed mid-encode.
-        partial.with_name(f".{partial.stem}.part{partial.suffix}").write_bytes(b"half")
-        if ending == "cancel":
-            await queue.cancel(job.id)
-        else:
-            spawner.outcomes[job.id] = [Outcome(ok=False, code="engine_failed", message="x")]
-            spawner.gate(job.id).set()
-            await until(lambda: queue.get(job.id).stage == "error")  # type: ignore[union-attr]
-        assert list((folder / "exports").iterdir()) == []
-    finally:
-        await queue.stop()
-
-
-async def test_a_retried_job_does_not_count_its_stages_twice(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    store = JobStore(db)
-    await queue.start()
-    try:
-        job = upload(queue, settings)
-        await until(lambda: job.id in spawner.started)
-        store.update(job.id, stage_seconds={"download": 5.0, "separate": 100.0})
-        oom = Outcome(ok=False, code="gpu_memory", message="CUDA out of memory", transient=True)
-        spawner.outcomes[job.id] = [oom, Outcome(ok=True)]
-        spawner.gate(job.id).set()
-        await until(lambda: spawner.started.count(job.id) == 2)
-        # The second attempt starts its stages from zero; a download is not done again.
-        assert store.get(job.id).stage_seconds.get("separate", 0.0) < 100.0  # type: ignore[union-attr]
-        assert store.get(job.id).stage_seconds["download"] == 5.0  # type: ignore[union-attr]
-    finally:
-        await queue.stop()
-
-
-async def test_list_newest_first(settings: Settings, db: Database, library: Library) -> None:
-    queue = make_queue(settings, db, library, FakeSpawner())
-    first = upload(queue, settings, "A")
-    second = upload(queue, settings, "B")
-    assert [j.id for j in queue.list()] == [second.id, first.id]
-
-
-async def test_cancel_stops_a_link_job_that_moved_on_to_the_gpu(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    await queue.start()
-    try:
-        job = queue.submit_make(queue.new_id(), MakeRequest(language="gl", url="https://x/v"))
-        await until(lambda: job.id in spawner.running)
-        await asyncio.sleep(0.05)
-        assert await queue.cancel(job.id) is True
-        await until(lambda: queue.get(job.id).stage == "cancelled")  # type: ignore[union-attr]
-        await until(lambda: spawner.running == [])
-    finally:
-        await queue.stop()
-
-
-async def test_inputs_of_failed_jobs_go_after_seven_days(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    queue = make_queue(settings, db, library, FakeSpawner())
-    old, recent = upload(queue, settings), upload(queue, settings)
-    store = JobStore(db)
-    for job in (old, recent):
-        store.update(job.id, stage="error", error_code="engine_failed")
-    db.execute("UPDATE jobs SET updated_at = '2026-01-01T00:00:00Z' WHERE id = ?", (old.id,))
-    queue.purge_old_inputs()
-    assert not (settings.jobs_dir / old.id).exists()
-    assert queue.get(old.id).can_retry is False  # type: ignore[union-attr]
-    assert (settings.jobs_dir / recent.id).exists()
-    assert queue.get(recent.id).can_retry is True  # type: ignore[union-attr]
-
-
-async def test_a_job_cancelled_before_it_could_start_stays_cancelled(
-    settings: Settings, db: Database, library: Library, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """DELETE can land between the lane creating the job's task and the task's first step."""
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, library, spawner)
-    create_task = asyncio.create_task
-    victims: list[str] = []
-
-    def create_and_cancel(coro, **kwargs):  # type: ignore[no-untyped-def]
-        task = create_task(coro, **kwargs)
-        if getattr(coro, "__name__", "") == "_run_gpu" and not victims:
-            job_id = coro.cr_frame.f_locals["record"].id
-            victims.append(job_id)
-            queue._cancelled.add(job_id)  # what cancel() does before task.cancel()
-            task.cancel()
-        return task
-
-    monkeypatch.setattr(asyncio, "create_task", create_and_cancel)
-    job = upload(queue, settings)
-    await queue.start()
-    try:
-        await until(lambda: victims == [job.id])
-        await asyncio.sleep(0.2)
-        assert queue.get(job.id).stage == "cancelled"  # type: ignore[union-attr]
-        assert spawner.started == []
-    finally:
-        await queue.stop()
-
-
-def test_following_a_job_leaves_nothing_behind(
-    settings: Settings, db: Database, library: Library
-) -> None:
-    queue = make_queue(settings, db, library, FakeSpawner())
-    stop = queue.subscribe("job-1", lambda job: None)
-    stop()
-    stop()
-    assert "job-1" not in queue._listeners
-
-
-@pytest.mark.anyio
-async def test_the_gpu_lane_survives_a_database_error(
-    settings: Settings, db: Database, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    import sqlite3
-
-    from karaoke_server.jobs.store import JobStore
-
-    spawner = FakeSpawner()
-    queue = make_queue(settings, db, Library(settings, db), spawner)
-    await queue.start()
-    try:
-        first = upload(queue, settings, "Un")
-        await until(lambda: first.id in spawner.started)
-        real_update = JobStore.update
-
-        def full_disk(self: JobStore, job_id: str, **changes: object) -> object:
-            raise sqlite3.OperationalError("database or disk is full")
-
-        monkeypatch.setattr(JobStore, "update", full_disk)
-        spawner.gate(first.id).set()
-        await asyncio.sleep(0.2)
-        monkeypatch.setattr(JobStore, "update", real_update)  # space freed
-        second = upload(queue, settings, "Dous")
-        await until(lambda: second.id in spawner.started)
-    finally:
-        await queue.stop()
+    op = clients.operator()
+    player_id, _ = clients.enrol("player", name="sala")
+    job = op.post("/api/jobs", json={"upload": _upload(clients)}).json()
+    _, worker = clients.enrol("worker")
+    _analyse(worker)
+    assert (
+        op.post(
+            f"/api/jobs/{job['id']}/confirm",
+            json={"title": "x", "language": "gl", "queue_on": "nobody"},
+        ).status_code
+        == 404
+    )
+    _reviewed(op, job["id"], queue_on=player_id)
+    make = _lease(worker)
+    assert make is not None
+    _finish(worker, make, {"manifest": demo_manifest})
+    queue = op.get(f"/api/players/{player_id}/queue").json()
+    assert [i["content_id"] for i in queue["items"]] == ["demo"]

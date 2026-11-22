@@ -172,8 +172,8 @@
 	.wave {
 		position: relative;
 		height: 9rem;
-		border: 1px solid var(--raia);
-		background: var(--fondo-3);
+		border: 1px solid var(--border);
+		background: var(--surface);
 		overflow: hidden;
 		cursor: text;
 		touch-action: none;
@@ -184,12 +184,12 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
-		color: color-mix(in oklch, var(--texto-2) 55%, transparent);
+		color: color-mix(in oklch, var(--muted) 55%, transparent);
 		pointer-events: none;
 	}
 
 	canvas.lit {
-		color: var(--ouro);
+		color: var(--accent-strong);
 	}
 
 	.word {
@@ -197,9 +197,9 @@
 		top: 0.5rem;
 		bottom: 0.5rem;
 		min-width: 4px;
-		border: 1px solid color-mix(in oklch, var(--texto-2) 45%, transparent);
+		border: 1px solid color-mix(in oklch, var(--muted) 45%, transparent);
 		border-radius: 4px;
-		background: color-mix(in oklch, var(--texto) 4%, transparent);
+		background: color-mix(in oklch, var(--text) 4%, transparent);
 	}
 
 	.word.doubtful {
@@ -208,8 +208,8 @@
 
 	/* The word picked: blue, as everything selected. */
 	.word.selected {
-		border: 2px solid var(--ceo);
-		background: color-mix(in oklch, var(--ceo) 12%, transparent);
+		border: 2px solid var(--accent);
+		background: color-mix(in oklch, var(--accent) 12%, transparent);
 		z-index: 1;
 	}
 
@@ -221,9 +221,9 @@
 		padding: 0.1rem 0.35rem;
 		border: 0;
 		border-radius: 0 0 4px 0;
-		background: color-mix(in oklch, var(--fondo-3) 75%, transparent);
-		color: var(--texto);
-		font-size: var(--t--1);
+		background: color-mix(in oklch, var(--surface) 75%, transparent);
+		color: var(--text);
+		font-size: 12px;
 		font-weight: 650;
 		white-space: nowrap;
 		overflow: hidden;
@@ -232,7 +232,7 @@
 	}
 
 	.selected .label {
-		color: var(--ceo);
+		color: var(--accent);
 	}
 
 	.edge {
@@ -259,7 +259,7 @@
 		left: 4px;
 		width: 4px;
 		border-radius: 2px;
-		background: var(--ceo);
+		background: var(--accent);
 	}
 
 	/* Now: the amber line of the playhead. */
@@ -269,7 +269,7 @@
 		bottom: 0;
 		width: 2px;
 		margin-left: -1px;
-		background: var(--ouro);
+		background: var(--accent-strong);
 		pointer-events: none;
 		z-index: 2;
 	}

@@ -9,7 +9,22 @@ COMMITTED = Path(__file__).resolve().parents[3] / "schemas"
 def test_committed_schemas_are_up_to_date(tmp_path: Path) -> None:
     written = export_schemas(tmp_path)
 
-    assert sorted(p.name for p in written) == ["karaoke.schema.json", "theme.schema.json"]
+    assert sorted(p.name for p in written) == sorted(
+        f"{name}.schema.json"
+        for name in (
+            "karaoke",
+            "theme",
+            "manifest",
+            "lyrics",
+            "enrollment",
+            "heartbeat",
+            "lease",
+            "player-status",
+            "player-command",
+            "player-config",
+            "queue",
+        )
+    )
     for path in written:
         assert path.read_bytes() == (COMMITTED / path.name).read_bytes(), (
             f"{path.name} is stale: run `make contracts`"
@@ -39,5 +54,6 @@ def test_schemas_do_not_spell_out_additional_properties(tmp_path: Path) -> None:
     # add an index signature to every TS interface.
     export_schemas(tmp_path)
 
+    # The strict v2 contracts say false on purpose (unknown fields are an error).
     for path in tmp_path.glob("*.schema.json"):
-        assert '"additionalProperties"' not in path.read_text(encoding="utf-8"), path.name
+        assert '"additionalProperties": true' not in path.read_text(encoding="utf-8"), path.name

@@ -1,0 +1,52 @@
+{
+  "errors": [
+    {
+      "code": "output_lost",
+      "device": "wasapi:usb-2",
+      "item_id": null,
+      "message": "The USB headphones went away"
+    }
+  ],
+  "outputs": {
+    "displays": [
+      {
+        "id": "tv",
+        "name": "Samsung TV",
+        "width": 1920,
+        "height": 1080,
+        "refresh_hz": 60.0,
+        "primary": true,
+        "connected": true
+      }
+    ],
+    "audio": [
+      {
+        "id": "wasapi:hdmi-1",
+        "name": "HDMI",
+        "channels": 2,
+        "sample_rate": 48000,
+        "latency_ms": 40.0,
+        "default": true,
+        "connected": true,
+        "bluetooth": false
+      }
+    ]
+  },
+  "cache": [
+    {
+      "content_id": "demo-sintetico",
+      "manifest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "ready",
+      "fraction": 1.0,
+      "error": null
+    }
+  ],
+  "item_id": "i1",
+  "position": 12.25,
+  "state": "playing",
+  "semitones": -2.0,
+  "volume": 1.0,
+  "sync": {
+    "drift_ppm": -80.1
+  }
+}

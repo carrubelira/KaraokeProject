@@ -8,11 +8,26 @@ from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema
 
+from karaoke_contracts.control import PlayerCommand, PlayerConfig, Queue
 from karaoke_contracts.doc import KaraokeDoc
+from karaoke_contracts.manifest import Lyrics, Manifest
+from karaoke_contracts.nodes import Enrollment, Heartbeat, Lease, PlayerStatus
 from karaoke_contracts.theme import Theme
 
 SCHEMA_BASE_ID = "https://github.com/gaelfernandez1/KaraokeProject/schemas/"
-MODELS: dict[str, type[BaseModel]] = {"karaoke": KaraokeDoc, "theme": Theme}
+MODELS: dict[str, type[BaseModel]] = {
+    "karaoke": KaraokeDoc,
+    "theme": Theme,
+    "manifest": Manifest,
+    "lyrics": Lyrics,
+    "enrollment": Enrollment,
+    "heartbeat": Heartbeat,
+    "lease": Lease,
+    "player-status": PlayerStatus,
+    "player-command": PlayerCommand,
+    "player-config": PlayerConfig,
+    "queue": Queue,
+}
 
 
 class _ModelTitlesOnly(GenerateJsonSchema):
@@ -29,6 +44,14 @@ class _ModelTitlesOnly(GenerateJsonSchema):
             del json_schema["additionalProperties"]
         return json_schema
 
+    def dict_schema(self, schema: core_schema.DictSchema) -> JsonSchemaValue:
+        # dict[str, Any] says the same default; json2ts would turn it into `[k: string]: unknown`
+        # anyway, so it goes for the same reason.
+        json_schema = super().dict_schema(schema)
+        if json_schema.get("additionalProperties") is True:
+            del json_schema["additionalProperties"]
+        return json_schema
+
 
 def export_schemas(out_dir: Path) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -40,7 +63,8 @@ def export_schemas(out_dir: Path) -> list[Path]:
             **model.model_json_schema(mode="serialization", schema_generator=_ModelTitlesOnly),
         }
         path = out_dir / f"{name}.schema.json"
-        path.write_text(json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        text = json.dumps(schema, ensure_ascii=False, indent=2) + "\n"
+        path.write_text(text, encoding="utf-8", newline="\n")  # LF on Windows too
         written.append(path)
     return written
 

@@ -98,10 +98,10 @@ def test_unknown_role_is_rejected(demo_data: dict[str, Any]) -> None:
         KaraokeDoc.model_validate(demo_data)
 
 
-def test_new_documents_are_version_1_2() -> None:
+def test_new_documents_are_version_1_3() -> None:
     from karaoke_contracts import SCHEMA_VERSION
 
-    assert SCHEMA_VERSION == "1.2.0"
+    assert SCHEMA_VERSION == "1.3.0"
 
 
 def test_the_video_may_keep_a_master_for_the_export() -> None:

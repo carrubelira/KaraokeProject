@@ -64,9 +64,9 @@ jobs:
       - run: pnpm build
 
   e2e:
-    name: Browser (phone, laptop and TV against the stand-in server)
-    # The tests against the real server (`pnpm test:e2e:server`) stay local: they need the
-    # real songs' audio, which is downloaded with the bench.
+    name: Browser (lyrics component, and the control UI against a real v4 server)
+    # The control tests start a v4 server with a fake worker (web/e2e/control/serve.py) and drive
+    # the UI from the keyboard; the lyrics tests compare screenshots on /proba-letra.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -84,12 +84,9 @@ jobs:
           node-version: 22
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
-      # The background tests make a short video with ffmpeg.
+      # The fake worker turns its synthetic demo into Opus with ffmpeg.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: uv sync --locked
-      # The example songs' audio is not in git: synthetic beeps on every syllable stand in for it
-      # (locally the real songs come from the bench, docs/benchmark.md).
-      - run: for package in fixtures/packages/*/; do uv run karaoke demo "$package"; done
       - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web exec playwright install --with-deps --only-shell chromium
       - run: pnpm --dir web test:e2e
@@ -150,10 +147,10 @@ jobs:
       - name: Fail if generated files are stale or missing
         # git status also catches newly generated files that were never committed.
         run: |
-          changes=$(git status --porcelain -- schemas web/src/lib/contracts/generated web/src/lib/api/generated)
+          changes=$(git status --porcelain -- schemas web/src/lib/contracts/generated)
           if [ -n "$changes" ]; then
             echo "$changes"
-            git diff -- schemas web/src/lib/contracts/generated web/src/lib/api/generated
+            git diff -- schemas web/src/lib/contracts/generated
             echo "::error::Generated contracts are out of date; run 'make contracts' and commit."
             exit 1
           fi

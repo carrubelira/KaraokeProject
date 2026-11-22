@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/player-status.schema.json",
+  "$defs": {
+    "AudioDevice": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Stable across reboots.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "channels": {
+          "default": 2,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sample_rate": {
+          "default": 48000,
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "latency_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "default": {
+          "type": "boolean",
+          "default": false
+        },
+        "connected": {
+          "default": true,
+          "type": "boolean"
+        },
+        "bluetooth": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "channels",
+        "sample_rate",
+        "latency_ms",
+        "default",
+        "connected",
+        "bluetooth"
+      ],
+      "title": "AudioDevice",
+      "type": "object"
+    },
+    "ContentCache": {
+      "additionalProperties": false,
+      "properties": {
+        "content_id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+          "type": "string"
+        },
+        "manifest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "absent",
+            "downloading",
+            "verifying",
+            "ready",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "fraction": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "content_id",
+        "manifest",
+        "state",
+        "fraction",
+        "error"
+      ],
+      "title": "ContentCache",
+      "type": "object"
+    },
+    "Display": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Stable across reboots (EDID serial or OS id).",
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        "refresh_hz": {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        "primary": {
+          "default": false,
+          "type": "boolean"
+        },
+        "connected": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "width",
+        "height",
+        "refresh_hz",
+        "primary",
+        "connected"
+      ],
+      "title": "Display",
+      "type": "object"
+    },
+    "PlayerError": {
+      "additionalProperties": false,
+      "description": "Something the player could not do, until it can again.",
+      "properties": {
+        "code": {
+          "enum": [
+            "output_failed",
+            "output_lost",
+            "display_failed",
+            "load_failed",
+            "master_lost"
+          ],
+          "type": "string"
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The audio device or display id."
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "device",
+        "item_id",
+        "message"
+      ],
+      "title": "PlayerError",
+      "type": "object"
+    },
+    "PlayerOutputs": {
+      "additionalProperties": false,
+      "properties": {
+        "displays": {
+          "items": {
+            "$ref": "#/$defs/Display"
+          },
+          "type": "array"
+        },
+        "audio": {
+          "items": {
+            "$ref": "#/$defs/AudioDevice"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "displays",
+        "audio"
+      ],
+      "title": "PlayerOutputs",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What a player reports every second and on every change.",
+  "properties": {
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/PlayerError"
+      },
+      "type": "array"
+    },
+    "outputs": {
+      "$ref": "#/$defs/PlayerOutputs"
+    },
+    "cache": {
+      "items": {
+        "$ref": "#/$defs/ContentCache"
+      },
+      "type": "array"
+    },
+    "item_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "position": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "state": {
+      "default": "idle",
+      "enum": [
+        "idle",
+        "loading",
+        "playing",
+        "paused",
+        "waiting"
+      ],
+      "type": "string"
+    },
+    "semitones": {
+      "default": 0.0,
+      "type": "number"
+    },
+    "volume": {
+      "default": 1.0,
+      "type": "number"
+    },
+    "sync": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Diagnostics: measured drift (ppm) and offsets (ms).",
+      "type": "object"
+    }
+  },
+  "required": [
+    "errors",
+    "outputs",
+    "cache",
+    "item_id",
+    "position",
+    "state",
+    "semitones",
+    "volume",
+    "sync"
+  ],
+  "title": "PlayerStatus",
+  "type": "object"
+}

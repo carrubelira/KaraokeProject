@@ -1,34 +1,42 @@
 import { defineConfig } from '@playwright/test';
 
-// Browser tests. `pnpm test:e2e` runs them against the dev server and its mock API (port 5181);
-// they need the Playwright Chromium (`pnpm exec playwright install chromium --only-shell`).
-// The lyrics specs set their own sizes; the app specs run on a phone, a laptop and a TV.
-const APP = /app\/.*\.spec\.ts/;
-// e2e/server runs against the real server: `pnpm test:e2e:server` (playwright.server.config.ts).
-const SERVER = /server\/.*\.spec\.ts/;
+// Browser tests (`pnpm test:e2e`; they need `pnpm exec playwright install chromium --only-shell`).
+// - lyrics: the lyrics component on /proba-letra (fixtures only), at fixed sizes.
+// - control: the control UI against a real v4 server with a fake worker (e2e/control/serve.py),
+//   driven from the keyboard.
+const CONTROL = /control\/.*\.spec\.ts/;
 
 export default defineConfig({
 	testDir: 'e2e',
-	fullyParallel: true,
+	fullyParallel: false,
+	workers: 1,
 	reporter: 'list',
-	use: { baseURL: 'http://localhost:5181', locale: 'gl-ES' },
+	use: {
+		baseURL: 'http://localhost:5181',
+		locale: 'gl-ES',
+		// A Chromium installed apart (PLAYWRIGHT_CHROMIUM=/path), when it is not Playwright's own.
+		launchOptions: process.env.PLAYWRIGHT_CHROMIUM
+			? { executablePath: process.env.PLAYWRIGHT_CHROMIUM }
+			: {}
+	},
 	expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
-	// The lyrics snapshots predate the projects: keep their names.
 	snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{platform}{ext}',
 	projects: [
-		{ name: 'lyrics', testIgnore: [APP, SERVER] },
-		{
-			name: 'phone',
-			testMatch: APP,
-			use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }
-		},
-		{ name: 'laptop', testMatch: APP, use: { viewport: { width: 1440, height: 900 } } },
-		{ name: 'tv', testMatch: APP, use: { viewport: { width: 1920, height: 1080 } } }
+		{ name: 'lyrics', testIgnore: [CONTROL] },
+		{ name: 'control', testMatch: CONTROL, use: { viewport: { width: 1440, height: 900 } } }
 	],
-	webServer: {
-		command: 'pnpm exec vite dev --port 5181 --strictPort',
-		url: 'http://localhost:5181/api/songs',
-		reuseExistingServer: true,
-		env: { KARAOKE_MOCK_JOB_SECONDS: '3' }
-	}
+	webServer: [
+		{
+			command: 'uv run --project .. python e2e/control/serve.py',
+			url: 'http://127.0.0.1:8799/api/server',
+			reuseExistingServer: false,
+			timeout: 60_000
+		},
+		{
+			command: 'pnpm exec vite dev --port 5181 --strictPort',
+			url: 'http://localhost:5181/',
+			reuseExistingServer: true,
+			env: { KARAOKE_SERVER: 'http://127.0.0.1:8799' }
+		}
+	]
 });

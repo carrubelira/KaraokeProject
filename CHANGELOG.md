@@ -7,7 +7,43 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ## [Unreleased]
 
+### Fixed
+
+- A progress report arriving after a task was complete brought it back to life: its lease
+  expired, it ran again and the console showed it stuck ("The worker stopped answering").
+- The console missed changes it never heard of; now every event is numbered and a gap or a
+  silent line brings a fresh snapshot.
+- Outputs failed (500) when a player reported two sound outputs with the same name.
+- Adding a song with no active playlist did nothing yet said it was added.
+
 ### Added
+
+- Contracts v2: manifests of tracks by SHA-256, lyrics, nodes, orders and routing, as JSON Schema,
+  TypeScript and Rust (`kp-proto`).
+- `karaoke-server` v4: content store with Range and checked uploads, resumable uploads, a task
+  DAG with leases and data affinity, enrolled nodes over a pinned TLS certificate, operators,
+  WebSockets for players and the control.
+- `karaoke-worker`: fetch, analyze, make and render tasks in a child process capped by a
+  systemd scope or a Windows Job Object.
+- `kp-player`: one clock for every output and screen, routing with gain and delay, pitch on the
+  guide vocals and the music, calibration, outputs that come and go, a waiting screen; the
+  software sync bench `kp-syncbench` and `make e2e-v4`.
+- The console: a plain desktop application, the same in every section: a sidebar of sections,
+  pages of panels and tables with states in words, and a player bar at the foot with the screen
+  driven, what it plays, the transport, the key and the volume; IBM Plex Sans and Mono; Galicia's
+  coastline drawn faintly behind the sidebar. Processing is one table of songs whose rows open
+  to every step, its log and what to do when it fails. Command palette, rebindable shortcuts,
+  undo, and the lyrics editor ([`docs/web.md`](docs/web.md), decision
+  `plan-v4/decisiones/010-consola.md`).
+- Songs from a link with an analysis first: the page's metadata, a Chromaprint fingerprint looked
+  up in AcoustID and MusicBrainz (language and cover), and lyrics from LRCLIB; the operator
+  reviews and corrects before anything heavy runs, and can send the song straight to a screen's
+  queue once it is made.
+- One queue per screen (playlists are gone; a screen's playlist became its queue), so adding a
+  song always has a target.
+- Workers say what is happening inside them: stage and step, a live log (kept whole once the
+  task ends), CPU and RAM on every system, and failures explained with what to do.
+
 
 - `karaoke captions`: professional subtitles for long interviews, phrase by phrase and in sync
   with the voice, written next to each video as SRT (for DaVinci Resolve, Premiere and VLC) and
@@ -56,7 +92,20 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 - New type, colours and shapes everywhere: white and the flag's sky blue on a blue-black night,
   gold for what is lit, rounded panels that let the globe show through.
 
+### Removed
+
+- The PWA, the browser player, party mode, device pairing, network zones and the WSL setup.
+
 ### Changed
+
+- **v4, a distributed karaoke** ([`docs/plan-v4/`](docs/plan-v4/00-vision.md)): the server stores
+  songs by content and queues the work, GPU workers on Windows or Linux take it, a native player
+  for Windows and macOS plays every screen and output in sync, and a keyboard-first web control
+  drives it all. There is no compatibility with v3 at run time; `karaoke package` migrates v3
+  packages.
+- Song stems are Opus at 48 kHz, no longer levelled when encoded: `karaoke.json` 1.3.0 carries the
+  gain (`audio.gain_db`) and the player and the MP4 apply it.
+- The night globe shows Galicia in its real surroundings, its neighbours in half-light.
 
 - **Lyrics are timed by two models instead of one.** Each language's speech model now works with
   a model trained on songs in many languages, and their probabilities are averaged: each misses

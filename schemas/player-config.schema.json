@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/player-config.schema.json",
+  "$defs": {
+    "Calibration": {
+      "additionalProperties": false,
+      "description": "Per stable device id: how late it really is, beyond what the OS reports.",
+      "properties": {
+        "audio_ms": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "display_ms": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "audio_ms",
+        "display_ms"
+      ],
+      "title": "Calibration",
+      "type": "object"
+    },
+    "Route": {
+      "additionalProperties": false,
+      "properties": {
+        "track": {
+          "enum": [
+            "vocals",
+            "instrumental"
+          ],
+          "type": "string"
+        },
+        "output": {
+          "description": "An audio device id.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "gain_db": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0.0,
+          "description": "None mutes the route."
+        },
+        "delay_ms": {
+          "default": 0.0,
+          "maximum": 2000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "track",
+        "output",
+        "gain_db",
+        "delay_ms"
+      ],
+      "title": "Route",
+      "type": "object"
+    },
+    "Routing": {
+      "additionalProperties": false,
+      "properties": {
+        "master": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Audio device whose clock rules."
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/Route"
+          },
+          "type": "array"
+        },
+        "screens": {
+          "items": {
+            "$ref": "#/$defs/Screen"
+          },
+          "type": "array"
+        },
+        "policies": {
+          "additionalProperties": {
+            "enum": [
+              "pause",
+              "continue"
+            ],
+            "type": "string"
+          },
+          "description": "What happens when an output disappears; default: pause if it is the master, continue otherwise.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "master",
+        "routes",
+        "screens",
+        "policies"
+      ],
+      "title": "Routing",
+      "type": "object"
+    },
+    "Screen": {
+      "additionalProperties": false,
+      "properties": {
+        "display": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "layout": {
+          "default": "video-lyrics",
+          "enum": [
+            "video-lyrics",
+            "lyrics",
+            "video",
+            "off"
+          ],
+          "type": "string"
+        },
+        "theme": {
+          "default": "clasico",
+          "type": "string"
+        }
+      },
+      "required": [
+        "display",
+        "layout",
+        "theme"
+      ],
+      "title": "Screen",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "routing": {
+      "$ref": "#/$defs/Routing"
+    },
+    "calibration": {
+      "$ref": "#/$defs/Calibration"
+    }
+  },
+  "required": [
+    "routing",
+    "calibration"
+  ],
+  "title": "PlayerConfig",
+  "type": "object"
+}

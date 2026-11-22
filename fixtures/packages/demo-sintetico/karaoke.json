@@ -8,7 +8,8 @@
   "audio": {
     "instrumental": "instrumental.wav",
     "vocals": "vocals.wav",
-    "loudness_lufs": null
+    "loudness_lufs": null,
+    "gain_db": null
   },
   "video": null,
   "cover": null,

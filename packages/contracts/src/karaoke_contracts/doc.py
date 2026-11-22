@@ -6,12 +6,12 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-SCHEMA_VERSION = "1.2.0"
+SCHEMA_VERSION = "1.3.0"
 
 Seconds = Annotated[float, Field(ge=0, description="Seconds from the start of the song audio.")]
 NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 HexColor = Annotated[str, StringConstraints(pattern=r"^#[0-9A-Fa-f]{6}$")]
-# Paths inside the package folder, e.g. "instrumental.m4a".
+# Paths inside the package folder, e.g. "instrumental.opus".
 MediaRef = Annotated[str, StringConstraints(min_length=1)]
 
 
@@ -68,6 +68,11 @@ class AudioRefs(_Model):
     instrumental: MediaRef
     vocals: MediaRef | None = None
     loudness_lufs: float | None = None
+    gain_db: float | None = Field(
+        default=None,
+        description="Gain a player applies to both stems to reach loudness_lufs; None when the "
+        "stems were levelled when encoded (packages before 1.3.0).",
+    )
 
 
 class VideoRefs(_Model):

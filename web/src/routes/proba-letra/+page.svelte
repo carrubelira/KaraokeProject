@@ -1,12 +1,18 @@
 <script lang="ts">
-	// Test page for the animated lyrics on real devices: any package, any theme, and frames the
-	// size of a phone, a laptop or a TV. `?t=12.3` freezes the lyrics at that moment without audio
-	// (for screenshots); `?paquete=`, `?tema=` and `?marco=` choose the rest, and `?fondo=liso`
-	// swaps the stand-in video background for a plain one.
+	// Test page for the animated lyrics (the browser tests use it): any fixture package, any
+	// theme, and frames the size of a phone, a laptop or a TV. `?t=12.3` freezes the lyrics at
+	// that moment; `?paquete=`, `?tema=` and `?marco=` choose the rest. Without `t` the lyrics run
+	// on a clock that starts with the Play button (no audio: the player is native now).
 	import type { KaraokeDoc, PlaybackClock } from '#lib/contracts';
-	import { AudioEngine } from '#lib/audio/engine.js';
 	import { DEFAULT_THEME, Lyrics, THEMES, normalizeDoc } from '#lib/lyrics';
-	import { BackgroundSync } from '#lib/video/background.js';
+
+	const FIXTURES = import.meta.glob<KaraokeDoc>('../../../../fixtures/packages/*/karaoke.json', {
+		eager: true,
+		import: 'default'
+	});
+	const DOCS = Object.fromEntries(
+		Object.entries(FIXTURES).map(([path, doc]) => [path.split('/').at(-2) ?? path, doc])
+	);
 
 	const FRAMES: Record<string, { label: string; size: [number, number] | null }> = {
 		completa: { label: 'Pantalla completa', size: null },
@@ -17,33 +23,35 @@
 	};
 
 	const params = new URLSearchParams(location.search);
-	// Frozen time for screenshots and tests, which can move it with window.__lyricsTime(t).
 	const frozenAt = params.has('t') ? Number(params.get('t')) : null;
 	let frozen = $state(frozenAt);
-	const plain = params.get('fondo') === 'liso';
+	const plain = true;
 	if (frozenAt !== null) {
 		(window as unknown as { __lyricsTime: (t: number) => void }).__lyricsTime = (t) => (frozen = t);
 	}
 
-	let packages = $state<string[]>([]);
-	let chosen = $state(params.get('paquete') ?? '');
+	const packages = Object.keys(DOCS).sort();
+	let chosen = $state(params.get('paquete') ?? packages[0] ?? '');
 	let themeId = $state(params.get('tema') ?? DEFAULT_THEME);
 	let frameId = $state(params.get('marco') ?? 'completa');
-	let doc = $state.raw<KaraokeDoc | null>(null);
-	let message = $state('');
+	// Tests may change a fixture before it is shown (window.__lyricsPatch, set by an init script).
+	const patch = (window as unknown as { __lyricsPatch?: (doc: KaraokeDoc) => KaraokeDoc })
+		.__lyricsPatch;
+	const doc = $derived(
+		DOCS[chosen] ? normalizeDoc(patch ? patch(structuredClone(DOCS[chosen])) : DOCS[chosen]) : null
+	);
 	let now = $state(frozenAt ?? 0);
-	let playing = $state(false);
-	let vocals = $state(1);
-	let stage = $state<HTMLElement | null>(null);
+	let startedAt = $state<number | null>(null);
+	let offset = $state(0);
+	const playing = $derived(startedAt !== null);
 	let stageWidth = $state(0);
 	let stageHeight = $state(0);
+	const message = '';
 
-	let video = $state<HTMLVideoElement | null>(null);
-	let sync: BackgroundSync | null = null;
-
-	let context: AudioContext | null = null;
-	let engine: AudioEngine | null = null;
-	const clock: PlaybackClock = { now: () => frozen ?? engine?.now() ?? 0 };
+	const clock: PlaybackClock = {
+		now: () =>
+			frozen ?? (startedAt === null ? offset : offset + (performance.now() - startedAt) / 1000)
+	};
 
 	const theme = $derived(THEMES[themeId] ?? THEMES[DEFAULT_THEME]);
 	const frame = $derived(FRAMES[frameId] ?? FRAMES.completa);
@@ -53,94 +61,24 @@
 	});
 
 	$effect(() => {
-		fetch('/api/songs')
-			.then((response) => response.json())
-			.then((songs: { id: string }[]) => {
-				const ids = songs.map((s) => s.id).sort();
-				packages = ids;
-				if (!ids.includes(chosen)) chosen = ids[0] ?? '';
-			})
-			.catch(() => (message = 'Non hai paquetes: esta páxina só funciona con `pnpm dev`.'));
-	});
-
-	// Load the lyrics as soon as a package is chosen; the audio waits for a tap (browsers ask).
-	$effect(() => {
-		const id = chosen;
-		if (!id) return;
-		engine?.pause();
-		doc = null;
-		fetch(`/media/${id}/karaoke.json`)
-			.then((response) => {
-				if (!response.ok) throw new Error(`HTTP ${response.status}`);
-				return response.json();
-			})
-			.then((loaded: KaraokeDoc) => {
-				if (id === chosen) doc = normalizeDoc(loaded);
-			})
-			.catch((error) => (message = `Non se puido cargar ${id}: ${error}`));
-	});
-
-	// The package's video follows the song (paused and on the right frame when frozen).
-	$effect(() => {
-		sync = video
-			? new BackgroundSync(video, {
-					now: () => clock.now(),
-					get playing() {
-						return frozen === null && (engine?.playing ?? false);
-					}
-				})
-			: null;
-	});
-
-	$effect(() => {
 		let raf = requestAnimationFrame(function tick() {
 			now = clock.now();
-			playing = engine?.playing ?? false;
-			sync?.tick();
 			raf = requestAnimationFrame(tick);
 		});
 		return () => cancelAnimationFrame(raf);
 	});
 
-	const media = (file: string | null | undefined) => (file ? `/media/${chosen}/${file}` : null);
-
-	async function toggle() {
-		if (!doc) return;
-		if (engine?.playing) {
-			engine.pause();
-			return;
+	function toggle() {
+		if (startedAt === null) startedAt = performance.now();
+		else {
+			offset = clock.now();
+			startedAt = null;
 		}
-		if (!engine) {
-			context = new AudioContext();
-			engine = new AudioEngine(context);
-		}
-		const base = `/media/${chosen}/`;
-		if (engine.duration === 0 || loadedFor !== chosen) {
-			message = 'Cargando o audio…';
-			try {
-				await engine.load({
-					instrumental: base + doc.audio.instrumental,
-					vocals: doc.audio.vocals ? base + doc.audio.vocals : null
-				});
-				engine.setVocalVolume(vocals);
-				loadedFor = chosen;
-				message = '';
-			} catch (error) {
-				message = `Non se puido cargar o audio: ${String(error)}`;
-				return;
-			}
-		}
-		await engine.play();
 	}
-	let loadedFor = '';
 
 	function seek(event: Event) {
-		engine?.seek(Number((event.target as HTMLInputElement).value));
-	}
-
-	function setVocals(event: Event) {
-		vocals = Number((event.target as HTMLInputElement).value);
-		engine?.setVocalVolume(vocals);
+		offset = Number((event.target as HTMLInputElement).value);
+		if (startedAt !== null) startedAt = performance.now();
 	}
 
 	const clockText = (seconds: number) =>
@@ -182,20 +120,11 @@
 				aria-label="Posición"
 			/>
 			<span class="time">{clockText(now)}</span>
-			<label>
-				Voz guía
-				<input type="range" min="0" max="1" step="0.05" value={vocals} oninput={setVocals} />
-			</label>
 			{#if message}<p class="message">{message}</p>{/if}
 		</header>
 	{/if}
 
-	<section
-		class="stage"
-		bind:this={stage}
-		bind:clientWidth={stageWidth}
-		bind:clientHeight={stageHeight}
-	>
+	<section class="stage" bind:clientWidth={stageWidth} bind:clientHeight={stageHeight}>
 		<div
 			class="screen"
 			class:plain
@@ -204,29 +133,6 @@
 			style:height={frame.size ? `${frame.size[1]}px` : '100%'}
 			style:transform={frame.size ? `scale(${scale})` : 'none'}
 		>
-			{#if doc && !plain}
-				{@const cover = media(doc.cover)}
-				{@const backgroundVideo = media(doc.video?.background)}
-				{#if cover}
-					<div class="backdrop" style:background-image={`url("${cover}")`}></div>
-				{/if}
-				{#if backgroundVideo}
-					<video
-						class="picture"
-						src={backgroundVideo}
-						muted
-						loop
-						playsinline
-						preload="auto"
-						bind:this={video}
-					></video>
-				{:else if cover}
-					<img class="picture" src={cover} alt="" />
-				{/if}
-				{#if cover || backgroundVideo}
-					<div class="scrim" class:band={theme.layout.mode === 'scroll'}></div>
-				{/if}
-			{/if}
 			{#if doc}
 				<Lyrics {doc} {theme} {clock} />
 			{/if}
@@ -293,43 +199,6 @@
 		background:
 			radial-gradient(circle at 30% 20%, #3b2a6b, transparent 60%),
 			radial-gradient(circle at 80% 90%, #1d4b6b, transparent 55%), #141428;
-	}
-
-	/* The background of the exported video, in CSS: the picture whole, over a blurred copy, darker,
-	   with a dark gradient behind the lyrics. */
-	.backdrop,
-	.picture,
-	.scrim {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-	}
-
-	.backdrop {
-		background-size: cover;
-		background-position: center;
-		filter: blur(24px) brightness(0.45);
-		transform: scale(1.1);
-	}
-
-	.picture {
-		object-fit: contain;
-		filter: brightness(0.7);
-	}
-
-	.scrim {
-		background: linear-gradient(to bottom, transparent 55%, rgb(0 0 0 / 0.67));
-	}
-
-	.scrim.band {
-		background: linear-gradient(
-			to bottom,
-			transparent 22%,
-			rgb(0 0 0 / 0.55) 42%,
-			rgb(0 0 0 / 0.55) 55%,
-			transparent 75%
-		);
 	}
 
 	.screen {

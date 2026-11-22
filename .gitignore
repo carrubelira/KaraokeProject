@@ -58,3 +58,6 @@ docs/archivo/
 *~
 .DS_Store
 Thumbs.db
+
+# Rust
+player/target/

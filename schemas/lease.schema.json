@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/lease.schema.json",
+  "$defs": {
+    "Task": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "fetch",
+            "analyze",
+            "make",
+            "package",
+            "render"
+          ],
+          "type": "string"
+        },
+        "job_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "params": {
+          "type": "object"
+        },
+        "inputs": {
+          "description": "Blobs it reads.",
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "vram_mb": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "needs_internet": {
+          "default": false,
+          "type": "boolean"
+        },
+        "priority": {
+          "default": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "job_id",
+        "params",
+        "inputs",
+        "vram_mb",
+        "needs_internet",
+        "priority"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "task": {
+      "$ref": "#/$defs/Task"
+    },
+    "lease_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "heartbeat_seconds": {
+      "exclusiveMinimum": 0,
+      "type": "number"
+    }
+  },
+  "required": [
+    "task",
+    "lease_id",
+    "expires_at",
+    "heartbeat_seconds"
+  ],
+  "title": "Lease",
+  "type": "object"
+}

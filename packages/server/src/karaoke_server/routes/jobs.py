@@ -1,184 +1,166 @@
-"""Making karaokes and exporting videos: the job queue over HTTP."""
+"""Jobs: make a karaoke from a link or an upload (analysed, then reviewed by the operator),
+export an MP4; follow, cancel, reorder, read a task's log."""
 
-import asyncio
-import re
-import shutil
-from collections.abc import AsyncIterable
-from pathlib import Path
-from typing import Annotated
-from urllib.parse import urlsplit
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import PlainTextResponse
-from fastapi.sse import EventSourceResponse, ServerSentEvent
+from pydantic import BaseModel, Field, model_validator
 
-from karaoke_engine.align.lyrics import parse_lyrics
-from karaoke_engine.languages import TWO_LETTERS
-from karaoke_engine.subtitles.themes import theme_names
-from karaoke_server.access import Owner, Reader
+from karaoke_server.auth import Operator, operator
 from karaoke_server.errors import ApiError
-from karaoke_server.jobs.intake import IntakeError, media_info, receive_form
-from karaoke_server.jobs.queue import JobQueue
-from karaoke_server.jobs.titles import clean_title, split_artist
-from karaoke_server.models import ExportRequest, Job, MakeRequest
+from karaoke_server.queue import BATCH, INTERACTIVE
+from karaoke_server.routes._deps import services
 
-router = APIRouter(tags=["jobs"])
-
-LANGUAGE = re.compile(r"^[a-z]{2,3}$")
-LOG_LINES = 200
+router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 
 
-def _queue(request: Request) -> JobQueue:
-    return request.app.state.services.jobs  # type: ignore[no-any-return]
+class NewJob(BaseModel):
+    kind: Literal["create", "render"] = "create"
+    # create
+    upload: str | None = Field(default=None, description="An upload id that has finished.")
+    url: str | None = None
+    lyrics: str | None = Field(default=None, max_length=50_000)
+    lrclib: bool = False
+    language: str | None = Field(default=None, pattern=r"^[a-z]{2,3}$")
+    auto_confirm: bool = Field(
+        default=False, description="Go on without a review when the analysis is sure."
+    )
+    title: str | None = Field(default=None, max_length=200)
+    artist: str | None = Field(default=None, max_length=200)
+    content_id: str | None = Field(default=None, pattern=r"^[a-z0-9][a-z0-9-]{0,79}$")
+    # render
+    theme: str = "clasico"
+    aspect: Literal["16:9", "9:16"] = "16:9"
+    vocals: float = Field(default=0.0, ge=0, le=1)
+    batch: bool = Field(default=False, description="Lower priority than interactive work.")
+
+    @model_validator(mode="after")
+    def _one_source(self) -> "NewJob":
+        if self.kind == "create" and (self.upload is None) == (self.url is None):
+            raise ValueError("give either an upload or a url")
+        if self.kind == "render" and self.content_id is None:
+            raise ValueError("an export needs content_id")
+        if self.url is not None and not self.url.startswith(("https://", "http://")):
+            raise ValueError("the link must be http(s)")
+        return self
 
 
-def _make_request(fields: dict[str, str]) -> MakeRequest:
-    def text(key: str) -> str | None:
-        value = fields.get(key, "").strip()
-        return value or None
+@router.post("", status_code=201)
+async def create(
+    body: NewJob, request: Request, who: Operator = Depends(operator)
+) -> dict[str, Any]:
+    found = services(request)
+    priority = BATCH if body.batch else INTERACTIVE
+    if body.kind == "render":
+        assert body.content_id is not None
+        content = found.library.get(body.content_id)
+        export = {"manifest": content["manifest"], "content_id": body.content_id,
+                  "theme": body.theme, "aspect": body.aspect, "vocals": body.vocals}  # fmt: skip
+        return found.queue.create_job(
+            "render", f"MP4 · {content['title']}", export, priority=priority
+        )
+    params: dict[str, Any] = {
+        "language": body.language,
+        "lyrics": body.lyrics,
+        "lrclib": body.lrclib,
+        "title": body.title,
+        "artist": body.artist,
+        "content_id": body.content_id,
+        "auto_confirm": body.auto_confirm,
+    }
+    if body.upload is not None:
+        upload = found.uploads.get(body.upload)
+        if upload["blob"] is None:
+            raise ApiError(409, "upload_unfinished", "The upload has not finished")
+        params["source"] = upload["blob"]
+        params["filename"] = upload["filename"]
+        title = body.title or str(upload["filename"]).rsplit(".", 1)[0]
+    else:
+        params["url"] = body.url
+        title = body.title or str(body.url)
+    return found.queue.create_job("create", title, params, priority=priority)
 
-    language = text("language")
-    if not language or not LANGUAGE.match(language):
-        raise IntakeError(422, "bad_language", "Choose a language, like gl")
-    if language in TWO_LETTERS:
-        raise IntakeError(422, "bad_language", f"Write the language as {TWO_LETTERS[language]}")
-    lyrics = text("lyrics")
-    if lyrics is not None and not parse_lyrics(lyrics):
-        raise IntakeError(422, "bad_lyrics", "The lyrics have no sung lines")
-    url = text("url")
-    if url is not None:
-        parts = urlsplit(url)
-        if parts.scheme not in ("http", "https") or not parts.netloc:
-            raise IntakeError(422, "bad_url", "Links must start with http:// or https://")
-    return MakeRequest(
-        language=language,
-        lyrics=lyrics,
-        lrclib=text("lrclib") == "true",
-        title=text("title"),
-        artist=text("artist"),
-        url=url,
+
+@router.get("")
+async def list_jobs(
+    request: Request, active: bool = False, who: Operator = Depends(operator)
+) -> list[dict[str, Any]]:
+    return services(request).queue.jobs(active_only=active)
+
+
+@router.get("/{job_id}")
+async def get_job(
+    job_id: str, request: Request, who: Operator = Depends(operator)
+) -> dict[str, Any]:
+    return services(request).queue.job(job_id)
+
+
+class Confirmation(BaseModel):
+    """What the song is, as the operator confirmed or corrected it after the analysis."""
+
+    title: str = Field(min_length=1, max_length=200)
+    artist: str | None = Field(default=None, max_length=200)
+    language: str = Field(pattern=r"^[a-z]{2,3}$")
+    lyrics: str | None = Field(
+        default=None, max_length=50_000, description="None: transcribe the song."
+    )
+    queue_on: str | None = Field(
+        default=None, description="A player whose queue gets the song once it is made."
     )
 
 
-@router.post("/api/jobs", status_code=201)
-async def create_job(request: Request, who: Owner) -> Job:
-    """A song file (multipart `file`) or a link (`url`), with its language and lyrics if any."""
-    queue = _queue(request)
-    settings = request.app.state.services.settings
-    if shutil.disk_usage(settings.jobs_dir).free < settings.min_free_bytes:
-        raise ApiError(507, "disk_full", "The laptop is out of disk space")
-    job_id = queue.new_id()
-    folder = queue.job_dir(job_id)
-    try:
-        form = await receive_form(
-            request.headers, request.stream(), folder, settings.max_upload_bytes
-        )
-        make = _make_request(form.fields)
-        if form.file is None:
-            if make.url is None:
-                raise IntakeError(422, "bad_form", "Send a song file or a link")
-            return queue.submit_make(job_id, make)
-        info = await media_info(form.file)
-        if not info.has_audio:
-            raise IntakeError(422, "no_audio", "That file has no sound we can read")
-        if info.duration > settings.max_duration:
-            minutes = round(settings.max_duration / 60)
-            raise IntakeError(422, "too_long", f"Songs can last up to {minutes} minutes")
-        # «01 - Title» is a track number, not an artist: cleaned before and after the split.
-        name = clean_title(Path(form.filename or "song").stem)
-        artist_from_name, title_from_name = split_artist(name)
-        title = info.title or clean_title(title_from_name)
-        if make.artist is None and (info.artist or artist_from_name):
-            make = make.model_copy(update={"artist": info.artist or artist_from_name})
-        return queue.submit_make(
-            job_id, make, source=form.file, duration=info.duration, title=title
-        )
-    except IntakeError as exc:
-        shutil.rmtree(folder, ignore_errors=True)
-        raise ApiError(exc.status, exc.code, str(exc)) from exc
-    except BaseException:
-        # A client gone, a cancel, a broken body, ffprobe missing: never an empty job folder.
-        shutil.rmtree(folder, ignore_errors=True)
-        raise
+@router.post("/{job_id}/confirm")
+async def confirm(
+    job_id: str, body: Confirmation, request: Request, who: Operator = Depends(operator)
+) -> dict[str, Any]:
+    found = services(request)
+    if body.queue_on is not None:
+        found.queues.get(body.queue_on)  # 404 for a player that does not exist
+    return found.queue.confirm(job_id, body.model_dump())
 
 
-@router.get("/api/jobs")
-async def list_jobs(request: Request, who: Reader) -> list[Job]:
-    return _queue(request).list()
+@router.get("/{job_id}/tasks/{key}/log", response_class=PlainTextResponse)
+async def task_log(
+    job_id: str, key: str, request: Request, who: Operator = Depends(operator)
+) -> str:
+    """The task's log: the whole one once it ended, the last lines while it runs."""
+    found = services(request)
+    task_id = f"{job_id}:{key}"
+    task = next((t for t in found.queue.job(job_id)["tasks"] if t["id"] == task_id), None)
+    if task is None:
+        raise ApiError(404, "not_found", "No such task")
+    if task["log"] and found.store.has(task["log"]):
+        return found.store.path(task["log"]).read_text(encoding="utf-8", errors="replace")
+    return "\n".join(found.queue.recent_log(task_id))
 
 
-@router.get("/api/jobs/{job_id}")
-async def get_job(job_id: str, request: Request, who: Reader) -> Job:
-    job = _queue(request).get(job_id)
-    if job is None:
-        raise ApiError(404, "not_found", "No such job")
-    return job
+@router.post("/{job_id}/{action}")
+async def act(
+    job_id: str,
+    action: Literal["cancel", "pause", "resume", "retry"],
+    request: Request,
+    who: Operator = Depends(operator),
+) -> dict[str, Any]:
+    queue = services(request).queue
+    return {"cancel": queue.cancel, "pause": queue.pause, "resume": queue.resume,
+            "retry": queue.retry}[action](job_id)  # fmt: skip
 
 
-@router.delete("/api/jobs/{job_id}", status_code=204)
-async def cancel_job(job_id: str, request: Request, who: Owner) -> Response:
-    queue = _queue(request)
-    if queue.get(job_id) is None:
-        raise ApiError(404, "not_found", "No such job")
-    await queue.cancel(job_id)
-    return Response(status_code=204)
+class JobChange(BaseModel):
+    priority: int | None = Field(default=None, ge=-100, le=100)
+    pinned_node: str | None = None
+    unpin: bool = False
 
 
-@router.post("/api/jobs/{job_id}/retry")
-async def retry_job(job_id: str, request: Request, who: Owner) -> Job:
-    queue = _queue(request)
-    if queue.get(job_id) is None:
-        raise ApiError(404, "not_found", "No such job")
-    job = queue.retry(job_id)
-    if job is None:
-        raise ApiError(409, "not_retryable", "This job cannot be tried again")
-    return job
-
-
-@router.get("/api/jobs/{job_id}/log", response_class=PlainTextResponse)
-async def job_log(job_id: str, request: Request, who: Owner) -> str:
-    queue = _queue(request)
-    if queue.get(job_id) is None:
-        raise ApiError(404, "not_found", "No such job")
-    log = queue.job_dir(job_id) / "log.txt"
-    if not log.is_file():
-        return ""
-    lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
-    return "\n".join(lines[-LOG_LINES:])
-
-
-async def _existing(job_id: str, request: Request, who: Reader) -> Job:
-    job = _queue(request).get(job_id)
-    if job is None:
-        raise ApiError(404, "not_found", "No such job")
-    return job
-
-
-@router.get("/api/jobs/{job_id}/events", response_class=EventSourceResponse)
-async def job_events(
-    job: Annotated[Job, Depends(_existing)], request: Request
-) -> AsyncIterable[ServerSentEvent]:
-    """The job now and after every change."""
-    queue = _queue(request)
-    updates: asyncio.Queue[Job] = asyncio.Queue()
-    unsubscribe = queue.subscribe(job.id, updates.put_nowait)
-    try:
-        # Read again once subscribed: a short job may have ended since the 404 check.
-        now = queue.get(job.id) or job
-        yield ServerSentEvent(event="job", data=now.model_dump(mode="json"))
-        while True:
-            update = await updates.get()
-            yield ServerSentEvent(event="job", data=update.model_dump(mode="json"))
-    finally:
-        unsubscribe()
-
-
-@router.post("/api/songs/{song_id}/exports", status_code=201)
-async def export_video(song_id: str, body: ExportRequest, request: Request, who: Owner) -> Job:
-    # One of the installed themes, by name: what the request says never becomes a path.
-    if body.theme not in theme_names():
-        raise ApiError(422, "bad_theme", f"There is no lyrics style called {body.theme}")
-    job = _queue(request).submit_export(song_id, body)
-    if job is None:
-        raise ApiError(404, "not_found", "No such song")
+@router.patch("/{job_id}")
+async def change(
+    job_id: str, body: JobChange, request: Request, who: Operator = Depends(operator)
+) -> dict[str, Any]:
+    queue = services(request).queue
+    job = queue.job(job_id)
+    if body.priority is not None:
+        job = queue.set_priority(job_id, body.priority)
+    if body.pinned_node is not None or body.unpin:
+        job = queue.pin(job_id, None if body.unpin else body.pinned_node)
     return job

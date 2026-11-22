@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
 </p>
 
+> **v4 in development** (branch `claude/trusting-johnson-3p992a`): a server, GPU workers, a native player for Windows and macOS and a keyboard-first web control. The plan and its status: [`docs/plan-v4/`](docs/plan-v4/ESTADO.md).
+
 **Proxecto Karaoke en Galego** ("Galician Karaoke Project") turns any song into a karaoke whose
 lyrics light up word by word, syllable by syllable, exactly as they are sung. It runs on your own
 computer with a modest GPU, and you sing from your phone, your laptop or the TV. It was built for
@@ -165,8 +167,7 @@ privately ([`SECURITY.md`](SECURITY.md)).
 ## Licence and credits
 
 The project is released under the [MIT licence](LICENSE). It stands on the work of others — the
-models of Proxecto Nós, HiTZ, OpenAI, Meta and Kimberley Jensen, the fonts Unbounded, Figtree,
-Martian Mono, Atkinson Hyperlegible, Nunito and Inter, the globe's data (Kontur, Natural Earth,
-Mapzen and Wikidata), and the songs of artists who share their music freely. Their licences are
+models of Proxecto Nós, HiTZ, OpenAI, Meta and Kimberley Jensen, the fonts IBM Plex, Atkinson Hyperlegible, Nunito and Inter, the open databases AcoustID, MusicBrainz
+and LRCLIB, and the songs of artists who share their music freely. Their licences are
 listed in [`NOTICE.md`](NOTICE.md). The screenshots show songs under Creative Commons licences and
 are shared under CC BY-SA 4.0.
