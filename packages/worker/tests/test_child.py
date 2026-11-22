@@ -7,12 +7,41 @@ from pathlib import Path
 import anyio
 import pytest
 
-from karaoke_worker.child import ProcessSpawner, scope_available
+from karaoke_worker.child import ProcessSpawner, scope_available, total_memory
 from karaoke_worker.child import SpawnSettings as Settings
 
 pytestmark = pytest.mark.anyio
 
 PYTHON = sys.executable
+
+
+def alive(pid: int) -> bool:
+    """Whether a process is still running. On Windows `os.kill(pid, 0)` would end it."""
+    if sys.platform == "win32":
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+async def gone(pid: int) -> bool:
+    deadline = time.monotonic() + 10
+    while alive(pid) and time.monotonic() < deadline:
+        await anyio.sleep(0.1)
+    return not alive(pid)
 
 
 def script(code: str):  # type: ignore[no-untyped-def]
@@ -61,7 +90,7 @@ async def test_spawner_cancel_kills_the_whole_group(settings: Settings, tmp_path
     marker = tmp_path / "pids"
     code = (
         "import subprocess, sys, time, pathlib\n"
-        f"p = subprocess.Popen(['sleep', '60'])\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
         f"pathlib.Path({str(marker)!r}).write_text(str(p.pid))\n"
         "time.sleep(60)\n"
     )
@@ -76,16 +105,7 @@ async def test_spawner_cancel_kills_the_whole_group(settings: Settings, tmp_path
             while not marker.exists():
                 await anyio.sleep(0.05)
             group.cancel_scope.cancel()
-    grandchild = int(marker.read_text())
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        try:
-            os.kill(grandchild, 0)
-        except ProcessLookupError:
-            break
-        await anyio.sleep(0.1)
-    with pytest.raises(ProcessLookupError):
-        os.kill(grandchild, 0)
+    assert await gone(int(marker.read_text()))
 
 
 @pytest.mark.skipif(not scope_available(), reason="needs systemd --user scopes")
@@ -114,8 +134,7 @@ async def test_child_tmpdir_is_on_disk(settings: Settings, tmp_path: Path) -> No
 
 
 def test_memory_limit_defaults_to_ram_minus_one_gib(settings: Settings) -> None:
-    total = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
-    assert ProcessSpawner(settings).memory_limit() == total - 1024**3
+    assert ProcessSpawner(settings).memory_limit() == total_memory() - 1024**3
 
 
 def test_command_uses_a_scope_when_available(settings: Settings, tmp_path: Path) -> None:
@@ -158,16 +177,7 @@ async def test_the_child_is_stopped_if_the_server_fails_handling_it(
     spawner = ProcessSpawner(settings, command=script(code))
     with anyio.fail_after(20), pytest.raises(RuntimeError):
         await spawner.run("job-1", {}, tmp_path / "log.txt", broken)
-    pid = int(marker.read_text())
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            break
-        await anyio.sleep(0.1)
-    with pytest.raises(ProcessLookupError):
-        os.kill(pid, 0)
+    assert await gone(int(marker.read_text()))
 
 
 def test_engine_units_are_named_after_their_library(settings: Settings, tmp_path: Path) -> None:
@@ -179,6 +189,10 @@ def test_engine_units_are_named_after_their_library(settings: Settings, tmp_path
     assert mine.leftovers_pattern() == mine.unit_prefix + "*.scope"
 
 
+@pytest.mark.skipif(
+    not sys.platform.startswith("linux"),
+    reason="die_with_parent is Linux's; on Windows the spawner's Job Object does it",
+)
 def test_a_job_process_ends_with_the_server(tmp_path: Path) -> None:
     pid_file = tmp_path / "child.pid"
     child = (
@@ -199,10 +213,6 @@ def test_a_job_process_ends_with_the_server(tmp_path: Path) -> None:
         assert time.monotonic() < deadline
         time.sleep(0.05)
     pid = int(pid_file.read_text())
-    while True:
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            break  # gone with its parent
+    while alive(pid):
         assert time.monotonic() < deadline, "the job process outlived the server"
         time.sleep(0.05)
