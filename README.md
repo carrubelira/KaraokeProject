@@ -170,8 +170,8 @@ comunícanse en privado ([`SECURITY.md`](SECURITY.md)).
 ## Licenza e créditos
 
 O proxecto publícase baixo a [licenza MIT](LICENSE). Apóiase no traballo doutras persoas: os modelos
-de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes Unbounded, Figtree, Martian Mono,
-Atkinson Hyperlegible, Nunito e Inter; os datos do globo (Kontur, Natural Earth, Mapzen e Wikidata);
+de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes IBM Plex,
+Atkinson Hyperlegible, Nunito e Inter; o contorno de Galicia de Natural Earth;
 e as cancións de artistas que comparten a súa música libremente. As súas licenzas están en
 [`NOTICE.md`](NOTICE.md). As capturas amosan cancións con licenzas Creative Commons e compártense
 baixo CC BY-SA 4.0.

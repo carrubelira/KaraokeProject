@@ -63,8 +63,8 @@
 		max-height: 86vh;
 		overflow: auto;
 		padding: var(--s-5) var(--s-6);
-		background: var(--fondo-2);
-		border: 1px solid var(--raia-forte);
+		background: var(--surface);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-panel);
 	}
 	header p {
@@ -79,7 +79,8 @@
 	}
 	h3 {
 		font-size: var(--t-0);
-		color: var(--ouro);
+		color: var(--text-3);
+		font-weight: 500;
 		margin: 0 0 var(--s-2);
 	}
 	dl {

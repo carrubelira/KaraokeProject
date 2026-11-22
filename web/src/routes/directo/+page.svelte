@@ -1,13 +1,13 @@
 <script lang="ts">
 	/**
-	 * Live: the player's playlist (scope `playlist`), what is on now with its transport, and the
-	 * work still being made, side by side in resizable panels.
+	 * Live: the player's playlist (scope `playlist`) on the left; what is on now, with its
+	 * transport, and what comes after on the right.
 	 */
 	import { onMount } from 'svelte';
 	import { commands } from '#lib/commands/registry.svelte.js';
 	import { api } from '#lib/control/api.js';
 	import { live } from '#lib/control/live.svelte.js';
-	import { jobProgress, positionNow } from '#lib/control/state.js';
+	import { positionNow } from '#lib/control/state.js';
 	import { i18n } from '#lib/i18n';
 	import {
 		content,
@@ -20,8 +20,8 @@
 		updateItem
 	} from '#lib/shell/actions.svelte.js';
 	import { clock } from '#lib/shell/format.js';
+	import Icon from '#lib/shell/Icon.svelte';
 	import Kbd from '#lib/shell/Kbd.svelte';
-	import Panels from '#lib/shell/Panels.svelte';
 	import { prefs } from '#lib/shell/prefs.svelte.js';
 	import { Selection } from '#lib/shell/selection.svelte.js';
 
@@ -31,7 +31,9 @@
 	const items = $derived(list?.items ?? []);
 	const selection = new Selection(() => items.map((i) => i.id));
 	const cache = $derived(new Map(target?.status.cache.map((c) => [c.content_id, c]) ?? []));
-	const current = $derived(items.find((i) => i.id === target?.status.item_id));
+	const index = $derived(items.findIndex((i) => i.id === target?.status.item_id));
+	const current = $derived(index >= 0 ? items[index] : undefined);
+	const after = $derived(items.slice(index + 1, index + 6));
 	const song = $derived(current ? content(current.content_id) : undefined);
 	let now = $state(performance.now());
 	const position = $derived(target ? positionNow(live.state, target, now) : null);
@@ -202,106 +204,14 @@
 	});
 </script>
 
-{#snippet listPanel()}
-	<div
-		class="ctl-box fill"
-		role="region"
-		aria-label={t.live.playlist}
-		onfocusin={() => (commands.scope = 'playlist')}
-	>
-		<div class="head">
-			<h2>{t.live.playlist}</h2>
-			<select
-				class="ctl-field"
-				aria-label={t.live.choosePlaylist}
-				value={list?.id ?? ''}
-				onchange={(e) => choosePlaylist(e.currentTarget.value)}
-			>
-				<option value="">—</option>
-				{#each live.state.playlists as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-			</select>
-			<button class="ctl-btn" onclick={newPlaylist}>+ <Kbd keys="Mod+Shift+n" /></button>
-		</div>
-		{#if !list}
-			<p class="ctl-muted">{t.live.noPlaylist}</p>
-		{:else if items.length === 0}
-			<p class="ctl-muted">{t.live.empty}</p>
-		{:else}
-			<ol class="ctl-rows" role="listbox" aria-label={list.name}>
-				{#each items as item, i (item.id)}
-					{@const c = content(item.content_id)}
-					{@const state = cache.get(item.content_id)}
-					<li
-						class="ctl-row item"
-						class:ctl-cursor={i === selection.cursor}
-						class:ctl-marked={selection.marked.has(item.id)}
-						class:ctl-on={item.id === target?.status.item_id}
-						role="option"
-						aria-selected={i === selection.cursor}
-						onclick={() => (selection.cursor = i)}
-						ondblclick={() => transport.cue(item.id)}
-						onkeydown={() => {}}
-					>
-						<span class="n">{i + 1}</span>
-						<span class="title"
-							>{c?.title ?? item.content_id}<span class="ctl-muted"> {c?.artist ?? ''}</span></span
-						>
-						{#if editing === item.id}
-							<!-- svelte-ignore a11y_autofocus -->
-							<input
-								class="ctl-field singer"
-								autofocus
-								value={item.singer ?? ''}
-								aria-label={t.live.singer}
-								onkeydown={(e) => {
-									if (e.key === 'Enter') {
-										void updateItem(item.id, { singer: e.currentTarget.value || null });
-										editing = null;
-									}
-									if (e.key === 'Escape') editing = null;
-									e.stopPropagation();
-								}}
-								onblur={() => (editing = null)}
-							/>
-						{:else}
-							<span class="singer">{item.singer ?? ''}</span>
-						{/if}
-						<span class="ctl-muted"
-							>{item.semitones ? `${item.semitones > 0 ? '+' : ''}${item.semitones}` : ''}</span
-						>
-						<span
-							class="ctl-pill {state?.state === 'ready'
-								? 'ctl-ok'
-								: state?.state === 'failed'
-									? 'ctl-bad'
-									: 'ctl-warn'}"
-						>
-							{state ? t.live.cache[state.state] : t.live.cache.absent}
-						</span>
-					</li>
-				{/each}
-			</ol>
-		{/if}
-		<p class="ctl-muted keys">
-			<Kbd keys="Enter" />
-			{t.cmd.cue} · <Kbd keys="Shift+Enter" />
-			{t.cmd.play} · <Kbd keys="Alt+ArrowUp" />/<Kbd keys="Alt+ArrowDown" />
-			{t.cmd.moveUp} ·
-			<Kbd keys="Delete" />
-			{t.cmd.remove} · <Kbd keys="s" />
-			{t.live.singer} · <Kbd keys="i" />/<Kbd keys="o" />
-			{t.live.entry}/{t.live.exit}
-		</p>
-	</div>
-{/snippet}
-
-{#snippet nowPanel()}
-	<div class="ctl-box fill now">
-		<div class="head">
-			<h2>{t.live.nowPlaying}</h2>
+<div class="ctl-page">
+	<header class="ctl-page-head">
+		<h1>{t.live.title}</h1>
+		<span class="ctl-sub">{target?.name ?? t.status.noPlayer}</span>
+		<div class="ctl-actions">
 			{#if live.state.players.length > 1}
 				<select
-					class="ctl-field"
+					class="ctl-select"
 					aria-label={t.live.player}
 					value={target?.id}
 					onchange={(e) => prefs.set('player', e.currentTarget.value)}
@@ -310,137 +220,263 @@
 				</select>
 			{/if}
 		</div>
-		{#if song}
-			<p class="song">{song.title}</p>
-			<p class="ctl-muted">
-				{song.artist ?? ''}{#if current?.singer}
-					· ♪ {current.singer}{/if}
-			</p>
-			<div class="progress">
-				<span class="mono">{clock(position)}</span>
-				<div class="ctl-bar">
-					<span style:width={`${end ? Math.min(100, ((position ?? 0) / end) * 100) : 0}%`}></span>
+	</header>
+
+	<div class="ctl-columns">
+		<section
+			class="ctl-panel"
+			aria-label={t.live.playlist}
+			onfocusin={() => (commands.scope = 'playlist')}
+		>
+			<div class="ctl-panel-head">
+				<h2>{t.live.playlist}</h2>
+				<div class="ctl-actions">
+					<select
+						class="ctl-select"
+						aria-label={t.live.choosePlaylist}
+						value={list?.id ?? ''}
+						onchange={(e) => choosePlaylist(e.currentTarget.value)}
+					>
+						<option value="">—</option>
+						{#each live.state.playlists as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+					</select>
+					<button class="ctl-btn" onclick={newPlaylist}
+						>{t.cmd.newPlaylist} <Kbd keys="Mod+Shift+n" /></button
+					>
 				</div>
-				<span class="mono">{clock(end)}</span>
 			</div>
-		{:else}
-			<p class="ctl-muted">{t.status.nothing}</p>
-		{/if}
-		<div class="transport">
-			<button class="ctl-btn" onclick={transport.previous}>⏮ <Kbd keys="p" /></button>
-			<button class="ctl-btn" onclick={() => transport.seekBy(-5)}
-				>-5 <Kbd keys="ArrowLeft" /></button
-			>
-			<button class="ctl-btn ctl-primary" onclick={transport.toggle}
-				>{target?.status.state === 'playing' ? '⏸' : '▶'} <Kbd keys="Space" /></button
-			>
-			<button class="ctl-btn" onclick={() => transport.seekBy(5)}
-				>+5 <Kbd keys="ArrowRight" /></button
-			>
-			<button class="ctl-btn" onclick={transport.next}>⏭ <Kbd keys="n" /></button>
-		</div>
-		<dl class="levels">
-			<dt>{t.live.volume}</dt>
-			<dd>{Math.round((target?.status.volume ?? 1) * 100)} % <Kbd keys="-" /><Kbd keys="+" /></dd>
-			<dt>{t.live.key}</dt>
-			<dd>{t.status.key(target?.status.semitones ?? 0)} <Kbd keys="[" /><Kbd keys="]" /></dd>
-		</dl>
-	</div>
-{/snippet}
-
-{#snippet workPanel()}
-	<div class="ctl-box fill">
-		<h2>{t.queue.title}</h2>
-		<ul class="ctl-rows">
-			{#each live.state.jobs
-				.filter((j) => j.state === 'active' || j.state === 'paused')
-				.slice(0, 12) as job (job.id)}
-				<li class="ctl-row mini">
-					<span class="title">{job.title}</span>
-					<div class="ctl-bar">
-						<span style:width={`${Math.round(jobProgress(job) * 100)}%`}></span>
-					</div>
-				</li>
+			{#if !list}
+				<p class="ctl-empty">{t.live.noPlaylist}</p>
+			{:else if items.length === 0}
+				<p class="ctl-empty">{t.live.empty}</p>
 			{:else}
-				<li class="ctl-muted">{t.queue.empty}</li>
-			{/each}
-		</ul>
-	</div>
-{/snippet}
+				<table class="ctl-table" aria-label={list.name}>
+					<thead>
+						<tr>
+							<th class="ctl-num">{t.live.columns.n}</th>
+							<th>{t.live.columns.song}</th>
+							<th>{t.live.singer}</th>
+							<th class="ctl-num">{t.live.key}</th>
+							<th>{t.live.columns.download}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each items as item, i (item.id)}
+							{@const c = content(item.content_id)}
+							{@const state = cache.get(item.content_id)?.state ?? 'absent'}
+							<tr
+								class:ctl-cursor={i === selection.cursor}
+								class:ctl-marked={selection.marked.has(item.id)}
+								class:ctl-current={item.id === target?.status.item_id}
+								aria-selected={i === selection.cursor}
+								onclick={() => (selection.cursor = i)}
+								ondblclick={() => transport.cue(item.id)}
+							>
+								<td class="ctl-num ctl-muted ctl-shrink"
+									>{#if item.id === target?.status.item_id}<span class="playing"
+											><Icon name="play" size={12} /></span
+										>{:else}{i + 1}{/if}</td
+								>
+								<td class="ctl-title"
+									>{c?.title ?? item.content_id}{#if c?.artist}<span class="ctl-muted ctl-after">
+											· {c.artist}</span
+										>{/if}</td
+								>
+								<td>
+									{#if editing === item.id}
+										<!-- svelte-ignore a11y_autofocus -->
+										<input
+											class="ctl-input singer"
+											autofocus
+											value={item.singer ?? ''}
+											aria-label={t.live.singer}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') {
+													void updateItem(item.id, { singer: e.currentTarget.value || null });
+													editing = null;
+												}
+												if (e.key === 'Escape') editing = null;
+												e.stopPropagation();
+											}}
+											onblur={() => (editing = null)}
+										/>
+									{:else}
+										{item.singer ?? ''}
+									{/if}
+								</td>
+								<td class="ctl-num"
+									>{item.semitones ? `${item.semitones > 0 ? '+' : ''}${item.semitones}` : ''}</td
+								>
+								<td
+									><span
+										class="ctl-badge {state === 'ready'
+											? 'ctl-ok'
+											: state === 'failed'
+												? 'ctl-bad'
+												: state === 'absent'
+													? ''
+													: 'ctl-warn'}">{t.live.cache[state]}</span
+									></td
+								>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+		</section>
 
-<Panels
-	name="live"
-	panels={[listPanel, nowPanel, workPanel]}
-	initial={prefs.value.layout === 'live' ? [0.45, 0.35, 0.2] : [0.34, 0.33, 0.33]}
-/>
+		<div>
+			<section class="ctl-panel now">
+				<div class="ctl-panel-head"><h2>{t.live.nowPlaying}</h2></div>
+				<div class="ctl-panel-body">
+					{#if song}
+						<p class="song">{song.title}</p>
+						<p class="ctl-muted">
+							{song.artist ?? ''}{#if current?.singer}
+								· {t.live.sungBy(current.singer)}{/if}
+						</p>
+					{:else}
+						<p class="song ctl-muted">{t.status.nothing}</p>
+					{/if}
+					<div class="time">
+						<span class="ctl-mono">{clock(position)}</span>
+						<div class="ctl-progress">
+							<div
+								class="ctl-track"
+								role="meter"
+								aria-label={t.live.position}
+								aria-valuemin={0}
+								aria-valuemax={end || 1}
+								aria-valuenow={position ?? 0}
+							>
+								<span style:width={`${end ? Math.min(100, ((position ?? 0) / end) * 100) : 0}%`}
+								></span>
+							</div>
+						</div>
+						<span class="ctl-mono">{clock(end || null)}</span>
+					</div>
+					<div class="transport">
+						<button
+							class="ctl-btn"
+							onclick={transport.previous}
+							aria-label={t.cmd.previous}
+							title={`${t.cmd.previous} (P)`}><Icon name="previous" size={16} /></button
+						>
+						<button
+							class="ctl-btn"
+							onclick={() => transport.seekBy(-5)}
+							aria-label={t.cmd.back}
+							title={`${t.cmd.back} (←)`}><Icon name="back" size={16} /></button
+						>
+						<button class="ctl-btn ctl-primary play" onclick={transport.toggle}
+							><Icon name={target?.status.state === 'playing' ? 'pause' : 'play'} size={16} />
+							{target?.status.state === 'playing' ? t.cmd.pause : t.cmd.play}
+							<Kbd keys="Space" /></button
+						>
+						<button
+							class="ctl-btn"
+							onclick={() => transport.seekBy(5)}
+							aria-label={t.cmd.forward}
+							title={`${t.cmd.forward} (→)`}
+						>
+							<Icon name="forward" size={16} /></button
+						>
+						<button
+							class="ctl-btn"
+							onclick={transport.next}
+							aria-label={t.cmd.next}
+							title={`${t.cmd.next} (N)`}><Icon name="next" size={16} /></button
+						>
+					</div>
+					<dl class="ctl-kv levels">
+						<dt>{t.live.volume}</dt>
+						<dd>
+							<span class="ctl-mono">{Math.round((target?.status.volume ?? 1) * 100)} %</span>
+							<span class="keys"><Kbd keys="-" /> <Kbd keys="+" /></span>
+						</dd>
+						<dt>{t.live.key}</dt>
+						<dd>
+							<span>{t.status.key(target?.status.semitones ?? 0)}</span>
+							<span class="keys"><Kbd keys="[" /> <Kbd keys="]" /></span>
+						</dd>
+					</dl>
+				</div>
+			</section>
+
+			<section class="ctl-panel">
+				<div class="ctl-panel-head"><h2>{t.live.upNext}</h2></div>
+				{#if after.length === 0}
+					<p class="ctl-empty">{t.home.nothingNext}</p>
+				{:else}
+					<table class="ctl-table">
+						<tbody>
+							{#each after as item, k (item.id)}
+								{@const c = content(item.content_id)}
+								<tr>
+									<td class="ctl-num ctl-muted ctl-shrink">{index + k + 2}</td>
+									<td class="ctl-title">{c?.title ?? item.content_id}</td>
+									<td class="ctl-muted">{item.singer ?? ''}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			</section>
+		</div>
+	</div>
+	<p class="ctl-hint">
+		<Kbd keys="Enter" />
+		{t.cmd.cue} · <Kbd keys="Shift+Enter" />
+		{t.cmd.play} · <Kbd keys="Alt+ArrowUp" />
+		<Kbd keys="Alt+ArrowDown" />
+		{t.live.move} · <Kbd keys="Delete" />
+		{t.cmd.remove} · <Kbd keys="s" />
+		{t.live.singer} · <Kbd keys="i" />
+		<Kbd keys="o" />
+		{t.live.entryExit}
+	</p>
+</div>
 
 <style>
-	.fill {
-		height: 100%;
-		overflow: auto;
-	}
-	.head {
-		display: flex;
-		gap: var(--s-2);
-		align-items: center;
-		margin-bottom: var(--s-2);
-	}
-	.head h2 {
-		margin: 0 auto 0 0;
-	}
-	.item {
-		grid-template-columns: 2rem minmax(8rem, 1fr) minmax(4rem, 0.5fr) 2.5rem auto;
-	}
-	.n {
-		color: var(--texto-3);
-		font-family: var(--font-data);
-	}
-	.title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		font-weight: 600;
-	}
-	.singer {
-		color: var(--ouro);
+	.playing {
+		display: inline-flex;
+		color: var(--accent-text);
 	}
 	input.singer {
 		width: 100%;
+		height: 1.75rem;
 	}
 	.now .song {
-		font-size: var(--t-2);
-		font-weight: 700;
-		margin: var(--s-2) 0 0;
+		font-size: var(--fs-xl);
+		font-weight: 600;
 	}
-	.progress {
+	.time {
 		display: grid;
 		grid-template-columns: auto 1fr auto;
 		align-items: center;
-		gap: var(--s-3);
-		margin: var(--s-4) 0;
+		gap: var(--sp-3);
+		margin: var(--sp-4) 0;
+		color: var(--text-2);
 	}
 	.transport {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s-2);
+		gap: var(--sp-2);
+	}
+	.transport .play {
+		flex: 1;
+		justify-content: center;
 	}
 	.levels {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: var(--s-2) var(--s-4);
-		margin-top: var(--s-4);
+		margin-top: var(--sp-4);
+		align-items: center;
 	}
 	.levels dd {
-		margin: 0;
-	}
-	.mini {
-		grid-template-columns: 1fr 5rem;
-	}
-	.mono {
-		font-family: var(--font-data);
+		display: flex;
+		gap: var(--sp-3);
+		align-items: center;
 	}
 	.keys {
-		margin-top: var(--s-3);
-		font-size: var(--t--1);
+		display: inline-flex;
+		gap: var(--sp-1);
 	}
 </style>

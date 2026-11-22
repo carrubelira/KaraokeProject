@@ -57,18 +57,12 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 - Cyrillic and Greek letters that some lyrics sites slip into the text to spot copies («dе»
   with a Cyrillic е) are read as the Latin letters they look like.
 
-- **A new look for the web app, «Noite»**: Galicia at night on a small planet of its own, in
-  3D. Its real relief lit by the moon, its coast, the lights of its towns as they look from the
-  air (population data from Kontur, CC BY 4.0) and the lighthouses of its coast sweeping the sea
-  at their real rhythm. The planet sways slowly and can be taken and turned; the first time, it
-  turns in from the open sea and the lights come on, cities first. It can be stopped, and holds
-  still with reduced motion.
-- The globe goes with you: it glides from one screen to the next and shows what each is about, a
-  party with the singers' colours and rockets, or how far the karaoke being made has got.
-- The songs show the one you point at big beside the list, with the line everyone knows and what
-  to do with it; a song without a cover gets a sky of its own.
-- New type, colours and shapes everywhere: white and the flag's sky blue on a blue-black night,
-  gold for what is lit, rounded panels that let the globe show through.
+- **A sober, traditional look for the control**: a fixed sidebar, IBM Plex type, one dark slate
+  theme and the same header, tables, panels and buttons in every view. Jobs say in plain words
+  what they are doing («Separando a voz», «Agardando un equipo libre»), with filters and a detail
+  panel with each step and the full error. The machines and the players each have a table, and
+  adding one shows the command to copy. The outline of Galicia stays as a faint line behind the
+  sidebar.
 
 ### Removed
 
@@ -83,7 +77,6 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
   packages.
 - Song stems are Opus at 48 kHz, no longer levelled when encoded: `karaoke.json` 1.3.0 carries the
   gain (`audio.gain_db`) and the player and the MP4 apply it.
-- The night globe shows Galicia in its real surroundings, its neighbours in half-light.
 
 - **Lyrics are timed by two models instead of one.** Each language's speech model now works with
   a model trained on songs in many languages, and their probabilities are averaged: each misses
@@ -110,6 +103,7 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ### Fixed
 
+- The `+` key (volume up, raise a job's priority) works and shows in the shortcut lists.
 - A one-letter word that opens a line («A avoa…» in the demo song) no longer lights up in the
   intro, seconds before its line: resting between two words of a line through a silence now has
   a small cost.

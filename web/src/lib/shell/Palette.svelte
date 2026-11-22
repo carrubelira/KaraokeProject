@@ -56,7 +56,7 @@
 				id: `node:${n.id}`,
 				title: n.name,
 				detail: n.kind === 'worker' ? t.palette.worker : t.palette.player,
-				run: () => goto(resolve(n.kind === 'worker' ? '/workers' : '/saidas'))
+				run: () => goto(resolve(n.kind === 'worker' ? '/equipos' : '/saidas'))
 			});
 		}
 		return list;
@@ -146,17 +146,16 @@
 		left: 50%;
 		transform: translateX(-50%);
 		width: min(44rem, calc(100vw - 2rem));
-		background: var(--fondo-2);
-		border: 1px solid var(--raia-forte);
+		background: var(--surface);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-panel);
-		box-shadow: var(--sombra);
 		overflow: hidden;
 	}
 	input {
 		width: 100%;
 		padding: var(--s-4) var(--s-5);
 		border: 0;
-		border-bottom: 1px solid var(--raia);
+		border-bottom: 1px solid var(--border);
 		background: transparent;
 		color: var(--texto);
 		font: inherit;
@@ -180,8 +179,8 @@
 		cursor: pointer;
 	}
 	li.active {
-		background: var(--ceo-fondo);
-		outline: 1px solid var(--ceo);
+		background: var(--accent-bg);
+		box-shadow: inset 3px 0 0 var(--accent);
 	}
 	.detail {
 		color: var(--texto-3);
@@ -194,7 +193,7 @@
 	.hint {
 		margin: 0;
 		padding: var(--s-2) var(--s-5);
-		border-top: 1px solid var(--raia);
+		border-top: 1px solid var(--border);
 		color: var(--texto-3);
 		font-size: var(--t--1);
 	}

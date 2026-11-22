@@ -31,6 +31,7 @@ function normaliseKey(key: string): string {
 
 /** A chord written by hand (`shift+j`, `Mod+k`) in canonical form (`Shift+J` → `Shift+j`). */
 export function parseChord(text: string): string {
+	if (text.trim() === '+') return '+';
 	const parts = text.split('+').map((p) => p.trim());
 	// "Shift++" means Shift and the plus key.
 	if (text.endsWith('++')) parts.splice(parts.length - 2, 2, '+');
@@ -84,12 +85,16 @@ export function label(shortcut: string, mac = IS_MAC): string {
 		Backspace: '⌫'
 	};
 	return parseShortcut(shortcut)
-		.map((chord) =>
-			chord
-				.split('+')
+		.map((chord) => {
+			// The plus key itself is the last part: "+" or "Shift++".
+			const parts = chord.endsWith('+')
+				? [...chord.slice(0, -2).split('+'), '+']
+				: chord.split('+');
+			return parts
+				.filter(Boolean)
 				.map((p) => names[p] ?? keys[p] ?? (p.length === 1 ? p.toUpperCase() : p))
-				.join(mac ? '' : '+')
-		)
+				.join(mac ? '' : '+');
+		})
 		.join(' ');
 }
 

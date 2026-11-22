@@ -78,23 +78,20 @@ next to its font.
 
 | Font | Copyright | Where |
 |---|---|---|
-| Unbounded | The Unbounded Project Authors | the app's menu, titles and names |
-| Figtree | The Figtree Project Authors | the app's text |
-| Martian Mono | The Martian Mono Project Authors (Evil Martians) | the app's times, counts and the party's room code |
+| IBM Plex Sans | The IBM Plex Project Authors (IBM Corp.) | the control's text |
+| IBM Plex Mono | The IBM Plex Project Authors (IBM Corp.) | the control's times, figures and shortcuts |
 | Atkinson Hyperlegible Next | The Atkinson Hyperlegible Next Project Authors (Braille Institute) | the `contraste` lyrics theme |
 | Nunito | The Nunito Project Authors | the `clasico` lyrics theme |
 | Inter | The Inter Project Authors | the `moderno` lyrics theme |
 
 ## Map data
 
-The night globe of the app (`web/src/lib/globe/`, built by `scripts/galicia_map.py`):
+The outline of Galicia behind the control's sidebar (`web/src/lib/shell/galicia.ts`, built by
+`scripts/galicia_map.py`):
 
 | Data | Source | Licence |
 |---|---|---|
-| The lights of Galicia and of the land around: people per 400 m hexagon, 2023 | [Kontur Population](https://data.humdata.org/dataset/kontur-population-spain) of Spain and [of Portugal](https://data.humdata.org/dataset/kontur-population-portugal) (Kontur, via HDX) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
-| The boundaries of Galicia, its four provinces and its neighbours at 1:10m | [Natural Earth](https://www.naturalearthdata.com/) | public domain |
-| The relief, the coast and the sea floor of the north-west of the Peninsula | [Mapzen Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) on AWS Open Data: SRTM (NASA, public domain), EU-DEM (produced using Copernicus data and information funded by the European Union) and ETOPO1 (NOAA, public domain) | free to use with this credit |
-| The lighthouses of the coast: position, rhythm and range | [Wikidata](https://www.wikidata.org/) | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| The boundaries of the four provinces of Galicia at 1:10m | [Natural Earth](https://www.naturalearthdata.com/) | public domain |
 
 ## Songs, lyrics and benchmark data
 

@@ -140,11 +140,11 @@ rápida y flexible; todo se puede hacer sin ratón.
 
 ### Teclado
 - **Paleta de comandos** `Ctrl/Cmd+K`: búsqueda difusa sobre acciones y entidades (canciones, listas,
-  workers, salidas). Muestra el atajo de cada acción.
+  equipos, salidas). Muestra el atajo de cada acción.
 - **Atajos directos** (fuera de campos de texto): `Espacio` reproducir o pausar, `N`/`P` siguiente y
   anterior, `←/→` ±5 s, `+/-` volumen, `[`/`]` tono, `j/k` moverse, `Enter` abrir, `Alt+↑/↓` reordenar,
   `Supr` quitar (con deshacer), `/` buscar, `g` + letra para cambiar de sección (`g b` biblioteca,
-  `g c` cola, `g w` workers, `g s` salidas), `?` chuleta.
+  `g t` traballos, `g e` equipos, `g s` salidas), `?` chuleta.
 - Selección múltiple (`Shift+j/k`, `x`) y acciones por lotes.
 - Atajos reasignables y guardados por operador, con ámbitos por panel (no chocan con el editor).
 - Deshacer y rehacer global (`Ctrl+Z`) en cola y listas, apoyado en el versionado optimista.
@@ -154,11 +154,11 @@ rápida y flexible; todo se puede hacer sin ratón.
 - Respuesta visual < 100 ms; **UI optimista**, reconciliada por WebSocket y revertida con aviso si
   falla.
 - Sin recargas ni sondeos; listas largas virtualizadas; búsqueda local instantánea.
-- Sin el globo 3D en las vistas de operación.
+- Sin animaciones ni WebGL: interfaz tradicional (barra lateral fija, tablas, paneles).
 
 ### Flexibilidad
-- **Paneles** redimensionables (cola · ahora suena · próximas · workers · salidas) con diseños
-  guardados (preparación, directo); modo denso; claro y oscuro.
+- Todas las vistas con las mismas piezas (cabecera, tabla, panel, cajón de detalle); modo
+  denso; tema oscuro sobrio (`decisiones/010`).
 - Barra de estado fija: canción, tiempo restante, reproductor, salidas, GPU; avisos no intrusivos.
 - Arrastrar archivos o pegar un enlace o una letra crea la tarea al momento.
 - WCAG AA, foco siempre visible; gl, es y en.
@@ -166,8 +166,9 @@ rápida y flexible; todo se puede hacer sin ratón.
 ### Funciones
 - Subida reanudable de vídeo y audio; enlace de YouTube.
 - Letras: `.txt`, editor y búsqueda en LRCLIB con candidatos (duración, si trae tiempos).
-- Cola con etapa, progreso, ETA y worker; reintentar, cancelar, repriorizar.
-- Workers: estado, GPU, VRAM, tarea y capacidades.
+- Traballos en lenguaje claro: estado, paso, progreso, tiempo restante y equipo; reintentar,
+  cancelar, repriorizar.
+- Equipos: estado, GPU, VRAM, tarea y capacidades; reproductores con pantallas y salidas.
 - Listas de producción y estado de cada contenido en el reproductor.
 - Órdenes de transporte, entrada y salida, volumen y tono.
 - Salidas y matriz de enrutado.

@@ -366,107 +366,118 @@
 <svelte:window onbeforeunload={(e) => dirty && e.preventDefault()} />
 
 <div class="ctl-page editor">
-	<div class="ctl-page-head">
+	<header class="ctl-page-head">
 		<h1>{t.editor.title}</h1>
-		<span class="ctl-muted">{manifest?.title ?? ''}</span>
-		<button class="ctl-btn ctl-primary" onclick={save} disabled={!dirty}
-			>{t.editor.save} <Kbd keys="Mod+s" /></button
-		>
-	</div>
+		<span class="ctl-sub">{manifest?.title ?? ''}</span>
+		<div class="ctl-actions">
+			<button class="ctl-btn ctl-primary" onclick={save} disabled={!dirty}
+				>{t.editor.save} <Kbd keys="Mod+s" /></button
+			>
+		</div>
+	</header>
 	{#if !doc}
-		<p class="ctl-muted">{t.common.loading}</p>
+		<section class="ctl-panel"><p class="ctl-empty">{t.common.loading}</p></section>
 	{:else}
-		<div class="layout">
-			<ol class="ctl-rows lines ctl-box" aria-label="Liñas">
-				{#each doc.lines as l, i (l.id)}
-					<li
-						class="ctl-row"
-						class:ctl-cursor={i === lineIndex}
-						onclick={() => selectLine(i)}
-						onkeydown={() => {}}
-						role="option"
-						aria-selected={i === lineIndex}
-					>
-						<span class="ctl-muted mono">{clock(l.start)}</span>
-						<span>{l.words.map((w) => w.text).join(' ')}</span>
-					</li>
-				{/each}
-			</ol>
-			<section class="ctl-box detail">
-				{#if line}
-					<Waveform
-						buffer={vocals}
-						{from}
-						{to}
-						words={line.words.map((w) => ({
-							text: w.text,
-							start: w.start,
-							end: w.end,
-							doubtful: (w.confidence ?? 1) < DOUBTFUL
-						}))}
-						selected={wordIndex}
-						{time}
-						{playing}
-						onseek={(s) => engine?.seek(s)}
-						onselect={(i) => (wordIndex = i)}
-						ondrag={(i, edge, delta, done) => {
-							if (!history) return;
-							const next =
-								delta === null
-									? null
-									: moveWordEdge(history.current, { line: lineIndex, word: i }, edge, delta);
-							if (done) {
-								dragging = null;
-								if (next) edit(next);
-							} else dragging = next;
-						}}
-					/>
-					<p class="words">
-						{#each line.words as w, j (j)}
-							<span
-								class:selected={j === wordIndex}
-								class:doubtful={(w.confidence ?? 1) < DOUBTFUL}
+		<div class="layout ctl-columns">
+			<section class="ctl-panel lines">
+				<div class="ctl-panel-head"><h2>{t.editor.lines}</h2></div>
+				<table class="ctl-table" aria-label={t.editor.lines}>
+					<tbody>
+						{#each doc.lines as l, i (l.id)}
+							<tr
+								class:ctl-cursor={i === lineIndex}
+								aria-selected={i === lineIndex}
+								onclick={() => selectLine(i)}
 							>
-								{#if editing && j === wordIndex}
-									<!-- svelte-ignore a11y_autofocus -->
-									<input
-										class="ctl-field"
-										autofocus
-										value={w.text}
-										onkeydown={(e) => {
-											e.stopPropagation();
-											if (e.key === 'Enter' && doc) {
-												edit(setWordText(doc, { line: lineIndex, word: j }, e.currentTarget.value));
-												editing = false;
-											}
-											if (e.key === 'Escape') editing = false;
-										}}
-									/>
-								{:else}{w.text}{/if}
-							</span>
+								<td class="ctl-num ctl-muted ctl-shrink">{clock(l.start)}</td>
+								<td>{l.words.map((w) => w.text).join(' ')}</td>
+							</tr>
 						{/each}
+					</tbody>
+				</table>
+			</section>
+			<section class="ctl-panel detail">
+				<div class="ctl-panel-head"><h2>{t.editor.line(lineIndex + 1)}</h2></div>
+				<div class="ctl-panel-body">
+					{#if line}
+						<Waveform
+							buffer={vocals}
+							{from}
+							{to}
+							words={line.words.map((w) => ({
+								text: w.text,
+								start: w.start,
+								end: w.end,
+								doubtful: (w.confidence ?? 1) < DOUBTFUL
+							}))}
+							selected={wordIndex}
+							{time}
+							{playing}
+							onseek={(s) => engine?.seek(s)}
+							onselect={(i) => (wordIndex = i)}
+							ondrag={(i, edge, delta, done) => {
+								if (!history) return;
+								const next =
+									delta === null
+										? null
+										: moveWordEdge(history.current, { line: lineIndex, word: i }, edge, delta);
+								if (done) {
+									dragging = null;
+									if (next) edit(next);
+								} else dragging = next;
+							}}
+						/>
+						<p class="words">
+							{#each line.words as w, j (j)}
+								<span
+									class:selected={j === wordIndex}
+									class:doubtful={(w.confidence ?? 1) < DOUBTFUL}
+								>
+									{#if editing && j === wordIndex}
+										<!-- svelte-ignore a11y_autofocus -->
+										<input
+											class="ctl-input"
+											autofocus
+											value={w.text}
+											onkeydown={(e) => {
+												e.stopPropagation();
+												if (e.key === 'Enter' && doc) {
+													edit(
+														setWordText(doc, { line: lineIndex, word: j }, e.currentTarget.value)
+													);
+													editing = false;
+												}
+												if (e.key === 'Escape') editing = false;
+											}}
+										/>
+									{:else}{w.text}{/if}
+								</span>
+							{/each}
+						</p>
+						{#if word}<p class="ctl-muted ctl-mono">
+								{clock(word.start)} → {word.end.toFixed(2)} s
+							</p>{/if}
+						{#if mode === 'tap'}<p class="ctl-badge ctl-warn">
+								Tap {taps.length}/{line.words.length} · <Kbd keys="Space" />
+							</p>{/if}
+					{/if}
+					{#if problems.length}<ul class="problems">
+							{#each problems as p (p)}<li>{p}</li>{/each}
+						</ul>{/if}
+					<div class="preview">
+						<LyricsView {doc} {theme} clock={{ now: () => time }} />
+					</div>
+					<p class="ctl-hint">
+						<Kbd keys="Space" />
+						{t.editor.play} · <Kbd keys="l" /> ⟳ · <Kbd keys="t" /> Tap · <Kbd keys="j" />/<Kbd
+							keys="k"
+						/> · ←/→ ·
+						<Kbd keys="," />/<Kbd keys="." /> ±50 ms · <Kbd keys="Shift+," />/<Kbd keys="Alt+." /> · <Kbd
+							keys="Enter"
+						/>
+						{t.cmd.edit} · <Kbd keys="u" /> ?
 					</p>
-					{#if word}<p class="ctl-muted mono">{clock(word.start)} → {word.end.toFixed(2)} s</p>{/if}
-					{#if mode === 'tap'}<p class="ctl-pill ctl-warn">
-							Tap {taps.length}/{line.words.length} · <Kbd keys="Space" />
-						</p>{/if}
-				{/if}
-				{#if problems.length}<ul class="problems">
-						{#each problems as p (p)}<li>{p}</li>{/each}
-					</ul>{/if}
-				<div class="preview">
-					<LyricsView {doc} {theme} clock={{ now: () => time }} />
 				</div>
-				<p class="ctl-muted keys">
-					<Kbd keys="Space" />
-					{t.editor.play} · <Kbd keys="l" /> ⟳ · <Kbd keys="t" /> Tap · <Kbd keys="j" />/<Kbd
-						keys="k"
-					/> · ←/→ ·
-					<Kbd keys="," />/<Kbd keys="." /> ±50 ms · <Kbd keys="Shift+," />/<Kbd keys="Alt+." /> · <Kbd
-						keys="Enter"
-					/>
-					{t.cmd.edit} · <Kbd keys="u" /> ?
-				</p>
 			</section>
 		</div>
 	{/if}
@@ -476,49 +487,40 @@
 	.layout {
 		display: grid;
 		grid-template-columns: minmax(16rem, 1fr) minmax(0, 2.2fr);
-		gap: var(--s-4);
-		height: calc(100vh - 11rem);
+		gap: var(--sp-4);
+		height: calc(100dvh - 9rem);
 	}
-	.lines {
-		overflow: auto;
-	}
-	.lines .ctl-row {
-		grid-template-columns: 4rem 1fr;
-	}
+	.lines,
 	.detail {
 		overflow: auto;
 	}
 	.words {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--s-2);
-		font-size: var(--t-1);
+		gap: var(--sp-2);
+		margin-top: var(--sp-3);
+		font-size: var(--fs-l);
 	}
 	.words span {
-		padding: 0 var(--s-1);
-		border-radius: var(--radius-control);
+		padding: 0 var(--sp-1);
+		border-radius: var(--radius);
 	}
 	.words .selected {
-		outline: 2px solid var(--ceo);
+		outline: 2px solid var(--accent);
 	}
 	.words .doubtful {
-		text-decoration: underline wavy var(--erro);
+		text-decoration: underline wavy var(--bad);
 	}
 	.preview {
 		position: relative;
 		height: 14rem;
-		margin-top: var(--s-4);
-		border-radius: var(--radius-panel);
+		margin-top: var(--sp-4);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
 		overflow: hidden;
 		background: #0b0b12;
 	}
 	.problems {
-		color: var(--erro);
-	}
-	.mono {
-		font-family: var(--font-data);
-	}
-	.keys {
-		font-size: var(--t--1);
+		color: #f1a5a3;
 	}
 </style>

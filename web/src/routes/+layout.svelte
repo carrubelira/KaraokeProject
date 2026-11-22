@@ -1,6 +1,6 @@
 <script lang="ts">
 	/*
-	 * The control UI (plan v4 §7): sign-in, the top bar, the status bar, the command palette, the
+	 * The control UI (plan v4 §7): sign-in, the sidebar, the status bar, the command palette, the
 	 * cheat sheet and notices around every section; every key goes through the command registry.
 	 * Files dropped anywhere and links pasted anywhere become karaokes.
 	 */
@@ -23,10 +23,10 @@
 	import { intake, looksLikeLink } from '#lib/shell/intake.svelte.js';
 	import Login from '#lib/shell/Login.svelte';
 	import Palette from '#lib/shell/Palette.svelte';
+	import Sidebar from '#lib/shell/Sidebar.svelte';
 	import { prefs } from '#lib/shell/prefs.svelte.js';
 	import StatusBar from '#lib/shell/StatusBar.svelte';
 	import Toasts from '#lib/shell/Toasts.svelte';
-	import TopBar from '#lib/shell/TopBar.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -106,7 +106,7 @@
 {:else if !session}
 	<Login onsession={start} />
 {:else}
-	<TopBar />
+	<Sidebar operator={session.name} />
 	<main class="app">{@render children()}</main>
 	<StatusBar />
 	<Palette />
@@ -118,24 +118,25 @@
 
 <style>
 	.boot {
-		padding: var(--s-6);
-		color: var(--texto-3);
+		padding: var(--sp-6);
+		color: var(--text-3);
 	}
 	.app {
-		padding-bottom: 2.6rem;
+		margin-left: var(--sidebar);
+		padding-bottom: var(--statusbar);
+		min-height: 100dvh;
 	}
 	.offline {
 		position: fixed;
-		top: 3.4rem;
-		left: 50%;
-		transform: translateX(-50%);
+		top: var(--sp-3);
+		left: calc(var(--sidebar) + var(--sp-6));
 		z-index: 30;
 		margin: 0;
-		padding: var(--s-1) var(--s-4);
-		border-radius: var(--radius-pill);
-		background: var(--erro);
-		color: var(--fondo);
-		font-weight: 700;
+		padding: var(--sp-1) var(--sp-3);
+		border: 1px solid var(--bad);
+		border-radius: var(--radius);
+		background: var(--surface);
+		color: var(--text);
 	}
 	.drop {
 		position: fixed;
@@ -143,10 +144,10 @@
 		z-index: 60;
 		display: grid;
 		place-items: center;
-		background: rgb(4 7 12 / 0.8);
-		border: 3px dashed var(--ceo);
-		color: var(--ceo);
-		font-size: var(--t-3);
+		background: rgb(27 30 34 / 0.85);
+		border: 2px dashed var(--accent);
+		color: var(--text);
+		font-size: var(--fs-xl);
 		pointer-events: none;
 	}
 </style>

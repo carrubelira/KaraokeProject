@@ -1,94 +1,74 @@
 /*
- * Design tokens. The app is dark only: it is used at night and on a TV. The world is Galicia at
- * night seen from above the Atlantic: a blue-black sea and sky, white for words and for the
- * main action of each screen, the sky blue of the Galician flag for whatever is selected or has
- * the focus (and for the coast on the globe), and the warm gold of a lit window for what is on:
- * sung words, what is happening now, the lights of the towns. The singers' colours stand for
- * people in party mode and are never gold or blue.
+ * Design tokens of the control UI: a sober slate-grey dark theme. One accent (Atlantic blue) for
+ * focus and selection; green, amber and red only in small status marks. No gradients, no glow.
  */
 :root {
 	color-scheme: dark;
 
-	--fondo: #04070c;
-	--fondo-2: #0b131c;
-	--fondo-3: #020406;
-	/* Surfaces that float over the globe: the night shows through them. */
-	--panel: rgb(13 22 32 / 0.74);
-	--panel-claro: rgb(255 255 255 / 0.055);
-	--raia: rgb(255 255 255 / 0.1);
-	--raia-forte: rgb(255 255 255 / 0.22);
-	--texto: #f1f5f8;
-	--texto-2: #a6b5c3;
-	--texto-3: #71828f;
-	/* Selected and focused: the sky blue of the flag, bright enough for the night. */
-	--ceo: #5cc8ff;
-	--ceo-fondo: rgb(92 200 255 / 0.13);
-	/* Lit: sung words, what is happening now, a town's lights. */
-	--ouro: #ffd38a;
-	--ouro-forte: #ffb648;
-	/* The one main action of a screen: white on the night. */
-	--accion: #f1f5f8;
-	--accion-texto: #04070c;
-	--erro: #ff6b7d;
-	/* The still drawing of the globe, before the real one is running. */
-	--mar: #06111d;
-	--terra: #0e2236;
+	--bg: #1b1e22;
+	--surface: #23272c;
+	--surface-2: #2b3036;
+	--surface-hover: #30363d;
+	--border: #3a4047;
+	--border-strong: #4a525b;
 
-	/* People in party mode: never gold (lit) nor sky blue (selected). */
-	--cantante-1: #ff73a8;
-	--cantante-2: #5fe39b;
-	--cantante-3: #ff9a4d;
-	--cantante-4: #c7e85a;
+	--text: #e6e8eb;
+	--text-2: #b4bbc3;
+	--text-3: #959ea8;
 
-	--font-display: 'Unbounded', 'Figtree', system-ui, sans-serif;
-	--font-text: 'Figtree', system-ui, sans-serif;
-	--font-data: 'Martian Mono', ui-monospace, monospace;
+	--accent: #4c8dc9;
+	--accent-strong: #2f6ea8;
+	--accent-text: #8ec0ec;
+	--accent-bg: rgb(76 141 201 / 0.16);
 
-	/* Fluid type from a 360 px phone to a 1920 px TV: 16 px → 20 px base, ratio 1.25. The
-	   display steps are for the wide display face: big words, never long lines. */
-	--t--1: clamp(0.8125rem, 0.7692rem + 0.1923vw, 1rem);
-	--t-0: clamp(1rem, 0.9423rem + 0.2564vw, 1.25rem);
-	--t-1: clamp(1.2rem, 1.1308rem + 0.3077vw, 1.5rem);
-	--t-2: clamp(1.4rem, 1.2962rem + 0.4615vw, 1.85rem);
-	--t-3: clamp(1.7rem, 1.5269rem + 0.7692vw, 2.45rem);
-	--t-4: clamp(2.1rem, 1.7769rem + 1.4359vw, 3.5rem);
-	--t-5: clamp(2.6rem, 2.0462rem + 2.4615vw, 5rem);
-	--t-6: clamp(3rem, 2.1923rem + 3.5897vw, 6.5rem);
-	--t-7: clamp(3.4rem, 2.0154rem + 6.1538vw, 9.4rem);
+	--ok: #4caf7a;
+	--warn: #d9a441;
+	--bad: #e0625e;
 
-	--s-1: 0.25rem;
-	--s-2: 0.5rem;
-	--s-3: 0.75rem;
-	--s-4: 1rem;
-	--s-5: 1.5rem;
-	--s-6: 2rem;
-	--s-7: 3rem;
-	--s-8: 4rem;
-	--s-9: 6rem;
-	--s-10: 8rem;
+	--font-sans: 'IBM Plex Sans', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	--font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
 
-	--page-x: clamp(1rem, 4vw, 4rem);
-	--page-max: 100rem;
-	/* TV title-safe area: 5 % of each side. */
-	--safe-x: 5vw;
-	--safe-y: 5vh;
+	--fs-s: 0.8125rem;
+	--fs-m: 0.875rem;
+	--fs-l: 1rem;
+	--fs-xl: 1.25rem;
 
-	/* Shape: everything is rounded. Fields and small controls, rows and pictures, panels;
-	   buttons and people's names are pills. */
-	--radius-control: 0.75rem;
-	--radius-row: 1rem;
-	--radius-panel: 1.5rem;
-	--radius-pill: 999px;
-	--target: 3rem;
+	--sp-1: 0.25rem;
+	--sp-2: 0.5rem;
+	--sp-3: 0.75rem;
+	--sp-4: 1rem;
+	--sp-5: 1.5rem;
+	--sp-6: 2rem;
 
-	/* A soft lift for what floats, and the ring of what has the focus. */
-	--sombra: 0 1.5rem 3.5rem -1.5rem rgb(0 0 0 / 0.7);
-	--brillo: inset 0 1px 0 rgb(255 255 255 / 0.08);
+	--radius: 6px;
+	--sidebar: 15rem;
+	--statusbar: 2rem;
 
-	/* Strong ease-out for anything the visitor triggers; in-out for things moving on screen. */
-	--ease: cubic-bezier(0.23, 1, 0.32, 1);
-	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-	--dur-1: 140ms;
-	--dur-2: 240ms;
-	--dur-3: 420ms;
+	/* Names the lyrics component, the editor and the lyrics test page still use. */
+	--fondo: var(--bg);
+	--fondo-2: var(--surface);
+	--fondo-3: #15171a;
+	--raia: var(--border);
+	--raia-forte: var(--border-strong);
+	--texto: var(--text);
+	--texto-2: var(--text-2);
+	--texto-3: var(--text-3);
+	--ceo: var(--accent);
+	--ouro: var(--warn);
+	--erro: var(--bad);
+	--font-text: var(--font-sans);
+	--font-data: var(--font-mono);
+	--t--1: var(--fs-s);
+	--t-0: var(--fs-m);
+	--t-1: var(--fs-l);
+	--t-2: var(--fs-xl);
+	--s-1: var(--sp-1);
+	--s-2: var(--sp-2);
+	--s-3: var(--sp-3);
+	--s-4: var(--sp-4);
+	--s-5: var(--sp-5);
+	--s-6: var(--sp-6);
+	--radius-control: var(--radius);
+	--radius-panel: var(--radius);
+	--radius-pill: var(--radius);
 }

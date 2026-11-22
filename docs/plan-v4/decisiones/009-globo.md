@@ -1,7 +1,7 @@
 # 009 · El globo de noche, con Galicia en su contexto real
 
 - **Fecha**: 20/11/2026
-- **Estado**: aceptada (sustituye la parte del mapa de `plan-v3/decisiones/017`)
+- **Estado**: sustituida por `010` (el control ya no tiene globo)
 - **Afecta a**: web (inicio)
 
 ## Contexto

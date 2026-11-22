@@ -74,17 +74,22 @@
 </script>
 
 <div class="ctl-page">
-	<div class="ctl-page-head">
+	<header class="ctl-page-head">
 		<h1>{t.outputs.title}</h1>
-		<span class="ctl-muted">{target?.name ?? t.status.noPlayer}</span>
-		<button class="ctl-btn ctl-primary" onclick={save} disabled={!draft}
-			>{t.outputs.save} <Kbd keys="Mod+s" /></button
-		>
-	</div>
+		<span class="ctl-sub">{target?.name ?? t.status.noPlayer}</span>
+		<div class="ctl-actions">
+			<button class="ctl-btn ctl-primary" onclick={save} disabled={!draft}
+				>{t.outputs.save} <Kbd keys="Mod+s" /></button
+			>
+		</div>
+	</header>
 	{#if target && draft}
-		<section class="ctl-box">
-			<h2>{t.outputs.matrix}</h2>
-			<table class="ctl-matrix">
+		<section class="ctl-panel">
+			<div class="ctl-panel-head">
+				<h2>{t.outputs.matrix}</h2>
+				<span class="ctl-muted">{t.outputs.matrixHelp}</span>
+			</div>
+			<table class="ctl-table">
 				<thead>
 					<tr>
 						<th>{t.outputs.audio}</th>
@@ -92,14 +97,14 @@
 						{#each TRACKS as track (track)}<th>{t.outputs[track]}</th>{/each}
 						<th>{t.outputs.calibration}</th>
 						<th>{t.outputs.policy}</th>
-						<th>{t.outputs.sync}</th>
+						<th class="ctl-num">{t.outputs.sync}</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each audio as device (device.id)}
 						<tr>
 							<td
-								>{device.name}{#if device.bluetooth}<br /><span class="ctl-pill ctl-warn"
+								>{device.name}{#if device.bluetooth}<br /><span class="ctl-badge ctl-warn"
 										>{t.outputs.bluetooth}</span
 									>{/if}</td
 							>
@@ -123,7 +128,7 @@
 									/>
 									{#if r}
 										<input
-											class="ctl-field num"
+											class="ctl-input ctl-num-input"
 											type="number"
 											step="0.5"
 											bind:value={r.gain_db}
@@ -131,7 +136,7 @@
 											title={t.outputs.gain}
 										/>
 										<input
-											class="ctl-field num"
+											class="ctl-input ctl-num-input"
 											type="number"
 											step="1"
 											min="0"
@@ -144,7 +149,7 @@
 							{/each}
 							<td
 								><input
-									class="ctl-field num"
+									class="ctl-input ctl-num-input"
 									type="number"
 									step="1"
 									value={draft.calibration.audio_ms[device.id] ?? 0}
@@ -156,7 +161,7 @@
 							>
 							<td>
 								<select
-									class="ctl-field"
+									class="ctl-select"
 									value={draft.routing.policies[device.id] ?? ''}
 									onchange={(e) => {
 										if (!draft) return;
@@ -172,7 +177,7 @@
 									<option value="continue">{t.outputs.continue}</option>
 								</select>
 							</td>
-							<td class="mono ctl-muted">
+							<td class="ctl-num ctl-muted">
 								{#if target.status.sync[`${device.id}.correction_ppm`] !== undefined}{target.status.sync[
 										`${device.id}.correction_ppm`
 									].toFixed(1)} ppm{/if}
@@ -182,9 +187,17 @@
 				</tbody>
 			</table>
 		</section>
-		<section class="ctl-box">
-			<h2>{t.outputs.displays}</h2>
-			<table class="ctl-matrix">
+		<section class="ctl-panel">
+			<div class="ctl-panel-head"><h2>{t.outputs.displays}</h2></div>
+			<table class="ctl-table">
+				<thead>
+					<tr>
+						<th>{t.outputs.display}</th>
+						<th>{t.outputs.shows}</th>
+						<th>{t.outputs.theme}</th>
+						<th class="ctl-num">{t.outputs.calibration}</th>
+					</tr>
+				</thead>
 				<tbody>
 					{#each displays as display (display.id)}
 						{@const s = screen(display.id)}
@@ -197,7 +210,7 @@
 							>
 							<td>
 								<select
-									class="ctl-field"
+									class="ctl-select"
 									value={s.layout}
 									onchange={(e) =>
 										setScreen(display.id, { layout: e.currentTarget.value as Screen['layout'] })}
@@ -210,7 +223,7 @@
 							</td>
 							<td>
 								<select
-									class="ctl-field"
+									class="ctl-select"
 									value={s.theme}
 									onchange={(e) => setScreen(display.id, { theme: e.currentTarget.value })}
 									aria-label={t.outputs.theme}
@@ -220,7 +233,7 @@
 							</td>
 							<td
 								><input
-									class="ctl-field num"
+									class="ctl-input ctl-num-input"
 									type="number"
 									step="1"
 									value={draft.calibration.display_ms[display.id] ?? 0}
@@ -228,7 +241,7 @@
 										draft &&
 										(draft.calibration.display_ms[display.id] = Number(e.currentTarget.value))}
 									aria-label={t.outputs.calibration}
-								/> ms</td
+								/></td
 							>
 						</tr>
 					{/each}
@@ -236,22 +249,18 @@
 			</table>
 		</section>
 	{:else}
-		<p class="ctl-muted">{t.status.noPlayer}</p>
+		<section class="ctl-panel"><p class="ctl-empty">{t.outputs.noPlayer}</p></section>
 	{/if}
 </div>
 
 <style>
 	section {
-		margin-bottom: var(--s-4);
 		overflow-x: auto;
 	}
 	.cell {
 		white-space: nowrap;
 	}
-	.num {
-		width: 5.5rem;
-	}
-	.mono {
-		font-family: var(--font-data);
+	.cell input + input {
+		margin-left: var(--sp-1);
 	}
 </style>

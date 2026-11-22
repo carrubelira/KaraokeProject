@@ -4,14 +4,19 @@ import { plural } from './plural';
 export const gl = {
 	app: {
 		name: 'Karaoke · control',
+		product: 'Karaoke',
+		productSub: 'Consola de control',
 		signIn: 'Entrar',
 		signInTitle: 'Control do karaoke',
 		tokenLabel: 'Token de operador',
-		tokenHint: 'Dácheo `karaoke-server operator add «o teu nome»` no servidor.',
+		tokenHint: 'Dácheo esta orde no servidor:',
+		tokenCommand: 'karaoke-server operator add «o teu nome»',
 		badToken: 'Ese token non é dun operador.',
-		signOut: 'Saír',
+		signOut: 'Pechar a sesión',
+		connected: 'Servidor conectado',
+		disconnected: 'Sen conexión co servidor',
 		reconnecting: 'Sen conexión co servidor; volvendo conectar…',
-		dropHere: 'Solta para crear karaokes',
+		dropHere: 'Solta os ficheiros para crear karaokes',
 		pasted: 'Ligazón pegada: a crear o karaoke',
 		failed: (what: string) => `Non se puido: ${what}`,
 		undone: (what: string) => `Desfeito: ${what}`,
@@ -23,22 +28,23 @@ export const gl = {
 		home: 'Inicio',
 		live: 'Directo',
 		library: 'Biblioteca',
-		queue: 'Cola',
-		workers: 'Workers',
-		outputs: 'Saídas',
 		create: 'Crear',
-		settings: 'Axustes'
+		jobs: 'Traballos',
+		machines: 'Equipos',
+		outputs: 'Saídas',
+		settings: 'Axustes',
+		groups: { session: 'Sesión', content: 'Contido', system: 'Sistema' }
 	},
 	groups: {
 		navigation: 'Ir a',
 		transport: 'Reprodución',
 		playlist: 'Lista',
-		queue: 'Cola',
+		jobs: 'Traballos',
 		library: 'Biblioteca',
 		view: 'Vista',
 		general: 'Xeral',
 		outputs: 'Saídas',
-		workers: 'Workers'
+		machines: 'Equipos'
 	},
 	cmd: {
 		palette: 'Paleta de ordes',
@@ -61,16 +67,15 @@ export const gl = {
 		stop: 'Parar',
 		search: 'Buscar',
 		density: 'Modo denso',
-		theme: 'Claro ou escuro',
-		layoutPrep: 'Disposición: preparación',
-		layoutLive: 'Disposición: directo',
 		down: 'Abaixo',
 		up: 'Arriba',
-		open: 'Abrir',
 		toggleSelect: 'Marcar',
 		selectDown: 'Estender a selección abaixo',
 		selectUp: 'Estender a selección arriba',
 		selectAll: 'Marcar todo',
+		details: 'Ver o detalle',
+		filterNext: 'Filtro seguinte',
+		filterPrevious: 'Filtro anterior',
 		addToPlaylist: 'Engadir á lista',
 		addNext: 'Engadir despois da actual',
 		remove: 'Quitar da lista',
@@ -87,10 +92,9 @@ export const gl = {
 		export: 'Exportar MP4',
 		edit: 'Corrixir a letra',
 		trash: 'Mandar á papeleira',
-		enrolWorker: 'Novo token de worker',
-		enrolPlayer: 'Novo token de reprodutor',
-		newPlaylist: 'Nova lista',
-		createFromClipboard: 'Crear desde o portapapeis'
+		enrolWorker: 'Engadir un equipo de proceso',
+		enrolPlayer: 'Engadir un reprodutor',
+		newPlaylist: 'Nova lista'
 	},
 	palette: {
 		label: 'Paleta de ordes',
@@ -98,78 +102,163 @@ export const gl = {
 		empty: 'Nada coincide',
 		song: 'Canción',
 		playlist: 'Lista',
-		worker: 'Worker',
+		worker: 'Equipo',
 		player: 'Reprodutor',
 		hint: '↑↓ para moverte · ↵ para facelo · Esc para pechar'
 	},
 	cheatsheet: {
 		title: 'Atallos de teclado',
-		rebind: 'Cambiar en Axustes',
+		rebind: 'Pódense cambiar en Axustes.',
 		pending: (key: string) => `${key}…`
 	},
 	status: {
+		label: 'Estado',
 		nothing: 'Non soa nada',
 		playing: 'Soando',
 		paused: 'En pausa',
 		loading: 'Cargando',
 		waiting: 'Agardando a canción',
 		idle: 'Parado',
-		remaining: (time: string) => `quedan ${time}`,
 		noPlayer: 'Sen reprodutor',
 		offline: 'desconectado',
-		key: (n: number) => (n === 0 ? 'ton orixinal' : `${n > 0 ? '+' : ''}${n} st`),
-		gpu: (util: number, vram: string) => `GPU ${util} % · ${vram}`,
-		lastCommand: (ms: string) => `orde en ${ms} ms`
+		masterLost: 'Perdeuse a saída mestra',
+		key: (n: number) => (n === 0 ? 'Ton orixinal' : `${n > 0 ? '+' : ''}${n} semitons`),
+		gpu: (util: number, vram: string) => `GPU ${util} % · ${vram}`
+	},
+	home: {
+		title: 'Inicio',
+		now: 'Agora soa',
+		next: 'Seguinte na lista',
+		nothingNext: 'Non hai nada despois.',
+		inList: (n: number) =>
+			plural(n, 'gl', { one: '# canción na lista', other: '# cancións na lista' }),
+		jobs: 'Traballos en curso',
+		noJobs: 'Non se está facendo nada.',
+		failed: (n: number) =>
+			n ? plural(n, 'gl', { one: '# fallou', other: '# fallaron' }) : 'Ningún fallado',
+		machines: 'Equipos de proceso',
+		workersOnline: (busy: number) =>
+			busy ? plural(busy, 'gl', { one: '# traballando', other: '# traballando' }) : 'Todos libres',
+		players: (on: number, all: number) => `Reprodutores: ${on} de ${all}`,
+		recent: 'Últimos traballos'
 	},
 	library: {
 		title: 'Biblioteca',
+		new: 'Crear karaoke',
 		search: 'Buscar por título, artista ou idioma',
 		empty: 'Aínda non hai cancións: arrastra unha aquí ou vai a Crear.',
+		noMatch: 'Ningunha canción coincide coa busca.',
 		count: (n: number) => plural(n, 'gl', { one: '# canción', other: '# cancións' }),
-		version: (v: number) => `v${v}`,
+		marked: (n: number) => plural(n, 'gl', { one: '# marcada', other: '# marcadas' }),
 		added: (title: string) => `«${title}» na lista`,
-		trash: 'Papeleira',
-		restore: 'Recuperar'
+		yes: 'Si',
+		columns: {
+			title: 'Título',
+			artist: 'Artista',
+			language: 'Idioma',
+			duration: 'Duración',
+			version: 'Versión',
+			inList: 'Na lista'
+		}
 	},
-	queue: {
-		title: 'Cola',
-		empty: 'Non hai traballos.',
-		states: {
-			active: 'En marcha',
+	jobs: {
+		title: 'Traballos',
+		summary: (active: number, failed: number) =>
+			`${plural(active, 'gl', { one: '# en curso', other: '# en curso' })} · ${plural(failed, 'gl', { one: '# fallido', other: '# fallidos' })}`,
+		empty: 'Non hai traballos. Crea un karaoke para empezar.',
+		emptyFilter: 'Ningún traballo con este filtro.',
+		filter: 'Filtro',
+		filterHint: 'cambia o filtro',
+		filters: { all: 'Todos', active: 'En curso', failed: 'Fallidos', done: 'Feitos' },
+		columns: {
+			title: 'Título',
+			state: 'Estado',
+			step: 'Paso actual',
+			progress: 'Progreso',
+			machine: 'Equipo',
+			left: 'Queda',
+			created: 'Creado'
+		},
+		status: {
+			queued: 'Na cola',
+			running: 'Procesando',
 			paused: 'En pausa',
 			done: 'Feito',
 			failed: 'Fallou',
 			cancelled: 'Cancelado'
 		},
-		tasks: {
-			waiting: 'agarda',
-			ready: 'lista',
-			leased: 'asignada',
-			running: 'traballando',
-			done: 'feita',
-			failed: 'fallou',
-			cancelled: 'cancelada',
-			paused: 'en pausa'
+		steps: {
+			waiting: 'Agardando un equipo libre',
+			download: 'Descargando o vídeo',
+			decode: 'Preparando o audio',
+			separate: 'Separando a voz',
+			transcribe: 'Transcribindo',
+			align: 'Aliñando a letra',
+			encode: 'Codificando',
+			upload: 'Gardando o resultado',
+			make: 'Facendo o karaoke',
+			package: 'Empaquetando',
+			render: 'Exportando o MP4'
 		},
-		kinds: { fetch: 'Descargar', make: 'Facer o karaoke', package: 'Empaquetar', render: 'MP4' },
-		eta: (time: string) => `${time} restantes`,
-		on: (worker: string) => `en ${worker}`,
+		taskKinds: {
+			fetch: 'Descargar o vídeo',
+			make: 'Facer o karaoke',
+			package: 'Empaquetar',
+			render: 'Exportar o MP4'
+		},
+		stepStates: {
+			done: 'Feito',
+			current: 'En curso',
+			pending: 'Pendente',
+			failed: 'Fallou',
+			cancelled: 'Cancelado'
+		},
+		kind: 'Tipo',
+		kinds: { create: 'Novo karaoke', render: 'Exportación a MP4' },
+		timeline: 'Pasos',
 		attempt: (n: number) => `intento ${n}`,
-		priority: (n: number) => `prioridade ${n}`
+		pause: 'Pausar',
+		resume: 'Continuar'
 	},
-	workers: {
-		title: 'Workers',
+	machines: {
+		title: 'Equipos',
+		summary: (on: number, all: number) => `${on} de ${all} conectados`,
+		add: 'Engadir equipo',
+		addPlayer: 'Engadir reprodutor',
+		workers: 'Equipos de proceso',
+		workersHelp: 'Fan os karaokes coa súa GPU.',
 		players: 'Reprodutores',
-		empty: 'Ningún worker enrolado.',
-		online: 'En liña',
-		offline: 'Sen conexión',
-		vram: (used: string, total: string) => `${used} de ${total}`,
-		temp: (c: number) => `${c} °C`,
-		running: (n: number) => plural(n, 'gl', { one: '# tarefa', other: '# tarefas' }),
-		busyPlaying: 'O reprodutor deste equipo está soando: non colle traballo de GPU',
-		token: 'Token de enrolado (válido unha vez)',
-		tokenHelp: (kind: string) => `No ${kind}: karaoke-worker enroll https://SERVIDOR:8765 TOKEN`,
-		revoke: 'Revogar'
+		playersHelp: 'Poñen as cancións nas pantallas e nos altofalantes.',
+		noWorkers: 'Aínda non hai equipos de proceso. Engade un para facer karaokes.',
+		noPlayers: 'Aínda non hai reprodutores.',
+		connected: 'Conectado',
+		disconnected: 'Sen conexión',
+		noGpu: 'Sen GPU',
+		busy: 'Traballando',
+		busyPlaying: 'Pausado: o reprodutor deste equipo está soando',
+		revoke: 'Retirar',
+		columns: {
+			name: 'Nome',
+			state: 'Estado',
+			gpu: 'GPU',
+			vram: 'Memoria da GPU',
+			use: 'Uso',
+			temp: 'Temperatura',
+			task: 'Tarefa',
+			system: 'Sistema',
+			displays: 'Pantallas',
+			audio: 'Saídas de son'
+		},
+		kind: 'Tipo de equipo',
+		kindWorker: 'Equipo de proceso',
+		kindPlayer: 'Reprodutor',
+		steps: (worker: boolean): string =>
+			worker
+				? 'Instala karaoke-worker no equipo e executa esta orde nun terminal. O equipo aparecerá aquí en canto se conecte.'
+				: 'Instala o reprodutor no equipo e executa esta orde nun terminal. O reprodutor aparecerá aquí en canto se conecte.',
+		command: 'Orde',
+		token: 'Token',
+		tokenHelp: 'Vale para unha soa vez.'
 	},
 	live: {
 		title: 'Directo',
@@ -178,15 +267,20 @@ export const gl = {
 		choosePlaylist: 'Lista do reprodutor',
 		player: 'Reprodutor',
 		nowPlaying: 'Agora',
-		upNext: 'Despois',
+		upNext: 'A seguir',
 		singer: 'Quen canta',
-		empty: 'A lista está baleira: engade cancións desde a Biblioteca (A).',
+		sungBy: (name: string) => `canta ${name}`,
+		empty: 'A lista está baleira: engade cancións desde a Biblioteca.',
+		position: 'Posición na canción',
+		move: 'Mover',
+		entryExit: 'Marcar entrada e saída',
+		columns: { n: 'Nº', song: 'Canción', download: 'Descarga' },
 		cache: {
-			absent: 'sen descargar',
-			downloading: 'descargando',
-			verifying: 'comprobando',
-			ready: 'listo',
-			failed: 'fallou'
+			absent: 'Sen descargar',
+			downloading: 'Descargando',
+			verifying: 'Comprobando',
+			ready: 'Lista',
+			failed: 'Fallou'
 		},
 		volume: 'Volume',
 		key: 'Ton',
@@ -195,10 +289,14 @@ export const gl = {
 	},
 	outputs: {
 		title: 'Saídas',
+		noPlayer: 'Non hai ningún reprodutor conectado.',
 		displays: 'Pantallas',
-		audio: 'Audio',
+		display: 'Pantalla',
+		shows: 'Mostra',
+		audio: 'Saída de son',
 		master: 'Mestra',
-		matrix: 'Enrutado',
+		matrix: 'Son',
+		matrixHelp: 'Que pista vai a cada saída, coa súa ganancia e retardo.',
 		vocals: 'Voz guía',
 		instrumental: 'Música',
 		gain: 'Ganancia (dB)',
@@ -216,43 +314,51 @@ export const gl = {
 		theme: 'Tema',
 		save: 'Gardar',
 		saved: 'Saídas gardadas',
-		sync: 'Sincronía',
+		sync: 'Corrección',
 		bluetooth: 'Bluetooth: a latencia varía'
 	},
 	create: {
 		title: 'Crear',
-		drop: 'Arrastra cancións ou vídeos aquí, ou pega unha ligazón',
-		file: 'Escoller ficheiros',
+		drop: 'Tamén podes arrastrar ficheiros ou pegar unha ligazón en calquera sitio.',
+		source: 'Canción',
+		file: 'Ficheiros de audio ou vídeo',
+		fileHelp: 'Pódense escoller varios: faise un karaoke de cada un.',
 		url: 'Ligazón (YouTube…)',
 		lyrics: 'Letra',
 		lyricsHint: 'Pega a letra tal como vén da web; sen letra, sácase do audio.',
 		lrclib: 'Buscar en LRCLIB',
-		candidates: 'Candidatas',
-		synced: 'con tempos',
-		gap: (s: string) => `${s} s de diferenza`,
+		lrclibAuto: 'Buscar a letra en LRCLIB se non a pego',
+		candidates: 'Letras atopadas',
+		timing: 'Tempos',
+		difference: 'Diferenza',
+		synced: 'Con tempos',
+		gap: (s: string) => `${s} s`,
 		use: 'Usar esta',
 		language: 'Idioma',
 		title_: 'Título',
 		artist: 'Artista',
 		submit: 'Crear o karaoke',
-		uploading: (pct: number) => `Subindo ${pct} %`,
-		queued: (title: string) => `«${title}» na cola`
+		uploads: 'Subidas',
+		queued: (title: string) => `«${title}» engadido aos traballos`
 	},
 	settings: {
 		title: 'Axustes',
+		general: 'Xeral',
 		language: 'Idioma',
-		appearance: 'Aparencia',
-		dark: 'Escuro',
-		light: 'Claro',
-		dense: 'Denso',
-		shortcuts: 'Atallos',
+		dense: 'Filas máis xuntas (modo denso)',
+		account: 'Conta',
+		accountHelp: 'Os atallos e as preferencias gárdanse no servidor e seguen a túa conta.',
+		shortcuts: 'Atallos de teclado',
+		shortcutsHelp: 'Preme «Cambiar» e despois o atallo novo; Esc cancela.',
 		press: 'Preme o novo atallo…',
+		change: 'Cambiar',
 		reset: 'Restaurar',
-		conflict: 'Choca con outro atallo',
-		account: 'Conta'
+		conflict: 'Choca con outro atallo'
 	},
 	editor: {
 		title: 'Corrixir a letra',
+		lines: 'Liñas',
+		line: (n: number) => `Liña ${n}`,
 		save: 'Gardar unha versión nova',
 		saved: 'Versión nova gardada',
 		conflict: 'Alguén cambiou a canción mentres tanto',
@@ -271,13 +377,6 @@ export const gl = {
 		copied: 'Copiado',
 		update: 'Actualizar',
 		updateReady: 'Hai unha versión nova'
-	},
-	globe: {
-		atlantic: 'Océano Atlántico',
-		label: (people: string) =>
-			`Galicia de noite no noroeste da Península, co Atlántico, Portugal, Asturias e León en penumbra; ${people} persoas, unha luz por cada recanto onde vive xente.`,
-		credits:
-			'Poboación de Kontur, relevo e batimetría de Mapzen (SRTM, EU-DEM, ETOPO1), contornos de Natural Earth e faros de Wikidata.'
 	}
 };
 

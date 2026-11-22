@@ -53,103 +53,100 @@
 <svelte:window onkeydowncapture={capture} />
 
 <div class="ctl-page">
-	<div class="ctl-page-head"><h1>{t.settings.title}</h1></div>
-	<div class="ctl-grid-2">
-		<section class="ctl-box">
-			<h2>{t.settings.language}</h2>
-			<select
-				class="ctl-field"
-				value={i18n.locale}
-				onchange={(e) => setLocale(e.currentTarget.value as Locale)}
-				aria-label={t.settings.language}
-			>
-				{#each LOCALES as locale (locale)}<option value={locale}>{LOCALE_NAMES[locale]}</option
-					>{/each}
-			</select>
+	<header class="ctl-page-head"><h1>{t.settings.title}</h1></header>
+	<div class="ctl-grid">
+		<section class="ctl-panel">
+			<div class="ctl-panel-head"><h2>{t.settings.general}</h2></div>
+			<div class="ctl-panel-body ctl-form">
+				<label class="ctl-field">
+					<span>{t.settings.language}</span>
+					<select
+						class="ctl-select"
+						value={i18n.locale}
+						onchange={(e) => setLocale(e.currentTarget.value as Locale)}
+					>
+						{#each LOCALES as locale (locale)}<option value={locale}>{LOCALE_NAMES[locale]}</option
+							>{/each}
+					</select>
+				</label>
+				<label class="ctl-check"
+					><input
+						type="checkbox"
+						checked={prefs.value.dense}
+						onchange={() => prefs.set('dense', !prefs.value.dense)}
+					/>
+					{t.settings.dense}
+					<Kbd keys="Shift+d" /></label
+				>
+			</div>
 		</section>
-		<section class="ctl-box">
-			<h2>{t.settings.appearance}</h2>
-			<label
-				><input
-					type="radio"
-					checked={prefs.value.theme === 'dark'}
-					onchange={() => prefs.set('theme', 'dark')}
-				/>
-				{t.settings.dark}</label
-			>
-			<label
-				><input
-					type="radio"
-					checked={prefs.value.theme === 'light'}
-					onchange={() => prefs.set('theme', 'light')}
-				/>
-				{t.settings.light}</label
-			>
-			<label
-				><input
-					type="checkbox"
-					checked={prefs.value.dense}
-					onchange={() => prefs.set('dense', !prefs.value.dense)}
-				/>
-				{t.settings.dense}
-				<Kbd keys="Shift+d" /></label
-			>
-		</section>
-		<section class="ctl-box">
-			<h2>{t.settings.account}</h2>
-			<button class="ctl-btn" onclick={() => api.signOut().then(() => location.reload())}
-				>{t.app.signOut}</button
-			>
+		<section class="ctl-panel">
+			<div class="ctl-panel-head"><h2>{t.settings.account}</h2></div>
+			<div class="ctl-panel-body ctl-form">
+				<p class="ctl-muted">{t.settings.accountHelp}</p>
+				<div>
+					<button class="ctl-btn" onclick={() => api.signOut().then(() => location.reload())}
+						>{t.app.signOut}</button
+					>
+				</div>
+			</div>
 		</section>
 	</div>
-	<section class="ctl-box shortcuts">
-		<h2>{t.settings.shortcuts}</h2>
-		{#each groups as [group, list] (group)}
-			<h3>{group}</h3>
-			<ul class="ctl-rows">
-				{#each list as command (command.id)}
-					<li class="ctl-row shortcut" class:ctl-marked={conflicts.has(command.id)}>
-						<span>{command.title()}</span>
-						<span>
-							{#if capturing === command.id}
-								<em>{first ? `${first} …` : t.settings.press}</em>
-							{:else}
-								{#each commands.keysOf(command) as key (key)}<Kbd keys={key} />
-								{/each}
-							{/if}
-						</span>
-						<button class="ctl-btn" onclick={() => (capturing = command.id)}>✎</button>
-						<button
-							class="ctl-btn"
-							onclick={() => reset(command.id)}
-							disabled={!prefs.value.shortcuts[command.id]}>{t.settings.reset}</button
-						>
-						{#if conflicts.has(command.id)}<span class="ctl-pill ctl-bad"
-								>{t.settings.conflict}</span
-							>{/if}
-					</li>
-				{/each}
-			</ul>
-		{/each}
+	<section class="ctl-panel shortcuts">
+		<div class="ctl-panel-head">
+			<h2>{t.settings.shortcuts}</h2>
+			<span class="ctl-muted">{t.settings.shortcutsHelp}</span>
+		</div>
+		<table class="ctl-table">
+			{#each groups as [group, list] (group)}
+				<tbody>
+					<tr class="group"><th colspan="3">{group}</th></tr>
+					{#each list as command (command.id)}
+						<tr class:ctl-marked={conflicts.has(command.id)}>
+							<td>
+								{command.title()}
+								{#if conflicts.has(command.id)}<span class="ctl-badge ctl-bad"
+										>{t.settings.conflict}</span
+									>{/if}
+							</td>
+							<td
+								><span class="keys">
+									{#if capturing === command.id}
+										<em>{first ? `${first} …` : t.settings.press}</em>
+									{:else}
+										{#each commands.keysOf(command) as key (key)}<Kbd keys={key} />{/each}
+									{/if}
+								</span></td
+							>
+							<td class="ctl-shrink">
+								<button class="ctl-btn ctl-quiet" onclick={() => (capturing = command.id)}
+									>{t.settings.change}</button
+								>
+								<button
+									class="ctl-btn ctl-quiet"
+									onclick={() => reset(command.id)}
+									disabled={!prefs.value.shortcuts[command.id]}>{t.settings.reset}</button
+								>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			{/each}
+		</table>
 	</section>
 </div>
 
 <style>
-	label {
-		display: flex;
-		gap: var(--s-2);
-		align-items: center;
-		margin: var(--s-1) 0;
-	}
 	.shortcuts {
-		margin-top: var(--s-4);
+		margin-top: var(--sp-4);
 	}
-	h3 {
-		color: var(--ouro);
-		font-size: var(--t-0);
-		margin: var(--s-3) 0 var(--s-1);
+	tr.group th {
+		padding-top: var(--sp-4);
+		color: var(--text-2);
+		font-weight: 600;
 	}
-	.shortcut {
-		grid-template-columns: minmax(12rem, 1fr) minmax(8rem, auto) auto auto auto;
+	.keys {
+		display: inline-flex;
+		gap: var(--sp-1);
 	}
 </style>

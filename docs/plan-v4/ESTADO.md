@@ -11,7 +11,8 @@ Tablero por fases (`00-vision.md` §9). Cada fase actualiza **su fila** tras cad
 | 3 | Worker en Windows y Linux, tarea `make` gruesa | hecho | `claude/trusting-johnson-3p992a` | `karaoke-worker`: *pull*, fetch, make y render, Job Objects/systemd, TLS fijado (`decisiones/005`) |
 | 3.5 | Corte vertical: reproductor mínimo | hecho | `claude/trusting-johnson-3p992a` | `make e2e-v4`: subida → worker → lista → caché → reproducción |
 | 4 | Control: comandos, paleta, atajos, paneles, cola | hecho | `claude/trusting-johnson-3p992a` | registro de órdenes, paleta, chuleta, atajos reasignables, paneles, UI optimista con deshacer; e2e solo con teclado < 100 ms y axe (`decisiones/007`) |
-| 4b | Globo de noche fiel | hecho | `claude/trusting-johnson-3p992a` | Galicia iluminada en el noroeste peninsular real, vecinos en penumbra (`decisiones/009`) |
+| 4b | Globo de noche fiel | sustituida | `claude/trusting-johnson-3p992a` | el globo se retira en el rediseño del control (`decisiones/010`) |
+| 4c | Rediseño del control | hecho | `claude/trusting-johnson-3p992a` | tema oscuro sobrio, IBM Plex, barra lateral, un solo kit de tablas y paneles, traballos en lenguaje claro (`decisiones/010`) |
 | 5 | Reproductor: 1 pantalla y 1 salida completas, con tono | hecho (falta probarlo en el equipo) | `claude/trusting-johnson-3p992a` | `kp-player`: caché verificada, órdenes con ancla, pantalla de espera, letra con `kp-layout`, tono con Signalsmith (`decisiones/006`) |
 | 6 | Reproductor: 2 pantallas, 2.ª salida, enrutado, calibración | hecho (falta probarlo en el equipo) | `claude/trusting-johnson-3p992a` | una ventana por monitor, `Follower` por salida, matriz de enrutado, calibración y altas y bajas en caliente |
 | 7 | Editor con mini reproductor y MP4 | hecho | `claude/trusting-johnson-3p992a` | editor v2 con teclado, versiones de manifiesto, MP4 como tarea `render` (`decisiones/008`) |
@@ -21,3 +22,5 @@ Tablero por fases (`00-vision.md` §9). Cada fase actualiza **su fila** tras cad
 
 - Medición solo por software; reproductor en Windows con NVIDIA y macOS; el tono también se
   aplica a la voz guía; el globo de inicio se mantiene de noche, con Galicia en su contexto real.
+- 22/11: el control se rediseña como una interfaz tradicional (barra lateral, tablas, un solo
+  kit); el globo sale y Galicia queda como contorno tenue de fondo (`decisiones/010`).

@@ -8,15 +8,65 @@ import { prefs } from './prefs.svelte';
 
 const t = () => i18n.t;
 
+/** The sections, in the order and the groups of the sidebar. */
 export const SECTIONS = [
-	{ id: 'home', path: '/', key: 'g h', label: () => t().nav.home },
-	{ id: 'live', path: '/directo', key: 'g d', label: () => t().nav.live },
-	{ id: 'library', path: '/biblioteca', key: 'g b', label: () => t().nav.library },
-	{ id: 'queue', path: '/cola', key: 'g c', label: () => t().nav.queue },
-	{ id: 'workers', path: '/workers', key: 'g w', label: () => t().nav.workers },
-	{ id: 'outputs', path: '/saidas', key: 'g s', label: () => t().nav.outputs },
-	{ id: 'create', path: '/crear', key: 'g n', label: () => t().nav.create },
-	{ id: 'settings', path: '/axustes', key: 'g a', label: () => t().nav.settings }
+	{ id: 'home', group: null, icon: 'home', path: '/', key: 'g h', label: () => t().nav.home },
+	{
+		id: 'live',
+		group: 'session',
+		icon: 'live',
+		path: '/directo',
+		key: 'g d',
+		label: () => t().nav.live
+	},
+	{
+		id: 'library',
+		group: 'content',
+		icon: 'library',
+		path: '/biblioteca',
+		key: 'g b',
+		label: () => t().nav.library
+	},
+	{
+		id: 'create',
+		group: 'content',
+		icon: 'create',
+		path: '/crear',
+		key: 'g n',
+		label: () => t().nav.create
+	},
+	{
+		id: 'jobs',
+		group: 'system',
+		icon: 'jobs',
+		path: '/cola',
+		key: 'g t',
+		label: () => t().nav.jobs
+	},
+	{
+		id: 'machines',
+		group: 'system',
+		icon: 'machines',
+		path: '/equipos',
+		key: 'g e',
+		label: () => t().nav.machines
+	},
+	{
+		id: 'outputs',
+		group: 'system',
+		icon: 'outputs',
+		path: '/saidas',
+		key: 'g s',
+		label: () => t().nav.outputs
+	},
+	{
+		id: 'settings',
+		group: 'system',
+		icon: 'settings',
+		path: '/axustes',
+		key: 'g a',
+		label: () => t().nav.settings
+	}
 ] as const;
 
 export function registerGlobal(): () => void {
@@ -133,24 +183,6 @@ export function registerGlobal(): () => void {
 			title: () => t().cmd.density,
 			keys: ['Shift+d'],
 			run: () => prefs.set('dense', !prefs.value.dense)
-		},
-		{
-			id: 'view.theme',
-			title: () => t().cmd.theme,
-			keys: ['Shift+t'],
-			run: () => prefs.set('theme', prefs.value.theme === 'dark' ? 'light' : 'dark')
-		},
-		{
-			id: 'view.prep',
-			title: () => t().cmd.layoutPrep,
-			keys: ['Mod+1'],
-			run: () => prefs.set('layout', 'prep')
-		},
-		{
-			id: 'view.live',
-			title: () => t().cmd.layoutLive,
-			keys: ['Mod+2'],
-			run: () => prefs.set('layout', 'live')
 		}
 	].map((c) => ({ ...c, group: () => t().groups.view }));
 	return commands.register(...navigation, ...transportCommands, ...general, ...view);

@@ -1,6 +1,6 @@
 /**
  * The control UI from the keyboard only (plan v4 §7): sign in, make a karaoke, follow it in the
- * queue, put it on a playlist, reorder, remove and undo, the palette and the cheat sheet, and
+ * jobs, put it on a playlist, reorder, remove and undo, the palette and the cheat sheet, and
  * the time from a key to what it changes on screen (< 100 ms).
  */
 import AxeBuilder from '@axe-core/playwright';
@@ -58,7 +58,7 @@ test('a karaoke from upload to playlist, from the keyboard', async ({ page }) =>
 	await page.keyboard.press('n');
 	await expect(page).toHaveURL(/\/crear$/);
 	await expect(page.getByRole('heading', { name: 'Crear' })).toBeVisible();
-	await page.getByLabel('Escoller ficheiros').setInputFiles({
+	await page.getByLabel('Ficheiros de audio ou vídeo').setInputFiles({
 		name: 'Proba.mp3',
 		mimeType: 'audio/mpeg',
 		buffer: Buffer.from('ID3' + '\0'.repeat(4000))
@@ -66,16 +66,23 @@ test('a karaoke from upload to playlist, from the keyboard', async ({ page }) =>
 	await page.getByLabel('Título').focus();
 	await page.keyboard.type('Proba de teclado');
 	await page.keyboard.press(`${MOD}+Enter`);
-	await expect(page.getByText('«Proba de teclado» na cola')).toBeVisible();
+	await expect(page.getByText('«Proba de teclado» engadido aos traballos')).toBeVisible();
 
-	// The queue: the fake worker makes it in a few seconds.
+	// The jobs: the fake worker makes it in a few seconds.
 	await page.keyboard.press('Escape');
 	await page.keyboard.press('g');
-	await page.keyboard.press('c');
-	await expect(page.getByRole('heading', { name: 'Cola' })).toBeVisible();
-	const job = page.getByRole('option').filter({ hasText: 'Proba de teclado' });
+	await page.keyboard.press('t');
+	await expect(page.getByRole('heading', { name: 'Traballos' })).toBeVisible();
+	const job = page.getByRole('row').filter({ hasText: 'Proba de teclado' });
 	await expect(job).toBeVisible();
 	await expect(job.getByText('Feito')).toBeVisible({ timeout: 60_000 });
+
+	// Its detail, and back.
+	await page.keyboard.press('Enter');
+	const detail = page.getByRole('complementary', { name: 'Proba de teclado' });
+	await expect(detail.getByText('Facer o karaoke')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(detail).toBeHidden();
 
 	// A playlist, then the song on it.
 	await page.keyboard.press('g');
@@ -86,14 +93,14 @@ test('a karaoke from upload to playlist, from the keyboard', async ({ page }) =>
 	await page.keyboard.press('g');
 	await page.keyboard.press('b');
 	await expect(page.getByRole('heading', { name: 'Biblioteca' })).toBeVisible();
-	const song = page.getByRole('option').filter({ hasText: 'Proba de teclado' });
+	const song = page.getByRole('row').filter({ hasText: 'Proba de teclado' });
 	await expect(song).toBeVisible();
 	await page.keyboard.press('a');
 	await page.keyboard.press('a');
 	await page.keyboard.press('g');
 	await page.keyboard.press('d');
 	await expect(page.getByRole('region', { name: 'Lista' })).toBeVisible();
-	const items = page.getByRole('listbox').getByRole('option');
+	const items = page.getByRole('region', { name: 'Lista' }).locator('tbody tr');
 	await expect(items).toHaveCount(2);
 
 	// Remove one, undo it.
@@ -122,7 +129,7 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 		'[role="dialog"][aria-label="Paleta de ordes"]'
 	);
 	expect(palette).toBeLessThan(100);
-	await page.keyboard.type('cola');
+	await page.keyboard.type('traballos');
 	await page.keyboard.press('Enter');
 	await expect(page).toHaveURL(/\/cola$/);
 
@@ -136,7 +143,16 @@ test('palette, cheat sheet and response times', async ({ page }) => {
 	expect(navigation).toBeLessThan(100);
 
 	// Every main section passes axe's WCAG 2 A/AA rules.
-	for (const path of ['/directo', '/biblioteca', '/cola', '/workers', '/crear', '/axustes']) {
+	for (const path of [
+		'/',
+		'/directo',
+		'/biblioteca',
+		'/cola',
+		'/equipos',
+		'/saidas',
+		'/crear',
+		'/axustes'
+	]) {
 		await page.goto(path);
 		await expect(page.locator('h1, h2').first()).toBeVisible();
 		const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();

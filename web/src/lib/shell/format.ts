@@ -12,3 +12,13 @@ export function megabytes(mb: number | null | undefined): string {
 	if (mb === null || mb === undefined) return '—';
 	return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
 }
+
+/** When something happened: the time if it was today, else the day and the month. */
+export function when(iso: string, locale: string, now = new Date()): string {
+	const date = new Date(iso);
+	if (Number.isNaN(date.getTime())) return '—';
+	const today = date.toDateString() === now.toDateString();
+	return today
+		? date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+		: date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+}

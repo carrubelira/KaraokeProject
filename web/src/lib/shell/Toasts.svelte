@@ -17,7 +17,7 @@
 		position: fixed;
 		z-index: 50;
 		right: var(--s-4);
-		bottom: 3.2rem;
+		bottom: calc(var(--statusbar) + var(--sp-3));
 		display: grid;
 		gap: var(--s-2);
 		max-width: min(28rem, calc(100vw - 2rem));
@@ -27,10 +27,9 @@
 		gap: var(--s-3);
 		align-items: center;
 		padding: var(--s-2) var(--s-4);
-		background: var(--fondo-2);
-		border: 1px solid var(--raia-forte);
+		background: var(--surface-2);
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius-control);
-		box-shadow: var(--sombra);
 	}
 	.toast.error {
 		border-color: var(--erro);
@@ -38,7 +37,7 @@
 	button {
 		background: none;
 		border: 0;
-		color: var(--ceo);
+		color: var(--accent-text);
 		font: inherit;
 		cursor: pointer;
 	}

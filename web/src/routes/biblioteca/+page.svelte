@@ -131,58 +131,83 @@
 </script>
 
 <div class="ctl-page">
-	<div class="ctl-page-head">
+	<header class="ctl-page-head">
 		<h1>{t.library.title}</h1>
-		<span class="ctl-muted">{t.library.count(live.state.contents.length)}</span>
-		<input
-			class="ctl-field search"
-			data-search
-			bind:value={query}
-			placeholder={t.library.search}
-			aria-label={t.library.search}
-			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === 'ArrowDown') {
-					e.currentTarget.blur();
-					e.preventDefault();
-				}
-			}}
-		/>
-		<span class="ctl-muted"><Kbd keys="/" /></span>
-	</div>
-	{#if songs.length === 0}
-		<p class="ctl-muted">{t.library.empty}</p>
-	{:else}
-		<ul class="ctl-rows" role="listbox" aria-label={t.library.title} aria-multiselectable="true">
-			{#each songs as song, i (song.id)}
-				<li
-					id={`song-${song.id}`}
-					class="ctl-row song"
-					class:ctl-cursor={i === selection.cursor}
-					class:ctl-marked={selection.marked.has(song.id)}
-					role="option"
-					aria-selected={i === selection.cursor}
-					onclick={() => (selection.cursor = i)}
-					ondblclick={() => addToPlaylist([song.id])}
-					onkeydown={() => {}}
-				>
-					<span class="title">{song.title}</span>
-					<span class="ctl-muted">{song.artist ?? ''}</span>
-					<span class="ctl-pill">{song.language}</span>
-					<span class="ctl-muted mono">{clock(song.duration)}</span>
-					<span class="ctl-muted">{t.library.version(song.version)}</span>
-					<span
-						>{#if inList.has(song.id)}<span class="ctl-pill ctl-warn">●</span>{/if}</span
-					>
-				</li>
-			{/each}
-		</ul>
-	{/if}
-	<p class="ctl-muted keys">
+		<span class="ctl-sub">{t.library.count(live.state.contents.length)}</span>
+		<div class="ctl-actions">
+			<button
+				class="ctl-btn"
+				onclick={() => addToPlaylist(selection.targets)}
+				disabled={!selection.targets.length}>{t.cmd.addToPlaylist} <Kbd keys="a" /></button
+			>
+			<a class="ctl-btn ctl-primary" href={resolve('/crear')}>{t.library.new}</a>
+		</div>
+	</header>
+	<section class="ctl-panel">
+		<div class="ctl-toolbar">
+			<input
+				class="ctl-input"
+				type="search"
+				data-search
+				bind:value={query}
+				placeholder={t.library.search}
+				aria-label={t.library.search}
+				onkeydown={(e) => {
+					if (e.key === 'Enter' || e.key === 'ArrowDown') {
+						e.currentTarget.blur();
+						e.preventDefault();
+					}
+				}}
+			/>
+			<Kbd keys="/" />
+			<span class="ctl-end"
+				>{#if selection.marked.size}{t.library.marked(selection.marked.size)}{/if}</span
+			>
+		</div>
+		{#if songs.length === 0}
+			<p class="ctl-empty">{query ? t.library.noMatch : t.library.empty}</p>
+		{:else}
+			<table class="ctl-table" aria-label={t.library.title}>
+				<thead>
+					<tr>
+						<th>{t.library.columns.title}</th>
+						<th>{t.library.columns.artist}</th>
+						<th>{t.library.columns.language}</th>
+						<th class="ctl-num">{t.library.columns.duration}</th>
+						<th class="ctl-num">{t.library.columns.version}</th>
+						<th>{t.library.columns.inList}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each songs as song, i (song.id)}
+						<tr
+							id={`song-${song.id}`}
+							class:ctl-cursor={i === selection.cursor}
+							class:ctl-marked={selection.marked.has(song.id)}
+							aria-selected={i === selection.cursor}
+							onclick={() => (selection.cursor = i)}
+							ondblclick={() => addToPlaylist([song.id])}
+						>
+							<td class="ctl-title">{song.title}</td>
+							<td class="ctl-muted">{song.artist ?? ''}</td>
+							<td class="lang">{song.language}</td>
+							<td class="ctl-num">{clock(song.duration)}</td>
+							<td class="ctl-num ctl-muted">{song.version}</td>
+							<td
+								>{#if inList.has(song.id)}<span class="ctl-badge ctl-active">{t.library.yes}</span
+									>{/if}</td
+							>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+	</section>
+	<p class="ctl-hint">
 		<Kbd keys="a" />
 		{t.cmd.addToPlaylist} · <Kbd keys="Shift+a" />
 		{t.cmd.addNext} · <Kbd keys="x" />
-		{t.cmd.toggleSelect} ·
-		<Kbd keys="e" />
+		{t.cmd.toggleSelect} · <Kbd keys="e" />
 		{t.cmd.edit} · <Kbd keys="m" />
 		{t.cmd.export} · <Kbd keys="Delete" />
 		{t.cmd.trash}
@@ -190,24 +215,10 @@
 </div>
 
 <style>
-	.search {
-		margin-left: auto;
-		width: min(28rem, 50vw);
-	}
-	.song {
-		grid-template-columns: minmax(10rem, 2fr) minmax(6rem, 1.2fr) auto 4rem 3rem 1.5rem;
-	}
-	.title {
-		font-weight: 600;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.mono {
-		font-family: var(--font-data);
-	}
-	.keys {
-		margin-top: var(--s-4);
-		font-size: var(--t--1);
+	.lang {
+		text-transform: uppercase;
+		font-family: var(--font-mono);
+		font-size: var(--fs-s);
+		color: var(--text-2);
 	}
 </style>

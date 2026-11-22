@@ -132,3 +132,19 @@ describe('undo', () => {
 		expect(stack.canRedo).toBe(false);
 	});
 });
+
+describe('the plus key', () => {
+	it('is a shortcut of its own, alone or with a modifier', () => {
+		expect(parseChord('+')).toBe('+');
+		expect(parseChord('Shift++')).toBe('Shift++');
+		expect(
+			eventChord({ key: '+', ctrlKey: false, metaKey: false, altKey: false, shiftKey: true })
+		).toBe('+');
+	});
+
+	it('is written as a plus', () => {
+		expect(label('+', false)).toBe('+');
+		expect(label('Alt++', false)).toBe('Alt++');
+		expect(label('Alt++', true)).toBe('⌥+');
+	});
+});
