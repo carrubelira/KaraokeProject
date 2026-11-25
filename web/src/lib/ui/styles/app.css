@@ -94,6 +94,12 @@ a:hover {
 	text-decoration: underline;
 }
 
+/* A link in a sentence is underlined: its colour alone does not set it apart from the text. */
+p a:not(.btn) {
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
 button,
 input,
 select,
