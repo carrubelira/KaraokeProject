@@ -5,59 +5,41 @@
     "version": "3.0.0"
   },
   "paths": {
-    "/api/songs": {
+    "/api/session": {
       "get": {
         "tags": [
-          "songs"
+          "session"
         ],
-        "summary": "List Songs",
-        "operationId": "list_songs_api_songs_get",
+        "summary": "Current",
+        "operationId": "current_api_session_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/SongSummary"
-                  },
-                  "type": "array",
-                  "title": "Response List Songs Api Songs Get"
+                  "$ref": "#/components/schemas/SessionView"
                 }
               }
             }
           }
         }
-      }
-    },
-    "/api/songs/{song_id}/doc": {
-      "put": {
+      },
+      "post": {
         "tags": [
-          "songs"
+          "session"
         ],
-        "summary": "Save Doc",
-        "description": "Stores corrected lyrics: validated, marked as edited, the original kept beside them.",
-        "operationId": "save_doc_api_songs__song_id__doc_put",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
-            }
-          }
-        ],
+        "summary": "Sign In",
+        "operationId": "sign_in_api_session_post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/KaraokeDoc"
+                "$ref": "#/components/schemas/SignIn"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -65,89 +47,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/KaraokeDoc"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/songs/{song_id}": {
-      "delete": {
-        "tags": [
-          "songs"
-        ],
-        "summary": "Delete Song",
-        "operationId": "delete_song_api_songs__song_id__delete",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/songs/{song_id}/exports": {
-      "get": {
-        "tags": [
-          "songs"
-        ],
-        "summary": "List Exports",
-        "description": "The song's karaoke videos, newest first (made with POST /api/songs/{id}/exports).",
-        "operationId": "list_exports_api_songs__song_id__exports_get",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Export"
-                  },
-                  "title": "Response List Exports Api Songs  Song Id  Exports Get"
+                  "$ref": "#/components/schemas/SessionView"
                 }
               }
             }
@@ -164,40 +64,48 @@
           }
         }
       },
-      "post": {
+      "delete": {
         "tags": [
-          "jobs"
+          "session"
         ],
-        "summary": "Export Video",
-        "operationId": "export_video_api_songs__song_id__exports_post",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
-            }
+        "summary": "Sign Out",
+        "operationId": "sign_out_api_session_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           }
+        }
+      }
+    },
+    "/api/session/preferences": {
+      "put": {
+        "tags": [
+          "session"
         ],
+        "summary": "Save Preferences",
+        "description": "Shortcuts, panel layouts and the rest of what an operator sets in the control UI.",
+        "operationId": "save_preferences_api_session_preferences_put",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExportRequest"
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Preferences"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Save Preferences Api Session Preferences Put"
                 }
               }
             }
@@ -215,30 +123,129 @@
         }
       }
     },
-    "/api/songs/{song_id}/exports/{name}": {
-      "delete": {
+    "/api/enrollments": {
+      "post": {
         "tags": [
-          "songs"
+          "nodes"
         ],
-        "summary": "Delete Export",
-        "operationId": "delete_export_api_songs__song_id__exports__name__delete",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
+        "summary": "New Enrollment",
+        "operationId": "new_enrollment_api_enrollments_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEnrollment"
+              }
             }
           },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentToken"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nodes/enroll": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Enroll",
+        "operationId": "enroll_api_nodes_enroll_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Enrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Enrolled"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nodes": {
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "List Nodes",
+        "operationId": "list_nodes_api_nodes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response List Nodes Api Nodes Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nodes/{node_id}": {
+      "delete": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Revoke",
+        "operationId": "revoke_api_nodes__node_id__delete",
+        "parameters": [
           {
-            "name": "name",
+            "name": "node_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Name"
+              "title": "Node Id"
             }
           }
         ],
@@ -259,84 +266,13 @@
         }
       }
     },
-    "/media/{song_id}/{rel}": {
+    "/api/nodes/me": {
       "get": {
         "tags": [
-          "media"
-        ],
-        "summary": "Media",
-        "description": "A file of the package; `download` asks the browser to save it, as `name` if given.",
-        "operationId": "media_media__song_id___rel__get",
-        "parameters": [
-          {
-            "name": "song_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Song Id"
-            }
-          },
-          {
-            "name": "rel",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Rel"
-            }
-          },
-          {
-            "name": "download",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Download"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Name"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/me": {
-      "get": {
-        "tags": [
-          "devices"
+          "nodes"
         ],
         "summary": "Me",
-        "operationId": "me_api_me_get",
+        "operationId": "me_api_nodes_me_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -351,39 +287,19 @@
         }
       }
     },
-    "/api/devices/pairing": {
-      "post": {
+    "/api/nodes/me/capabilities": {
+      "put": {
         "tags": [
-          "devices"
+          "nodes"
         ],
-        "summary": "Start Pairing",
-        "operationId": "start_pairing_api_devices_pairing_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PairingOut"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/devices/pair": {
-      "post": {
-        "tags": [
-          "devices"
-        ],
-        "summary": "Pair",
-        "operationId": "pair_api_devices_pair_post",
+        "summary": "Update Capabilities",
+        "description": "A node says what it offers now (on every start: a new driver, new models, a new GPU).",
+        "operationId": "update_capabilities_api_nodes_me_capabilities_put",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PairRequest"
+                "$ref": "#/components/schemas/Capabilities"
               }
             }
           },
@@ -395,7 +311,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Device"
+                  "$ref": "#/components/schemas/Me"
                 }
               }
             }
@@ -413,24 +329,40 @@
         }
       }
     },
-    "/api/devices": {
-      "get": {
+    "/api/worker/heartbeat": {
+      "post": {
         "tags": [
-          "devices"
+          "nodes"
         ],
-        "summary": "List Devices",
-        "operationId": "list_devices_api_devices_get",
+        "summary": "Heartbeat",
+        "operationId": "heartbeat_api_worker_heartbeat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Heartbeat"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Device"
-                  },
-                  "type": "array",
-                  "title": "Response List Devices Api Devices Get"
+                  "$ref": "#/components/schemas/HeartbeatAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -438,24 +370,125 @@
         }
       }
     },
-    "/api/devices/{device_id}": {
-      "delete": {
+    "/api/worker/lease": {
+      "post": {
         "tags": [
-          "devices"
+          "nodes"
         ],
-        "summary": "Revoke",
-        "operationId": "revoke_api_devices__device_id__delete",
+        "summary": "Lease",
+        "operationId": "lease_api_worker_lease_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}/progress": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Progress",
+        "operationId": "progress_api_tasks__task_id__progress_post",
         "parameters": [
           {
-            "name": "device_id",
+            "name": "task_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Device Id"
+              "title": "Task Id"
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressAnswer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}/complete": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Complete",
+        "operationId": "complete_api_tasks__task_id__complete_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteBody"
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -473,62 +506,285 @@
         }
       }
     },
-    "/api/server": {
-      "get": {
-        "tags": [
-          "server"
-        ],
-        "summary": "Server Info",
-        "operationId": "server_info_api_server_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ServerInfo"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/health": {
-      "get": {
-        "tags": [
-          "server"
-        ],
-        "summary": "Health",
-        "operationId": "health_api_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Health"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties": {
+    "/api/tasks/{task_id}/fail": {
       "post": {
         "tags": [
-          "parties"
+          "nodes"
         ],
-        "summary": "Create Party",
-        "operationId": "create_party_api_parties_post",
+        "summary": "Fail",
+        "operationId": "fail_api_tasks__task_id__fail_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}/log": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Log",
+        "description": "Lines the task's process wrote, for the operator to follow live.",
+        "operationId": "log_api_tasks__task_id__log_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blobs/{sha256}": {
+      "get": {
+        "tags": [
+          "blobs"
+        ],
+        "summary": "Read",
+        "description": "The blob's bytes; `Range` is honoured, so downloads resume. Blobs never change.",
+        "operationId": "read_api_blobs__sha256__get",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "blobs"
+        ],
+        "summary": "Exists",
+        "description": "Whether the server has the blob, and its size, without the bytes.",
+        "operationId": "exists_api_blobs__sha256__head",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "blobs"
+        ],
+        "summary": "Write",
+        "description": "Stores the body under its hash, which must be `sha256` (a corrupt upload is refused).",
+        "operationId": "write_api_blobs__sha256__put",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stored"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blobs/{sha256}/local": {
+      "get": {
+        "tags": [
+          "blobs"
+        ],
+        "summary": "Local",
+        "description": "Where the blob is on this disk, for a node on the server's own machine.",
+        "operationId": "local_api_blobs__sha256__local_get",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalPath"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads": {
+      "post": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Create",
+        "operationId": "create_api_uploads_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUpload"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PartyCreated"
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -536,21 +792,21 @@
         }
       }
     },
-    "/api/parties/{code}": {
+    "/api/uploads/{upload_id}": {
       "get": {
         "tags": [
-          "parties"
+          "uploads"
         ],
-        "summary": "Get Party",
-        "operationId": "get_party_api_parties__code__get",
+        "summary": "Get",
+        "operationId": "get_api_uploads__upload_id__get",
         "parameters": [
           {
-            "name": "code",
+            "name": "upload_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Code"
+              "title": "Upload Id"
             }
           }
         ],
@@ -560,7 +816,184 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PartyState"
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Offset",
+        "operationId": "offset_api_uploads__upload_id__head",
+        "parameters": [
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Upload Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "uploads"
+        ],
+        "summary": "Append",
+        "operationId": "append_api_uploads__upload_id__patch",
+        "parameters": [
+          {
+            "name": "upload_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Upload Id"
+            }
+          },
+          {
+            "name": "Upload-Offset",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "Upload-Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contents": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "List Contents",
+        "operationId": "list_contents_api_contents_get",
+        "parameters": [
+          {
+            "name": "trash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Trash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Content"
+                  },
+                  "title": "Response List Contents Api Contents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contents/{content_id}": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Content",
+        "operationId": "get_content_api_contents__content_id__get",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Content"
                 }
               }
             }
@@ -579,19 +1012,18 @@
       },
       "delete": {
         "tags": [
-          "parties"
+          "library"
         ],
-        "summary": "End Party",
-        "description": "Only the TV (the host token) ends its party; the phones are told and their streams end.",
-        "operationId": "end_party_api_parties__code__delete",
+        "summary": "Trash",
+        "operationId": "trash_api_contents__content_id__delete",
         "parameters": [
           {
-            "name": "code",
+            "name": "content_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Code"
+              "title": "Content Id"
             }
           }
         ],
@@ -612,22 +1044,21 @@
         }
       }
     },
-    "/api/parties/{code}/events": {
+    "/api/contents/{content_id}/versions": {
       "get": {
         "tags": [
-          "parties"
+          "library"
         ],
-        "summary": "Party Events",
-        "description": "The full state at once and after every change; commands go to the TV only; `ended`\nwhen the TV ends the party (or it expires), and then the stream closes.",
-        "operationId": "party_events_api_parties__code__events_get",
+        "summary": "Versions",
+        "operationId": "versions_api_contents__content_id__versions_get",
         "parameters": [
           {
-            "name": "code",
+            "name": "content_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Code"
+              "title": "Content Id"
             }
           }
         ],
@@ -635,327 +1066,75 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "text/event-stream": {
-                "itemSchema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "string"
-                    },
-                    "event": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "retry": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/guests": {
-      "post": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Join",
-        "operationId": "join_api_parties__code__guests_post",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/JoinRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Joined"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/queue": {
-      "post": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Enqueue",
-        "operationId": "enqueue_api_parties__code__queue_post",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueueRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueueItem"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/queue/{item_id}": {
-      "delete": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Remove",
-        "operationId": "remove_api_parties__code__queue__item_id__delete",
-        "parameters": [
-          {
-            "name": "item_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Item Id"
-            }
-          },
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/promote/{item_id}": {
-      "post": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Promote",
-        "operationId": "promote_api_parties__code__promote__item_id__post",
-        "parameters": [
-          {
-            "name": "item_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Item Id"
-            }
-          },
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/advance": {
-      "put": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Advance",
-        "operationId": "advance_api_parties__code__advance_put",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AdvanceRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/parties/{code}/commands": {
-      "post": {
-        "tags": [
-          "parties"
-        ],
-        "summary": "Command",
-        "operationId": "command_api_parties__code__commands_post",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Code"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/SimpleCommand"
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
                   },
-                  {
-                    "$ref": "#/components/schemas/ValueCommand"
-                  }
-                ],
-                "discriminator": {
-                  "propertyName": "type",
-                  "mapping": {
-                    "play": "#/components/schemas/SimpleCommand",
-                    "pause": "#/components/schemas/SimpleCommand",
-                    "skip": "#/components/schemas/SimpleCommand",
-                    "vocals": "#/components/schemas/ValueCommand",
-                    "pitch": "#/components/schemas/ValueCommand"
-                  }
+                  "title": "Response Versions Api Contents  Content Id  Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contents/{content_id}/manifest": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Manifest",
+        "operationId": "manifest_api_contents__content_id__manifest_get",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
                 },
-                "title": "Body"
-              }
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
             }
           }
-        },
+        ],
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Manifest"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -970,21 +1149,62 @@
         }
       }
     },
-    "/api/parties/{code}/playback": {
-      "put": {
+    "/api/contents/{content_id}/lyrics": {
+      "get": {
         "tags": [
-          "parties"
+          "library"
         ],
-        "summary": "Playback",
-        "operationId": "playback_api_parties__code__playback_put",
+        "summary": "Lyrics",
+        "operationId": "lyrics_api_contents__content_id__lyrics_get",
         "parameters": [
           {
-            "name": "code",
+            "name": "content_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Code"
+              "title": "Content Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lyrics"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Save Lyrics",
+        "description": "A new version with edited lyrics; `base` is the manifest the editor started from.",
+        "operationId": "save_lyrics_api_contents__content_id__lyrics_put",
+        "parameters": [
+          {
+            "name": "content_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Content Id"
             }
           }
         ],
@@ -993,14 +1213,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Playback"
+                "$ref": "#/components/schemas/LyricsEdit"
               }
             }
           }
         },
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Content"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1015,37 +1242,34 @@
         }
       }
     },
-    "/api/parties/{code}/settings": {
-      "put": {
+    "/api/contents/{content_id}/restore": {
+      "post": {
         "tags": [
-          "parties"
+          "library"
         ],
-        "summary": "Settings",
-        "operationId": "settings_api_parties__code__settings_put",
+        "summary": "Restore",
+        "operationId": "restore_api_contents__content_id__restore_post",
         "parameters": [
           {
-            "name": "code",
+            "name": "content_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Code"
+              "title": "Content Id"
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PartySettings"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Content"
+                }
               }
             }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -1053,6 +1277,27 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contents/gc": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Gc",
+        "operationId": "gc_api_contents_gc_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GcView"
                 }
               }
             }
@@ -1061,43 +1306,87 @@
       }
     },
     "/api/jobs": {
-      "get": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "List Jobs",
-        "operationId": "list_jobs_api_jobs_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Job"
-                  },
-                  "type": "array",
-                  "title": "Response List Jobs Api Jobs Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
           "jobs"
         ],
-        "summary": "Create Job",
-        "description": "A song file (multipart `file`) or a link (`url`), with its language and lyrics if any.",
-        "operationId": "create_job_api_jobs_post",
+        "summary": "Create",
+        "operationId": "create_api_jobs_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewJob"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Api Jobs Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "List Jobs",
+        "operationId": "list_jobs_api_jobs_get",
+        "parameters": [
+          {
+            "name": "active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Jobs Api Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1129,7 +1418,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Job Api Jobs  Job Id  Get"
                 }
               }
             }
@@ -1146,12 +1437,12 @@
           }
         }
       },
-      "delete": {
+      "patch": {
         "tags": [
           "jobs"
         ],
-        "summary": "Cancel Job",
-        "operationId": "cancel_job_api_jobs__job_id__delete",
+        "summary": "Change",
+        "operationId": "change_api_jobs__job_id__patch",
         "parameters": [
           {
             "name": "job_id",
@@ -1163,48 +1454,25 @@
             }
           }
         ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobChange"
               }
             }
           }
-        }
-      }
-    },
-    "/api/jobs/{job_id}/retry": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Retry Job",
-        "operationId": "retry_job_api_jobs__job_id__retry_post",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Job"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Change Api Jobs  Job Id  Patch"
                 }
               }
             }
@@ -1222,13 +1490,13 @@
         }
       }
     },
-    "/api/jobs/{job_id}/log": {
-      "get": {
+    "/api/jobs/{job_id}/confirm": {
+      "post": {
         "tags": [
           "jobs"
         ],
-        "summary": "Job Log",
-        "operationId": "job_log_api_jobs__job_id__log_get",
+        "summary": "Confirm",
+        "operationId": "confirm_api_jobs__job_id__confirm_post",
         "parameters": [
           {
             "name": "job_id",
@@ -1237,6 +1505,70 @@
             "schema": {
               "type": "string",
               "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Confirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Confirm Api Jobs  Job Id  Confirm Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{job_id}/tasks/{key}/log": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Task Log",
+        "description": "The task's log: the whole one once it ended, the last lines while it runs.",
+        "operationId": "task_log_api_jobs__job_id__tasks__key__log_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
             }
           }
         ],
@@ -1264,14 +1596,13 @@
         }
       }
     },
-    "/api/jobs/{job_id}/events": {
-      "get": {
+    "/api/jobs/{job_id}/{action}": {
+      "post": {
         "tags": [
           "jobs"
         ],
-        "summary": "Job Events",
-        "description": "The job now and after every change.",
-        "operationId": "job_events_api_jobs__job_id__events_get",
+        "summary": "Act",
+        "operationId": "act_api_jobs__job_id___action__post",
         "parameters": [
           {
             "name": "job_id",
@@ -1281,30 +1612,481 @@
               "type": "string",
               "title": "Job Id"
             }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "cancel",
+                "pause",
+                "resume",
+                "retry"
+              ],
+              "type": "string",
+              "title": "Action"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "text/event-stream": {
-                "itemSchema": {
+              "application/json": {
+                "schema": {
                   "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "string"
-                    },
-                    "event": {
-                      "type": "string"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "retry": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
-                  }
+                  "additionalProperties": true,
+                  "title": "Response Act Api Jobs  Job Id   Action  Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage": {
+      "get": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "View",
+        "operationId": "view_api_stage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response View Api Stage Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage/commands": {
+      "post": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Command",
+        "operationId": "command_api_stage_commands_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Order"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage/audio": {
+      "put": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Set Audio",
+        "operationId": "set_audio_api_stage_audio_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage/queue": {
+      "get": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Get Queue",
+        "operationId": "get_queue_api_stage_queue_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Save Queue",
+        "description": "Rewrites the queue (reorder, remove, change an item) over the version it was read at.",
+        "operationId": "save_queue_api_stage_queue_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Queue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stage/queue/items": {
+      "post": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Add To Queue",
+        "description": "Adds songs to the end (or the front) of the queue as it is now: no version to match.",
+        "operationId": "add_to_queue_api_stage_queue_items_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewItems"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Queue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/{screen_id}/config": {
+      "put": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Set Screen Config",
+        "operationId": "set_screen_config_api_screens__screen_id__config_put",
+        "parameters": [
+          {
+            "name": "screen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Screen Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreenConfig"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreenConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/{screen_id}": {
+      "delete": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Forget Screen",
+        "operationId": "forget_screen_api_screens__screen_id__delete",
+        "parameters": [
+          {
+            "name": "screen_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Screen Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/screens/blobs/{sha256}": {
+      "get": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Screen Blob",
+        "description": "A blob of a song on the stage or in its queue, for any screen on the LAN; `Range`\nworks, so a download resumes.",
+        "operationId": "screen_blob_api_screens_blobs__sha256__get",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "stage"
+        ],
+        "summary": "Screen Blob Head",
+        "operationId": "screen_blob_head_api_screens_blobs__sha256__head",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sha256"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/server": {
+      "get": {
+        "tags": [
+          "server"
+        ],
+        "summary": "Info",
+        "operationId": "info_api_server_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lyrics/search": {
+      "get": {
+        "tags": [
+          "server"
+        ],
+        "summary": "Search Lyrics",
+        "description": "LRCLIB candidates for the operator to pick from: duration gap and whether it has times.",
+        "operationId": "search_lyrics_api_lyrics_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Duration"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response Search Lyrics Api Lyrics Search Get"
                 }
               }
             }
@@ -1325,48 +2107,89 @@
   },
   "components": {
     "schemas": {
-      "AdvanceRequest": {
+      "Anchor": {
         "properties": {
-          "item_id": {
-            "type": "string",
-            "title": "Item Id"
+          "position": {
+            "type": "number",
+            "title": "Position"
           },
-          "state": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "playing",
-              "done",
-              "skipped"
-            ],
-            "title": "State"
+          "instant": {
+            "type": "integer",
+            "title": "Instant"
+          },
+          "rate": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Rate",
+            "default": 1.0
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "item_id",
-          "state"
+          "position",
+          "instant"
         ],
-        "title": "AdvanceRequest"
+        "title": "Anchor",
+        "description": "A song position that holds at an instant (µs on the server's monotonic clock) and moves\nat a rate (0 paused, 1 playing)."
       },
-      "AudioRefs": {
+      "AudioConfig": {
         "properties": {
-          "instrumental": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Instrumental"
+          "routing": {
+            "$ref": "#/components/schemas/Routing"
           },
-          "vocals": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Vocals"
+          "calibration_ms": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Calibration Ms",
+            "description": "Per stable device id: how late it really is, beyond what the OS reports."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "AudioConfig",
+        "description": "How `kp-audio` sends the stems to the backend's sound cards."
+      },
+      "AudioInfo": {
+        "properties": {
+          "codec": {
+            "type": "string",
+            "const": "opus",
+            "title": "Codec",
+            "default": "opus"
+          },
+          "container": {
+            "type": "string",
+            "const": "ogg",
+            "title": "Container",
+            "default": "ogg"
+          },
+          "sample_rate": {
+            "type": "integer",
+            "const": 48000,
+            "title": "Sample Rate",
+            "default": 48000
+          },
+          "channels": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 1.0,
+            "title": "Channels",
+            "default": 2
+          },
+          "preskip": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Preskip",
+            "description": "Opus pre-skip, in 48 kHz samples."
+          },
+          "gain_db": {
+            "type": "number",
+            "title": "Gain Db",
+            "description": "Gain the player applies to bring the song to -14 LUFS without clipping; the same for every audio track, so guide vocals and music keep their balance.",
+            "default": 0.0
           },
           "loudness_lufs": {
             "anyOf": [
@@ -1377,393 +2200,202 @@
                 "type": "null"
               }
             ],
-            "title": "Loudness Lufs"
+            "title": "Loudness Lufs",
+            "description": "Integrated loudness of the mix once `gain_db` is applied."
           }
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "instrumental"
+          "preskip"
         ],
-        "title": "AudioRefs"
+        "title": "AudioInfo"
       },
-      "Device": {
+      "Blob": {
         "properties": {
-          "id": {
+          "sha256": {
             "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          },
-          "last_seen": {
-            "type": "string",
-            "title": "Last Seen"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "created_at",
-          "last_seen"
-        ],
-        "title": "Device",
-        "description": "A device paired with the server: it may create, correct and delete songs."
-      },
-      "Export": {
-        "properties": {
-          "file": {
-            "type": "string",
-            "title": "File"
-          },
-          "aspect": {
-            "type": "string",
-            "enum": [
-              "16:9",
-              "9:16"
-            ],
-            "title": "Aspect"
-          },
-          "theme": {
-            "type": "string",
-            "title": "Theme"
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
           },
           "size": {
             "type": "integer",
+            "minimum": 0.0,
             "title": "Size"
           },
-          "created_at": {
+          "media_type": {
             "type": "string",
-            "title": "Created At"
-          },
-          "thumbnail": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Thumbnail"
-          },
-          "outdated": {
-            "type": "boolean",
-            "title": "Outdated"
-          },
-          "vocals": {
-            "type": "number",
-            "title": "Vocals"
+            "minLength": 1,
+            "title": "Media Type"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "file",
-          "aspect",
-          "theme",
+          "sha256",
           "size",
-          "created_at",
-          "thumbnail",
-          "outdated",
-          "vocals"
+          "media_type"
         ],
-        "title": "Export",
-        "description": "A karaoke video of a song, ready to download."
+        "title": "Blob"
       },
-      "ExportRequest": {
+      "Capabilities": {
         "properties": {
-          "aspect": {
+          "os": {
             "type": "string",
             "enum": [
-              "16:9",
-              "9:16"
+              "windows",
+              "linux",
+              "macos"
             ],
-            "title": "Aspect",
-            "default": "16:9"
+            "title": "Os"
           },
-          "theme": {
-            "type": "string",
-            "title": "Theme",
-            "default": "clasico"
-          },
-          "vocals": {
-            "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Vocals",
-            "default": 0.0
-          }
-        },
-        "type": "object",
-        "title": "ExportRequest"
-      },
-      "Guest": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "color": {
-            "type": "string",
-            "title": "Color"
-          },
-          "joined_at": {
+          "cpus": {
             "type": "integer",
-            "title": "Joined At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "color",
-          "joined_at"
-        ],
-        "title": "Guest"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
+            "minimum": 1.0,
+            "title": "Cpus",
+            "default": 1
+          },
+          "ram_mb": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Ram Mb",
+            "default": 0
+          },
+          "gpus": {
             "items": {
-              "$ref": "#/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/Gpu"
             },
             "type": "array",
-            "title": "Detail"
+            "title": "Gpus"
+          },
+          "internet": {
+            "type": "boolean",
+            "title": "Internet",
+            "default": false
+          },
+          "tasks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "fetch",
+                "analyze",
+                "make",
+                "package",
+                "render"
+              ]
+            },
+            "type": "array",
+            "title": "Tasks",
+            "description": "Task kinds it can run."
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Models",
+            "description": "Model name to version."
+          },
+          "same_host_as_server": {
+            "type": "boolean",
+            "title": "Same Host As Server",
+            "description": "It shares the server's disk: blobs go by path, not HTTP.",
+            "default": false
           }
         },
+        "additionalProperties": false,
         "type": "object",
-        "title": "HTTPValidationError"
+        "required": [
+          "os"
+        ],
+        "title": "Capabilities"
       },
-      "Health": {
+      "CompleteBody": {
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "title": "Ok"
-          },
-          "version": {
+          "lease_id": {
             "type": "string",
-            "title": "Version"
+            "title": "Lease Id"
+          },
+          "result": {
+            "$ref": "#/components/schemas/TaskResult"
           }
         },
         "type": "object",
         "required": [
-          "ok",
-          "version"
+          "lease_id",
+          "result"
         ],
-        "title": "Health"
+        "title": "CompleteBody"
       },
-      "Job": {
+      "Confirmation": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "make",
-              "export"
-            ],
-            "title": "Kind"
-          },
           "title": {
             "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
             "title": "Title"
           },
-          "stage": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "download",
-              "separate",
-              "transcribe",
-              "align",
-              "audio",
-              "video",
-              "done",
-              "error",
-              "cancelled"
-            ],
-            "title": "Stage"
-          },
-          "progress": {
-            "type": "number",
-            "title": "Progress"
-          },
-          "song_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Song Id"
-          },
-          "file": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "File"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error"
-          },
-          "error_code": {
+          "artist": {
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "too_big",
-                  "too_long",
-                  "no_audio",
-                  "unreadable",
-                  "bad_url",
-                  "download_failed",
-                  "disk_full",
-                  "bad_lyrics",
-                  "gpu_memory",
-                  "out_of_memory",
-                  "engine_failed",
-                  "interrupted",
-                  "song_missing"
-                ]
+                "maxLength": 200
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Error Code"
+            "title": "Artist"
           },
-          "with_lyrics": {
-            "type": "boolean",
-            "title": "With Lyrics"
-          },
-          "created_at": {
+          "language": {
             "type": "string",
-            "title": "Created At"
+            "pattern": "^[a-z]{2,3}$",
+            "title": "Language"
           },
-          "overall": {
+          "lyrics": {
             "anyOf": [
               {
-                "type": "number"
+                "type": "string",
+                "maxLength": 50000
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Overall"
+            "title": "Lyrics",
+            "description": "None: transcribe the song."
           },
-          "eta": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Eta"
-          },
-          "can_retry": {
+          "add_to_queue": {
             "type": "boolean",
-            "title": "Can Retry"
-          },
-          "attempt": {
-            "type": "integer",
-            "title": "Attempt"
+            "title": "Add To Queue",
+            "description": "Put the song at the end of the queue once it is made.",
+            "default": false
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "kind",
           "title",
-          "stage",
-          "progress",
-          "song_id",
-          "file",
-          "error",
-          "error_code",
-          "with_lyrics",
-          "created_at",
-          "overall",
-          "eta",
-          "can_retry",
-          "attempt"
+          "language"
         ],
-        "title": "Job"
+        "title": "Confirmation",
+        "description": "What the song is, as the operator confirmed or corrected it after the analysis."
       },
-      "JoinRequest": {
+      "Content": {
         "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "title": "JoinRequest"
-      },
-      "Joined": {
-        "properties": {
-          "guest": {
-            "$ref": "#/components/schemas/Guest"
-          },
-          "token": {
-            "type": "string",
-            "title": "Token"
-          }
-        },
-        "type": "object",
-        "required": [
-          "guest",
-          "token"
-        ],
-        "title": "Joined"
-      },
-      "KaraokeDoc": {
-        "properties": {
-          "schema_version": {
-            "type": "string",
-            "pattern": "^1\\.\\d+\\.\\d+$",
-            "title": "Schema Version",
-            "default": "1.2.0"
-          },
           "id": {
             "type": "string",
-            "minLength": 1,
             "title": "Id"
+          },
+          "manifest": {
+            "type": "string",
+            "title": "Manifest"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
           },
           "title": {
             "type": "string",
-            "minLength": 1,
             "title": "Title"
           },
           "artist": {
@@ -1779,74 +2411,281 @@
           },
           "language": {
             "type": "string",
-            "pattern": "^[a-z]{2,3}$",
             "title": "Language"
           },
           "duration": {
             "type": "number",
-            "exclusiveMinimum": 0.0,
             "title": "Duration"
           },
-          "audio": {
-            "$ref": "#/components/schemas/AudioRefs"
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
           },
-          "video": {
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "deleted_at": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/VideoRefs"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "cover": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Cover"
-          },
-          "singers": {
-            "items": {
-              "$ref": "#/components/schemas/Singer"
-            },
-            "type": "array",
-            "title": "Singers"
-          },
-          "lines": {
-            "items": {
-              "$ref": "#/components/schemas/Line"
-            },
-            "type": "array",
-            "title": "Lines"
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/Provenance"
-          },
-          "edited": {
-            "type": "boolean",
-            "title": "Edited",
-            "default": false
+            "title": "Deleted At"
           }
         },
-        "additionalProperties": true,
         "type": "object",
         "required": [
           "id",
+          "manifest",
+          "version",
           "title",
+          "artist",
           "language",
           "duration",
-          "audio",
-          "lines",
-          "provenance"
+          "created_at",
+          "updated_at",
+          "deleted_at"
         ],
-        "title": "KaraokeDoc"
+        "title": "Content"
+      },
+      "Enrolled": {
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Node Id"
+          },
+          "credential": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Credential"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "node_id",
+          "credential"
+        ],
+        "title": "Enrolled"
+      },
+      "Enrollment": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Token"
+          },
+          "kind": {
+            "type": "string",
+            "const": "worker",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "kind",
+          "name",
+          "capabilities"
+        ],
+        "title": "Enrollment",
+        "description": "Sent once with a one-time token; the answer carries the node's own credential."
+      },
+      "EnrollmentToken": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "expires_in_hours": {
+            "type": "number",
+            "title": "Expires In Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "kind",
+          "expires_in_hours"
+        ],
+        "title": "EnrollmentToken"
+      },
+      "FailBody": {
+        "properties": {
+          "lease_id": {
+            "type": "string",
+            "title": "Lease Id"
+          },
+          "failure": {
+            "$ref": "#/components/schemas/TaskFailure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lease_id",
+          "failure"
+        ],
+        "title": "FailBody"
+      },
+      "GcView": {
+        "properties": {
+          "kept": {
+            "type": "integer",
+            "title": "Kept"
+          },
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "freed_bytes": {
+            "type": "integer",
+            "title": "Freed Bytes"
+          },
+          "purged_contents": {
+            "type": "integer",
+            "title": "Purged Contents"
+          },
+          "usage_bytes": {
+            "type": "integer",
+            "title": "Usage Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kept",
+          "deleted",
+          "freed_bytes",
+          "purged_contents",
+          "usage_bytes"
+        ],
+        "title": "GcView"
+      },
+      "Gpu": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name"
+          },
+          "vram_total_mb": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Vram Total Mb"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "vram_total_mb"
+        ],
+        "title": "Gpu"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Heartbeat": {
+        "properties": {
+          "telemetry": {
+            "$ref": "#/components/schemas/Telemetry"
+          },
+          "running": {
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Running",
+            "description": "Task ids it holds."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Heartbeat"
+      },
+      "HeartbeatAnswer": {
+        "properties": {
+          "stop": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stop"
+          },
+          "server_time": {
+            "type": "integer",
+            "title": "Server Time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stop",
+          "server_time"
+        ],
+        "title": "HeartbeatAnswer"
+      },
+      "JobChange": {
+        "properties": {
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": -100.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "pinned_node": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pinned Node"
+          },
+          "unpin": {
+            "type": "boolean",
+            "title": "Unpin",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "JobChange"
       },
       "LanguageFallback": {
         "properties": {
@@ -1880,6 +2719,34 @@
         ],
         "title": "LanguageFallback",
         "description": "Records that a step could not use a resource for the requested language."
+      },
+      "LeaseRequest": {
+        "properties": {
+          "free_vram_mb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Vram Mb"
+          },
+          "wait": {
+            "type": "boolean",
+            "title": "Wait",
+            "default": true
+          },
+          "cpu": {
+            "type": "boolean",
+            "title": "Cpu",
+            "description": "Whether it may take a task without a GPU.",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "LeaseRequest"
       },
       "Line": {
         "properties": {
@@ -1940,268 +2807,100 @@
         ],
         "title": "Line"
       },
-      "Me": {
+      "LocalPath": {
         "properties": {
-          "owner": {
-            "type": "boolean",
-            "title": "Owner"
-          },
-          "zone": {
+          "path": {
             "type": "string",
-            "enum": [
-              "local",
-              "home",
-              "remote"
-            ],
-            "title": "Zone"
-          },
-          "device": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Device"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "title": "Path"
           }
         },
         "type": "object",
         "required": [
-          "owner",
-          "zone",
-          "device"
+          "path"
         ],
-        "title": "Me"
+        "title": "LocalPath"
       },
-      "PairRequest": {
+      "LogBody": {
         "properties": {
-          "code": {
+          "lease_id": {
             "type": "string",
-            "title": "Code"
+            "title": "Lease Id"
           },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+          "log": {
+            "$ref": "#/components/schemas/TaskLog"
           }
         },
         "type": "object",
         "required": [
-          "code"
+          "lease_id",
+          "log"
         ],
-        "title": "PairRequest"
+        "title": "LogBody"
       },
-      "PairingOut": {
+      "Lyrics": {
         "properties": {
-          "code": {
+          "schema_version": {
             "type": "string",
-            "title": "Code"
+            "pattern": "^2\\.\\d+\\.\\d+$",
+            "title": "Schema Version",
+            "default": "2.0.0"
           },
-          "expires_at": {
+          "language": {
             "type": "string",
-            "title": "Expires At"
+            "pattern": "^[a-z]{2,3}$",
+            "title": "Language"
           },
-          "urls": {
-            "$ref": "#/components/schemas/PairingUrls"
-          }
-        },
-        "type": "object",
-        "required": [
-          "code",
-          "expires_at",
-          "urls"
-        ],
-        "title": "PairingOut"
-      },
-      "PairingUrls": {
-        "properties": {
-          "home": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Home"
-          },
-          "remote": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remote"
-          }
-        },
-        "type": "object",
-        "required": [
-          "home",
-          "remote"
-        ],
-        "title": "PairingUrls"
-      },
-      "Part": {
-        "properties": {
-          "text": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Text"
-          },
-          "start": {
-            "type": "number",
-            "minimum": 0.0,
-            "title": "Start",
-            "description": "Seconds from the start of the song audio."
-          },
-          "end": {
-            "type": "number",
-            "minimum": 0.0,
-            "title": "End",
-            "description": "Seconds from the start of the song audio."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "text",
-          "start",
-          "end"
-        ],
-        "title": "Part",
-        "description": "A sub-unit of a word (a syllable or a group of letters) with its own timing."
-      },
-      "PartyCreated": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "title": "Code"
-          },
-          "host_token": {
-            "type": "string",
-            "title": "Host Token"
-          }
-        },
-        "type": "object",
-        "required": [
-          "code",
-          "host_token"
-        ],
-        "title": "PartyCreated"
-      },
-      "PartySettings": {
-        "properties": {
-          "guests_control": {
-            "type": "boolean",
-            "title": "Guests Control"
-          }
-        },
-        "type": "object",
-        "required": [
-          "guests_control"
-        ],
-        "title": "PartySettings"
-      },
-      "PartyState": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "title": "Code"
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version"
-          },
-          "guests": {
+          "singers": {
             "items": {
-              "$ref": "#/components/schemas/Guest"
+              "$ref": "#/components/schemas/Singer"
             },
             "type": "array",
-            "title": "Guests"
+            "title": "Singers"
           },
-          "queue": {
+          "lines": {
             "items": {
-              "$ref": "#/components/schemas/QueueItem"
+              "$ref": "#/components/schemas/Line"
             },
             "type": "array",
-            "title": "Queue"
+            "title": "Lines"
           },
-          "playback": {
-            "$ref": "#/components/schemas/Playback"
+          "provenance": {
+            "$ref": "#/components/schemas/LyricsProvenance"
           },
-          "settings": {
-            "$ref": "#/components/schemas/PartySettings"
-          }
-        },
-        "type": "object",
-        "required": [
-          "code",
-          "version",
-          "guests",
-          "queue",
-          "playback",
-          "settings"
-        ],
-        "title": "PartyState"
-      },
-      "Playback": {
-        "properties": {
-          "item_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Item Id"
-          },
-          "playing": {
+          "edited": {
             "type": "boolean",
-            "title": "Playing"
+            "title": "Edited",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "language",
+          "lines",
+          "provenance"
+        ],
+        "title": "Lyrics",
+        "description": "The `lyrics` track: lines, words and syllables with times and confidence, nothing else."
+      },
+      "LyricsEdit": {
+        "properties": {
+          "base": {
+            "type": "string",
+            "title": "Base"
           },
-          "position": {
-            "type": "number",
-            "title": "Position"
-          },
-          "at": {
-            "type": "integer",
-            "title": "At"
-          },
-          "vocals": {
-            "type": "number",
-            "title": "Vocals"
-          },
-          "pitch": {
-            "type": "number",
-            "title": "Pitch"
+          "lyrics": {
+            "$ref": "#/components/schemas/Lyrics"
           }
         },
         "type": "object",
         "required": [
-          "item_id",
-          "playing",
-          "position",
-          "at",
-          "vocals",
-          "pitch"
+          "base",
+          "lyrics"
         ],
-        "title": "Playback",
-        "description": "What the TV is playing, published by the TV so phones can show it."
+        "title": "LyricsEdit"
       },
-      "Provenance": {
+      "LyricsProvenance": {
         "properties": {
           "lyrics_source": {
             "type": "string",
@@ -2258,30 +2957,54 @@
             "title": "Language Fallbacks"
           }
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "lyrics_source",
           "engine_version"
         ],
-        "title": "Provenance"
+        "title": "LyricsProvenance"
       },
-      "QueueItem": {
+      "Manifest": {
         "properties": {
-          "id": {
+          "schema_version": {
             "type": "string",
-            "title": "Id"
+            "pattern": "^2\\.\\d+\\.\\d+$",
+            "title": "Schema Version",
+            "default": "2.0.0"
           },
-          "guest_id": {
+          "content_id": {
             "type": "string",
-            "title": "Guest Id"
+            "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+            "title": "Content Id"
           },
-          "song_id": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "default": 1
+          },
+          "parent": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent",
+            "description": "Hash of the previous version."
+          },
+          "created_at": {
             "type": "string",
-            "title": "Song Id"
+            "format": "date-time",
+            "title": "Created At"
           },
           "title": {
             "type": "string",
+            "minLength": 1,
             "title": "Title"
           },
           "artist": {
@@ -2295,116 +3018,807 @@
             ],
             "title": "Artist"
           },
+          "language": {
+            "type": "string",
+            "pattern": "^[a-z]{2,3}$",
+            "title": "Language"
+          },
           "duration": {
             "type": "number",
+            "exclusiveMinimum": 0.0,
             "title": "Duration"
           },
-          "added_at": {
-            "type": "integer",
-            "title": "Added At"
-          },
-          "state": {
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Tracks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content_id",
+          "created_at",
+          "title",
+          "language",
+          "duration",
+          "tracks"
+        ],
+        "title": "Manifest"
+      },
+      "Me": {
+        "properties": {
+          "id": {
             "type": "string",
-            "enum": [
-              "queued",
-              "playing",
-              "done",
-              "skipped"
-            ],
-            "title": "State"
+            "title": "Id"
           },
-          "promoted": {
-            "type": "boolean",
-            "title": "Promoted"
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "guest_id",
-          "song_id",
-          "title",
-          "artist",
-          "duration",
-          "added_at",
-          "state",
-          "promoted"
+          "kind",
+          "name"
+        ],
+        "title": "Me"
+      },
+      "NewEnrollment": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "worker",
+            "title": "Kind",
+            "default": "worker"
+          }
+        },
+        "type": "object",
+        "title": "NewEnrollment"
+      },
+      "NewItem": {
+        "properties": {
+          "content_id": {
+            "type": "string",
+            "title": "Content Id"
+          },
+          "singer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Singer"
+          },
+          "semitones": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": -12.0,
+            "title": "Semitones",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "content_id"
+        ],
+        "title": "NewItem"
+      },
+      "NewItems": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NewItem"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "first": {
+            "type": "boolean",
+            "title": "First",
+            "description": "Put them before everything else.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "NewItems"
+      },
+      "NewJob": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "create",
+              "render"
+            ],
+            "title": "Kind",
+            "default": "create"
+          },
+          "upload": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upload",
+            "description": "An upload id that has finished."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "lyrics": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lyrics"
+          },
+          "lrclib": {
+            "type": "boolean",
+            "title": "Lrclib",
+            "default": false
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z]{2,3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "auto_confirm": {
+            "type": "boolean",
+            "title": "Auto Confirm",
+            "description": "Go on without a review when the analysis is sure.",
+            "default": false
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "artist": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artist"
+          },
+          "content_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Id"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "default": "clasico"
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16"
+            ],
+            "title": "Aspect",
+            "default": "16:9"
+          },
+          "vocals": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Vocals",
+            "default": 0.0
+          },
+          "batch": {
+            "type": "boolean",
+            "title": "Batch",
+            "description": "Lower priority than interactive work.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "NewJob"
+      },
+      "NewUpload": {
+        "properties": {
+          "filename": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename"
+          },
+          "size": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "filename",
+          "size"
+        ],
+        "title": "NewUpload"
+      },
+      "Order": {
+        "properties": {
+          "command": {
+            "type": "string",
+            "enum": [
+              "cue",
+              "start",
+              "pause",
+              "seek",
+              "next",
+              "previous",
+              "stop",
+              "volume",
+              "pitch"
+            ],
+            "title": "Command"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "force": {
+            "type": "boolean",
+            "title": "Force",
+            "description": "Start although some screens are not ready.",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "command"
+        ],
+        "title": "Order"
+      },
+      "Part": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Start",
+            "description": "Seconds from the start of the song audio."
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "End",
+            "description": "Seconds from the start of the song audio."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "text",
+          "start",
+          "end"
+        ],
+        "title": "Part",
+        "description": "A sub-unit of a word (a syllable or a group of letters) with its own timing."
+      },
+      "Program": {
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/QueueItem"
+          },
+          "manifest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Manifest"
+          },
+          "duration": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Duration"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "item",
+          "manifest",
+          "duration"
+        ],
+        "title": "Program",
+        "description": "A queue item with the manifest it plays: what screens and audio prepare."
+      },
+      "ProgressAnswer": {
+        "properties": {
+          "keep_going": {
+            "type": "boolean",
+            "title": "Keep Going"
+          }
+        },
+        "type": "object",
+        "required": [
+          "keep_going"
+        ],
+        "title": "ProgressAnswer"
+      },
+      "ProgressBody": {
+        "properties": {
+          "lease_id": {
+            "type": "string",
+            "title": "Lease Id"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/TaskProgress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lease_id",
+          "progress"
+        ],
+        "title": "ProgressBody"
+      },
+      "Queue": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version",
+            "default": 0
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Queue",
+        "description": "What the stage will play, in order: one per backend, with an optimistic version."
+      },
+      "QueueItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "content_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+            "title": "Content Id"
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest",
+            "description": "Pinned version; None = latest."
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start",
+            "description": "Entry point."
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End",
+            "description": "Exit point."
+          },
+          "semitones": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": -12.0,
+            "title": "Semitones",
+            "default": 0.0
+          },
+          "singer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Singer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "content_id"
         ],
         "title": "QueueItem"
       },
-      "QueueRequest": {
+      "Route": {
         "properties": {
-          "song_id": {
+          "track": {
             "type": "string",
-            "title": "Song Id"
+            "enum": [
+              "vocals",
+              "instrumental"
+            ],
+            "title": "Track"
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Output",
+            "description": "An audio device id."
+          },
+          "gain_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gain Db",
+            "description": "None mutes the route.",
+            "default": 0.0
+          },
+          "delay_ms": {
+            "type": "number",
+            "maximum": 2000.0,
+            "minimum": 0.0,
+            "title": "Delay Ms",
+            "default": 0.0
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "song_id"
+          "track",
+          "output"
         ],
-        "title": "QueueRequest"
+        "title": "Route"
+      },
+      "Routing": {
+        "properties": {
+          "master": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Master",
+            "description": "Audio device whose clock rules."
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/Route"
+            },
+            "type": "array",
+            "title": "Routes"
+          },
+          "policies": {
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "pause",
+                "continue"
+              ]
+            },
+            "type": "object",
+            "title": "Policies",
+            "description": "What happens when an output disappears; default: pause if it is the master, continue otherwise."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Routing"
+      },
+      "ScreenConfig": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "video-lyrics",
+              "lyrics",
+              "video",
+              "off"
+            ],
+            "title": "Layout",
+            "default": "video-lyrics"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "default": "clasico"
+          },
+          "display_ms": {
+            "type": "number",
+            "maximum": 2000.0,
+            "minimum": -500.0,
+            "title": "Display Ms",
+            "description": "How late the picture really is (the TV's processing).",
+            "default": 0.0
+          },
+          "video_max_height": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Max Height",
+            "description": "Never download a taller video than this (a Raspberry Pi)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScreenConfig",
+        "description": "What the operator sets for one screen, kept by its id."
       },
       "ServerInfo": {
         "properties": {
-          "url": {
+          "version": {
             "type": "string",
-            "title": "Url"
+            "title": "Version"
           },
-          "home_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Home Url"
-          },
-          "remote_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remote Url"
-          },
-          "home_reachable": {
-            "type": "boolean",
-            "title": "Home Reachable"
+          "now": {
+            "type": "integer",
+            "title": "Now"
           }
         },
         "type": "object",
         "required": [
-          "url",
-          "home_url",
-          "remote_url",
-          "home_reachable"
+          "version",
+          "now"
         ],
-        "title": "ServerInfo",
-        "description": "Addresses of the server; `url` is the one for the party QR (the home network's)."
+        "title": "ServerInfo"
       },
-      "SimpleCommand": {
+      "Session": {
         "properties": {
-          "type": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version",
+            "description": "Goes up on every change."
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Epoch",
+            "description": "Goes up on every cue; `ready` reports name the epoch they are for."
+          },
+          "state": {
             "type": "string",
             "enum": [
-              "play",
-              "pause",
-              "skip"
+              "idle",
+              "cueing",
+              "cued",
+              "playing",
+              "paused",
+              "ended",
+              "fault"
             ],
-            "title": "Type"
+            "title": "State",
+            "default": "idle"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Program"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Anchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where the song is, and when."
+          },
+          "upcoming": {
+            "items": {
+              "$ref": "#/components/schemas/Program"
+            },
+            "type": "array",
+            "title": "Upcoming",
+            "description": "The next items, to download and get ready ahead."
+          },
+          "semitones": {
+            "type": "number",
+            "maximum": 12.0,
+            "minimum": -12.0,
+            "title": "Semitones",
+            "default": 0.0
+          },
+          "volume": {
+            "type": "number",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Volume",
+            "default": 1.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "epoch"
+        ],
+        "title": "Session"
+      },
+      "SessionView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "preferences": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Preferences"
           }
         },
         "type": "object",
         "required": [
-          "type"
+          "id",
+          "name",
+          "preferences"
         ],
-        "title": "SimpleCommand"
+        "title": "SessionView"
+      },
+      "SignIn": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "SignIn"
       },
       "Singer": {
         "properties": {
@@ -2437,24 +3851,335 @@
             "title": "Color"
           }
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "id"
         ],
         "title": "Singer"
       },
-      "SongSummary": {
+      "Stored": {
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sha256",
+          "size"
+        ],
+        "title": "Stored"
+      },
+      "TaskFailure": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "default": true
+          },
+          "log": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Log",
+            "description": "The task's whole log, as a blob."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "TaskFailure"
+      },
+      "TaskLog": {
+        "properties": {
+          "lines": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Lines"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lines"
+        ],
+        "title": "TaskLog",
+        "description": "Lines the task's process wrote (yt-dlp, the engine), sent in small batches."
+      },
+      "TaskProgress": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Stage"
+          },
+          "fraction": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fraction"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step",
+            "description": "What the stage is doing right now."
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "A line for the operator."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stage"
+        ],
+        "title": "TaskProgress"
+      },
+      "TaskResult": {
+        "properties": {
+          "outputs": {
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "type": "object",
+            "title": "Outputs",
+            "description": "Named blobs it wrote."
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TaskResult"
+      },
+      "Telemetry": {
+        "properties": {
+          "gpu_util": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Util"
+          },
+          "vram_used_mb": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Used Mb"
+          },
+          "vram_free_mb": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Free Mb"
+          },
+          "gpu_temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Temp C"
+          },
+          "cpu_util": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Util"
+          },
+          "ram_used_mb": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Used Mb"
+          },
+          "ram_total_mb": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Total Mb"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Telemetry"
+      },
+      "Track": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "vocals",
+              "instrumental",
+              "video",
+              "lyrics",
+              "cover"
+            ],
+            "title": "Kind"
+          },
+          "blob": {
+            "$ref": "#/components/schemas/Blob"
+          },
+          "offset": {
+            "type": "number",
+            "title": "Offset",
+            "description": "Song time of the track's first sample.",
+            "default": 0.0
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration"
+          },
+          "audio": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AudioInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "video": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VideoInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "blob"
+        ],
+        "title": "Track"
+      },
+      "UploadView": {
         "properties": {
           "id": {
             "type": "string",
             "title": "Id"
           },
-          "title": {
+          "filename": {
             "type": "string",
-            "title": "Title"
+            "title": "Filename"
           },
-          "artist": {
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "blob": {
             "anyOf": [
               {
                 "type": "string"
@@ -2463,76 +4188,18 @@
                 "type": "null"
               }
             ],
-            "title": "Artist"
-          },
-          "language": {
-            "type": "string",
-            "title": "Language"
-          },
-          "duration": {
-            "type": "number",
-            "title": "Duration"
-          },
-          "cover": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Cover"
-          },
-          "has_video": {
-            "type": "boolean",
-            "title": "Has Video"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          },
-          "edited": {
-            "type": "boolean",
-            "title": "Edited"
-          },
-          "lyrics_source": {
-            "type": "string",
-            "enum": [
-              "user",
-              "asr",
-              "lrclib"
-            ],
-            "title": "Lyrics Source"
-          },
-          "hook": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hook"
+            "title": "Blob"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "title",
-          "artist",
-          "language",
-          "duration",
-          "cover",
-          "has_video",
-          "created_at",
-          "edited",
-          "lyrics_source",
-          "hook"
+          "filename",
+          "size",
+          "offset",
+          "blob"
         ],
-        "title": "SongSummary",
-        "description": "A song in the library, without its lyrics."
+        "title": "UploadView"
       },
       "ValidationError": {
         "properties": {
@@ -2574,60 +4241,42 @@
         ],
         "title": "ValidationError"
       },
-      "ValueCommand": {
+      "VideoInfo": {
         "properties": {
-          "type": {
+          "codec": {
             "type": "string",
             "enum": [
-              "vocals",
-              "pitch"
+              "h264",
+              "hevc",
+              "av1"
             ],
-            "title": "Type"
+            "title": "Codec"
           },
-          "value": {
+          "width": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Height"
+          },
+          "fps": {
             "type": "number",
-            "title": "Value"
+            "exclusiveMinimum": 0.0,
+            "title": "Fps"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
-          "type",
-          "value"
+          "codec",
+          "width",
+          "height",
+          "fps"
         ],
-        "title": "ValueCommand"
-      },
-      "VideoRefs": {
-        "properties": {
-          "background": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Background",
-            "description": "The song's video, light enough for every player (720p)."
-          },
-          "master": {
-            "anyOf": [
-              {
-                "type": "string",
-                "minLength": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Master",
-            "description": "The same video at its own quality (up to 1080p), for the MP4 export."
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "title": "VideoRefs"
+        "title": "VideoInfo"
       },
       "Word": {
         "properties": {

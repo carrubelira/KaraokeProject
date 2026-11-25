@@ -15,7 +15,7 @@ const typedRules = Object.fromEntries(
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
-	{ ignores: ['src/lib/contracts/generated/', 'src/lib/api/generated/'] },
+	{ ignores: ['src/lib/contracts/generated/'] },
 	js.configs.recommended,
 	ts.configs.recommended,
 	svelte.configs.recommended,

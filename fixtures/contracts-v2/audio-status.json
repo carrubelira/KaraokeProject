@@ -1,0 +1,39 @@
+{
+  "state": "playing",
+  "epoch": 4,
+  "ready": true,
+  "item_id": "i1",
+  "position": 12.25,
+  "errors": [
+    {
+      "code": "output_lost",
+      "device": "wasapi:usb-2",
+      "item_id": null,
+      "message": "The USB headphones went away"
+    }
+  ],
+  "devices": [
+    {
+      "id": "wasapi:hdmi-1",
+      "name": "HDMI",
+      "channels": 2,
+      "sample_rate": 48000,
+      "latency_ms": 40.0,
+      "default": true,
+      "connected": true,
+      "bluetooth": false
+    }
+  ],
+  "cache": [
+    {
+      "content_id": "demo-sintetico",
+      "manifest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "ready",
+      "fraction": 1.0,
+      "error": null
+    }
+  ],
+  "sync": {
+    "drift_ppm": -80.1
+  }
+}

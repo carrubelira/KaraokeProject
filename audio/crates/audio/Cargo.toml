@@ -1,0 +1,34 @@
+[package]
+name = "kp-audio"
+description = "The backend's audio engine: follows the stage's session and plays every output in sync."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "kp-audio"
+path = "src/main.rs"
+
+[features]
+default = ["native", "pitch"]
+# Real audio devices (WASAPI, CoreAudio, ALSA).
+native = ["dep:cpal"]
+# Transposition with Signalsmith Stretch (C++, built with the crate).
+pitch = ["dep:signalsmith-stretch"]
+
+[dependencies]
+kp-clock = { path = "../clock" }
+kp-mix = { path = "../mix" }
+kp-proto = { path = "../proto" }
+kp-core = { path = "../core" }
+serde_json.workspace = true
+log.workspace = true
+tungstenite.workspace = true
+# Opus in Ogg: the pages in Rust, the packets in libopus (built with cmake if the system has none).
+ogg = "0.9"
+opus = "0.3"
+cpal = { version = "0.15.3", optional = true }
+signalsmith-stretch = { version = "0.1.3", optional = true }
+
+[lints]
+workspace = true

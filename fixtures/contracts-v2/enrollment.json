@@ -1,0 +1,22 @@
+{
+  "token": "one-time",
+  "kind": "worker",
+  "name": "gpu-1",
+  "capabilities": {
+    "os": "windows",
+    "cpus": 8,
+    "ram_mb": 0,
+    "gpus": [
+      {
+        "name": "RTX 3050",
+        "vram_total_mb": 4096
+      }
+    ],
+    "internet": false,
+    "tasks": [
+      "make"
+    ],
+    "models": {},
+    "same_host_as_server": false
+  }
+}

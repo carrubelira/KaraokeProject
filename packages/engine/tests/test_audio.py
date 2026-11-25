@@ -8,6 +8,7 @@ from karaoke_engine.audio import (
     Loudness,
     decode,
     measure,
+    opus_preskip,
     package_audio,
     plan_gain,
     probe,
@@ -88,7 +89,7 @@ def test_decode_takes_the_audio_of_a_video(tmp_path: Path) -> None:
     assert info.duration == pytest.approx(4.0, abs=0.1)
 
 
-def test_package_audio_writes_normalized_m4a(tmp_path: Path) -> None:
+def test_package_audio_writes_opus_and_the_levelling_gain(tmp_path: Path) -> None:
     vocals = _noise(tmp_path / "vocals.wav", 0.02, seed=1)
     instrumental = _noise(tmp_path / "instrumental.wav", 0.03, seed=2)
     mix = tmp_path / "mix.wav"
@@ -100,29 +101,32 @@ def test_package_audio_writes_normalized_m4a(tmp_path: Path) -> None:
 
     refs = package_audio(mix, Stems(vocals=vocals, instrumental=instrumental), tmp_path / "pkg")
 
-    assert (refs.instrumental, refs.vocals) == ("instrumental.m4a", "vocals.m4a")
+    assert (refs.instrumental, refs.vocals) == ("instrumental.opus", "vocals.opus")
     assert refs.loudness_lufs == pytest.approx(-14.0, abs=0.1)
-    out = {name: tmp_path / "pkg" / name for name in ("instrumental.m4a", "vocals.m4a")}
+    assert refs.gain_db is not None
+    assert refs.gain_db > 0
+    out = {name: tmp_path / "pkg" / name for name in ("instrumental.opus", "vocals.opus")}
     for path in out.values():
         info = probe(path)
-        assert (info.codec, info.sample_rate, info.channels) == ("aac", 44100, 2)
+        assert (info.codec, info.sample_rate, info.channels) == ("opus", 48000, 2)
+        assert opus_preskip(path) > 0
         assert info.duration == pytest.approx(6.0, abs=0.05)
     # Both stems go through the same encoder settings, so they decode to the same length.
     lengths = {probe(decode(p, tmp_path / f"{p.stem}.wav")).frames for p in out.values()}
     assert len(lengths) == 1
-    # Played together at full volume, the stems sound like the mix at the target loudness.
+    # Played together with the gain, the stems sound like the mix at the target loudness.
     together = tmp_path / "together.wav"
     subprocess.run(
-        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(out["vocals.m4a"]), "-i",
-         str(out["instrumental.m4a"]), "-filter_complex", "amix=inputs=2:normalize=0",
-         str(together)],
+        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(out["vocals.opus"]), "-i",
+         str(out["instrumental.opus"]), "-filter_complex",
+         f"amix=inputs=2:normalize=0,volume={refs.gain_db}dB", str(together)],
         check=True,
     )  # fmt: skip
     measured = measure(together).integrated
     assert measured == pytest.approx(-14.0, abs=0.7)
 
 
-def test_convert_package_levels_the_stems_into_m4a(bare_package: Path) -> None:
+def test_convert_package_turns_the_stems_into_opus(bare_package: Path) -> None:
     from karaoke_contracts import load_doc, validate_package
     from karaoke_engine.audio import convert_package
     from karaoke_engine.demo import synthesize_package_audio
@@ -133,8 +137,9 @@ def test_convert_package_levels_the_stems_into_m4a(bare_package: Path) -> None:
 
     doc = load_doc(bare_package / "karaoke.json")
     assert doc.audio == refs
-    assert (doc.audio.instrumental, doc.audio.vocals) == ("instrumental.m4a", "vocals.m4a")
+    assert (doc.audio.instrumental, doc.audio.vocals) == ("instrumental.opus", "vocals.opus")
     assert doc.audio.loudness_lufs is not None
+    assert doc.audio.gain_db is not None
     assert validate_package(bare_package) == []
 
 
@@ -145,7 +150,7 @@ def test_karaoke_audio_command(bare_package: Path) -> None:
     synthesize_package_audio(bare_package)
 
     assert main(["audio", str(bare_package)]) == 0
-    assert (bare_package / "vocals.m4a").is_file()
+    assert (bare_package / "vocals.opus").is_file()
 
 
 def test_converting_a_package_twice_keeps_the_whole_song(
@@ -160,12 +165,12 @@ def test_converting_a_package_twice_keeps_the_whole_song(
     monkeypatch.chdir(bare_package.parent)
     package = Path(bare_package.name)
     convert_package(package)
-    first = probe(package / "instrumental.m4a").duration
+    first = probe(package / "instrumental.opus").duration
 
     convert_package(package)
 
-    assert probe(package / "instrumental.m4a").duration == pytest.approx(first, abs=0.05)
-    assert probe(package / "vocals.m4a").duration == pytest.approx(first, abs=0.05)
+    assert probe(package / "instrumental.opus").duration == pytest.approx(first, abs=0.05)
+    assert probe(package / "vocals.opus").duration == pytest.approx(first, abs=0.05)
 
 
 def test_package_audio_measures_and_encodes_in_parallel(
@@ -179,13 +184,13 @@ def test_package_audio_measures_and_encodes_in_parallel(
         time.sleep(0.3)
         return audio_module.Loudness(-20.0, -3.0)
 
-    def slow_encode(src: Path, dest: Path, gain_db: float, bitrate: str) -> Path:
+    def slow_encode(src: Path, dest: Path, bitrate: str) -> Path:
         time.sleep(0.3)
-        dest.write_bytes(b"m4a")
+        dest.write_bytes(b"opus")
         return dest
 
     monkeypatch.setattr(audio_module, "measure", slow_measure)
-    monkeypatch.setattr(audio_module, "encode_m4a", slow_encode)
+    monkeypatch.setattr(audio_module, "encode_opus", slow_encode)
     started = time.monotonic()
     package_audio(tmp_path / "mix.wav", Stems(vocals=tmp_path / "v", instrumental=tmp_path / "i"),
                   tmp_path / "pkg")  # fmt: skip

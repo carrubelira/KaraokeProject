@@ -1,0 +1,11 @@
+{
+  "screen_id": "sala-hdmi-1",
+  "agent": "Mozilla/5.0 (X11; Linux aarch64)",
+  "width": 1280,
+  "height": 720,
+  "refresh_hz": 60.0,
+  "codecs": [
+    "h264"
+  ],
+  "preview": false
+}

@@ -1,335 +1,189 @@
-"""The song library: one package folder per song under library/, named by the song's id.
+"""The song library (plan v4 §3): contents, their manifest versions, the trash and the blob GC.
 
-The folders are the truth; the database adds when each song was made. Summaries are kept in
-memory and read again when a karaoke.json changes on disk.
+A content is a song; each version is a manifest in the blob store. The library keeps which
+version is current, which ones exist, and which contents are in the trash (30 days, then gone).
+A blob is kept while any manifest of a content that is not purged, any unfinished task or any
+upload refers to it; the rest is collected.
 """
 
-import builtins
-import re
-import shutil
+import json
+import logging
 import time
-import unicodedata
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from pathlib import Path, PurePosixPath
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from pydantic import ValidationError
-
-from karaoke_contracts import (
-    Issue,
-    KaraokeDoc,
-    dump_doc,
-    load_doc,
-    resolve_media,
-    validate_doc,
-    validate_package,
-)
-from karaoke_server.config import Settings
+from karaoke_contracts import Manifest
+from karaoke_contracts.cas import BlobStore
+from karaoke_server.clock import iso_now
 from karaoke_server.db import Database
-from karaoke_server.hook import hook_of
-from karaoke_server.models import Export, SongSummary
+from karaoke_server.errors import ApiError
 
-SONG_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
-# Exported videos are «exports/<id>-<16x9|9x16>-<theme>[-v<vocals %>].mp4» (see jobs.queue).
-_EXPORT = r"-(?P<aspect>16x9|9x16)-(?P<theme>[a-z0-9][a-z0-9_-]*?)(?:-v(?P<vocals>\d{1,3}))?\.mp4"
-# Trash entries are «<id>-<unix time of deletion>».
-_TRASHED_AT = re.compile(r"-(\d{10})$")
-
-# What a package may serve besides karaoke.json (which comes from the parsed document).
-MEDIA_TYPES = {
-    ".m4a": "audio/mp4",
-    ".mp3": "audio/mpeg",
-    ".wav": "audio/wav",
-    ".mp4": "video/mp4",
-    ".jpg": "image/jpeg",
-    ".png": "image/png",
-    ".webp": "image/webp",
-}
-
-DOC = "karaoke.json"
-ORIGINAL = "karaoke.original.json"
+logger = logging.getLogger(__name__)
 
 
-class InvalidDocError(ValueError):
-    def __init__(self, issues: list[Issue]) -> None:
-        super().__init__("; ".join(f"{i.path}: {i.message}" for i in issues[:5]))
-        self.issues = issues
+@dataclass(frozen=True)
+class GcReport:
+    kept: int
+    deleted: int
+    freed_bytes: int
+    purged_contents: int
 
 
-def slugify(text: str) -> str:
-    """Same rule as `karaoke_engine.make.slug`, kept here so the server stays light."""
-    folded = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "-", folded.lower()).strip("-")[:60].strip("-")
-
-
-def _copy_package(src: Path, doc: KaraokeDoc, dest: Path) -> None:
-    """Copies karaoke.json, the media it names and the licence; nothing else, and never a link.
-
-    A package can come from anyone: a link in it (or any file with a media extension) would be
-    copied into the library and served to every phone at home.
-    """
-    refs = [doc.audio.instrumental, doc.audio.vocals, doc.cover]
-    if doc.video is not None:
-        refs += [doc.video.background, doc.video.master]
-    dest.mkdir(parents=True)
-    shutil.copyfile(src / DOC, dest / DOC)
-    for ref in filter(None, refs):
-        target = dest / ref
-        target.parent.mkdir(parents=True, exist_ok=True)
-        # resolve_media refuses anything outside the package, links included.
-        shutil.copyfile(resolve_media(src, ref), target)
-    licence = src / "LICENSE"
-    if licence.is_file() and not licence.is_symlink():
-        shutil.copyfile(licence, dest / "LICENSE")
-
-
-def iso(timestamp: float) -> str:
-    return datetime.fromtimestamp(timestamp, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-@dataclass
-class _Cached:
-    stamp: tuple[int, int]
-    doc: KaraokeDoc
-    summary: SongSummary
+def content_row(row: Any) -> dict[str, Any]:
+    return {
+        "id": row["id"],
+        "manifest": row["manifest"],
+        "version": row["version"],
+        "title": row["title"],
+        "artist": row["artist"],
+        "language": row["language"],
+        "duration": row["duration"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "deleted_at": row["deleted_at"],
+    }
 
 
 class Library:
-    def __init__(self, settings: Settings, db: Database) -> None:
-        self.root = settings.library_dir
-        self.trash = settings.trash_dir
+    def __init__(self, db: Database, store: BlobStore, trash_days: int = 30) -> None:
         self.db = db
-        self._cache: dict[str, _Cached] = {}
+        self.store = store
+        self.trash_days = trash_days
 
-    # Reading
+    def manifest(self, sha256: str) -> Manifest:
+        if not self.store.has(sha256):
+            raise ApiError(404, "not_found", "No such manifest")
+        return Manifest.model_validate_json(self.store.read_bytes(sha256))
 
-    def folder(self, song_id: str) -> Path | None:
-        if not SONG_ID.match(song_id):
-            return None
-        folder = self.root / song_id
-        return folder if (folder / DOC).is_file() else None
-
-    def doc(self, song_id: str) -> KaraokeDoc | None:
-        cached = self._load(song_id)
-        return cached.doc if cached else None
-
-    def summary(self, song_id: str) -> SongSummary | None:
-        cached = self._load(song_id)
-        return cached.summary if cached else None
-
-    def list(self) -> list[SongSummary]:
-        try:
-            names = [p.name for p in self.root.iterdir() if p.is_dir()]
-        except FileNotFoundError:
-            return []
-        songs = [s for s in (self.summary(name) for name in names) if s is not None]
-        return sorted(songs, key=lambda s: (s.created_at, s.id), reverse=True)
-
-    def media_path(self, song_id: str, rel: str) -> Path | None:
-        """A file of the song's package that may be served, or None."""
-        folder = self.folder(song_id)
-        pure = PurePosixPath(rel)
-        if folder is None or not rel or pure.is_absolute() or "\\" in rel:
-            return None
-        if any(part in ("", ".", "..") or part.startswith(".") for part in pure.parts):
-            return None
-        if pure.suffix.lower() not in MEDIA_TYPES:
-            return None
-        root = folder.resolve()
-        path = (root / pure).resolve()
-        if not path.is_relative_to(root) or not path.is_file():
-            return None
-        return folder / pure
-
-    def exports(self, song_id: str) -> builtins.list[Export] | None:
-        """The song's finished videos, newest first; None if there is no such song."""
-        folder = self.folder(song_id)
-        if folder is None:
-            return None
-        edited = (folder / DOC).stat().st_mtime
-        found = []
-        for video, match in self._export_files(folder, song_id):
-            stat = video.stat()
-            thumb = video.with_suffix(".jpg")
-            found.append(
-                Export(
-                    file=f"exports/{video.name}",
-                    aspect="16:9" if match["aspect"] == "16x9" else "9:16",
-                    theme=match["theme"],
-                    size=stat.st_size,
-                    created_at=iso(stat.st_mtime),
-                    thumbnail=f"exports/{thumb.name}" if thumb.is_file() else None,
-                    outdated=stat.st_mtime < edited,
-                    vocals=int(match["vocals"] or 0) / 100,
+    def register(self, sha256: str) -> dict[str, Any]:
+        """Makes a stored manifest the current version of its content."""
+        manifest = self.manifest(sha256)
+        now = iso_now()
+        with self.db.transaction():
+            current = self.db.one("SELECT * FROM contents WHERE id = ?", (manifest.content_id,))
+            if current is not None and current["version"] >= manifest.version:
+                # A new song with the id of an existing one: it becomes its next version.
+                bumped = manifest.model_copy(
+                    update={"version": current["version"] + 1, "parent": current["manifest"]}
                 )
+                from karaoke_contracts import canonical_json
+
+                blob = self.store.put_bytes(
+                    canonical_json(bumped), "application/vnd.karaoke.manifest+json"
+                )
+                manifest, sha256 = bumped, blob.sha256
+            self.db.execute(
+                "INSERT INTO contents (id, manifest, version, title, artist, language, duration,"
+                " created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                " ON CONFLICT (id) DO UPDATE SET manifest = excluded.manifest,"
+                " version = excluded.version, title = excluded.title, artist = excluded.artist,"
+                " language = excluded.language, duration = excluded.duration,"
+                " updated_at = excluded.updated_at, deleted_at = NULL",
+                (
+                    manifest.content_id,
+                    sha256,
+                    manifest.version,
+                    manifest.title,
+                    manifest.artist,
+                    manifest.language,
+                    manifest.duration,
+                    now,
+                    now,
+                ),
             )
-        return sorted(found, key=lambda e: (e.created_at, e.file), reverse=True)
+            self.db.execute(
+                "INSERT OR IGNORE INTO manifests (sha256, content_id, version, created_at)"
+                " VALUES (?, ?, ?, ?)",
+                (sha256, manifest.content_id, manifest.version, now),
+            )
+        return self.get(manifest.content_id)
 
-    # Changing
+    def get(self, content_id: str) -> dict[str, Any]:
+        row = self.db.one("SELECT * FROM contents WHERE id = ?", (content_id,))
+        if row is None:
+            raise ApiError(404, "not_found", "No such song")
+        return content_row(row)
 
-    def delete_export(self, song_id: str, name: str) -> bool:
-        """Deletes one of the song's videos (and its thumbnail); False if there is no such video."""
-        folder = self.folder(song_id)
-        if folder is None:
-            return False
-        for video, _ in self._export_files(folder, song_id):
-            if video.name == name:
-                video.unlink()
-                video.with_suffix(".jpg").unlink(missing_ok=True)
-                return True
-        return False
+    def contents(self, *, trash: bool = False) -> list[dict[str, Any]]:
+        where = "deleted_at IS NOT NULL" if trash else "deleted_at IS NULL"
+        rows = self.db.query(f"SELECT * FROM contents WHERE {where} ORDER BY title COLLATE NOCASE")  # noqa: S608
+        return [content_row(r) for r in rows]
 
-    def save_doc(self, song_id: str, doc: KaraokeDoc) -> KaraokeDoc:
-        """Stores corrected lyrics; the first correction keeps the original beside it."""
-        folder = self.folder(song_id)
-        if folder is None:
-            raise KeyError(song_id)
-        saved = doc.model_copy(update={"id": song_id, "edited": True})
-        issues = validate_doc(saved) + self._media_issues(folder, saved)
-        if issues:
-            raise InvalidDocError(issues)
-        if not (folder / ORIGINAL).exists():
-            shutil.copy2(folder / DOC, folder / ORIGINAL)
-        self._write(folder, saved)
-        return saved
-
-    def delete(self, song_id: str) -> bool:
-        """Moves the song to the trash, where it stays for a while in case it was a mistake."""
-        folder = self.folder(song_id)
-        if folder is None:
-            return False
-        self.trash.mkdir(parents=True, exist_ok=True)
-        folder.rename(self.trash / f"{song_id}-{int(time.time())}")
-        self.db.execute("DELETE FROM songs WHERE id = ?", (song_id,))
-        self._cache.pop(song_id, None)
-        return True
-
-    def adopt(self, made: Path, title: str, job_id: str | None = None) -> str:
-        """Moves a finished package into the library under a free id; returns the id."""
-        doc = load_doc(made / DOC)
-        song_id = self._free_id(slugify(title) or slugify(doc.title) or "karaoke")
-        if doc.id != song_id:
-            self._write(made, doc.model_copy(update={"id": song_id}))
-        self.root.mkdir(parents=True, exist_ok=True)
-        made.rename(self.root / song_id)
-        self.db.execute(
-            "INSERT OR REPLACE INTO songs (id, created_at, job_id) VALUES (?, ?, ?)",
-            (song_id, iso(time.time()), job_id),
+    def versions(self, content_id: str) -> list[dict[str, Any]]:
+        self.get(content_id)
+        rows = self.db.query(
+            "SELECT sha256, version, created_at FROM manifests WHERE content_id = ?"
+            " ORDER BY version DESC",
+            (content_id,),
         )
-        return song_id
+        return [dict(r) for r in rows]
 
-    def import_package(self, src: Path) -> str:
-        """Copies a package made elsewhere (e.g. by `karaoke make`) into the library."""
-        issues = validate_package(src)
-        if issues:
-            raise InvalidDocError(issues)
-        doc = load_doc(src / DOC)
-        staging = self.root / f".import-{int(time.time() * 1000)}"
-        try:
-            _copy_package(src, doc, staging)
-            return self.adopt(staging, doc.title)
-        except BaseException:
-            shutil.rmtree(staging, ignore_errors=True)
-            raise
+    def trash(self, content_id: str) -> None:
+        if not self.db.execute(
+            "UPDATE contents SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+            (iso_now(), content_id),
+        ):
+            raise ApiError(404, "not_found", "No such song")
 
-    def purge_trash(self, days: float = 30) -> int:
-        limit = time.time() - days * 86400
-        purged = 0
-        for entry in self.trash.glob("*"):
-            # When it was deleted is in its name: the folder's own time is when it was made.
-            stamp = _TRASHED_AT.search(entry.name)
-            deleted = int(stamp.group(1)) if stamp else entry.stat().st_mtime
-            if deleted < limit:
-                shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
-                purged += 1
-        return purged
+    def restore(self, content_id: str) -> None:
+        if not self.db.execute(
+            "UPDATE contents SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL",
+            (content_id,),
+        ):
+            raise ApiError(404, "not_found", "No such song in the trash")
 
-    # Inside
-
-    def _load(self, song_id: str) -> _Cached | None:
-        folder = self.folder(song_id)
-        if folder is None:
-            self._cache.pop(song_id, None)
-            return None
-        stat = (folder / DOC).stat()
-        stamp = (stat.st_mtime_ns, stat.st_size)
-        cached = self._cache.get(song_id)
-        if cached and cached.stamp == stamp:
-            return cached
-        try:
-            doc = load_doc(folder / DOC)
-        except (ValidationError, ValueError, OSError):
-            return None
-        summary = SongSummary(
-            id=song_id,
-            title=doc.title,
-            artist=doc.artist,
-            language=doc.language,
-            duration=doc.duration,
-            cover=doc.cover,
-            has_video=bool(doc.video and doc.video.background),
-            created_at=self._created_at(song_id, stat.st_mtime),
-            edited=doc.edited,
-            lyrics_source=doc.provenance.lyrics_source,
-            hook=hook_of(doc),
+    def purge_trash(self, now: datetime | None = None, *, everything: bool = False) -> int:
+        limit = (now or datetime.now(UTC)) - timedelta(days=self.trash_days)
+        if everything:
+            return self.db.execute("DELETE FROM contents WHERE deleted_at IS NOT NULL")
+        return self.db.execute(
+            "DELETE FROM contents WHERE deleted_at IS NOT NULL AND deleted_at < ?",
+            (limit.isoformat(timespec="seconds"),),
         )
-        self._cache[song_id] = _Cached(stamp, doc, summary)
-        return self._cache[song_id]
 
-    def _created_at(self, song_id: str, fallback: float) -> str:
-        rows = self.db.query("SELECT created_at FROM songs WHERE id = ?", (song_id,))
-        if rows:
-            return str(rows[0]["created_at"])
-        created = iso(fallback)
-        self.db.execute(
-            "INSERT OR IGNORE INTO songs (id, created_at) VALUES (?, ?)", (song_id, created)
-        )
-        return created
-
-    @staticmethod
-    def _export_files(folder: Path, song_id: str) -> builtins.list[tuple[Path, re.Match[str]]]:
-        exports = folder / "exports"
-        if not exports.is_dir():
-            return []
-        pattern = re.compile(re.escape(song_id) + _EXPORT)
-        return [
-            (video, match)
-            for video in exports.iterdir()
-            if (match := pattern.fullmatch(video.name))
-            and video.is_file()
-            and not video.is_symlink()
-        ]
-
-    def _free_id(self, base: str) -> str:
-        song_id, n = base, 2
-        while (self.root / song_id).exists():
-            song_id = f"{base}-{n}"
-            n += 1
-        return song_id
-
-    @staticmethod
-    def _media_issues(folder: Path, doc: KaraokeDoc) -> builtins.list[Issue]:
-        refs = {
-            "audio.instrumental": doc.audio.instrumental,
-            "audio.vocals": doc.audio.vocals,
-            "video.background": doc.video.background if doc.video else None,
-            "video.master": doc.video.master if doc.video else None,
-            "cover": doc.cover,
-        }
-        issues: builtins.list[Issue] = []
-        for path, ref in refs.items():
-            if ref is None:
-                continue
+    def referenced(self) -> set[str]:
+        """Every blob something still needs."""
+        keep: set[str] = set()
+        for row in self.db.query("SELECT sha256 FROM manifests"):
+            keep.add(row["sha256"])
             try:
-                found = resolve_media(folder, ref).is_file()
-            except ValueError as exc:
-                issues.append(Issue(path, str(exc)))
-                continue
-            if not found:
-                issues.append(Issue(path, f"file '{ref}' not found in the package"))
-        return issues
+                keep.update(b.sha256 for b in self.manifest(row["sha256"]).blobs())
+            except ApiError:
+                logger.warning("manifest %s is missing from the store", row["sha256"])
+        for row in self.db.query(
+            "SELECT inputs, outputs FROM tasks WHERE state NOT IN ('done', 'failed', 'cancelled')"
+            " OR finished_at > ?",
+            (time.time() - 86400,),
+        ):
+            keep.update(json.loads(row["inputs"]))
+            keep.update(json.loads(row["outputs"]).values())
+        for row in self.db.query("SELECT blob FROM uploads WHERE blob IS NOT NULL"):
+            keep.add(row["blob"])
+        return keep
 
-    def _write(self, folder: Path, doc: KaraokeDoc) -> None:
-        staged = folder / ".karaoke.json.tmp"
-        dump_doc(doc, staged)
-        staged.replace(folder / DOC)
+    def collect(self, quota_bytes: int | None = None, *, grace_seconds: float = 3600) -> GcReport:
+        """Deletes unreferenced blobs older than `grace_seconds` (a blob a worker just uploaded
+        may not be in a manifest yet); over the quota, the trash is emptied first."""
+        purged = self.purge_trash()
+        if quota_bytes is not None and self.usage() > quota_bytes:
+            purged += self.purge_trash(everything=True)
+        keep = self.referenced()
+        deleted = freed = kept = 0
+        cutoff = time.time() - grace_seconds
+        for sha in list(self.store.all()):
+            if sha in keep:
+                kept += 1
+                continue
+            path = self.store.path(sha)
+            stat = path.stat()
+            if stat.st_mtime > cutoff:
+                kept += 1
+                continue
+            self.store.delete(sha)
+            deleted += 1
+            freed += stat.st_size
+        return GcReport(kept, deleted, freed, purged)
+
+    def usage(self) -> int:
+        return sum(self.store.path(s).stat().st_size for s in self.store.all())

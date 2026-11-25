@@ -1,0 +1,12 @@
+[package]
+name = "kp-clock"
+description = "The master clock: audio device position, anchors and drift control."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+
+[lints]
+workspace = true

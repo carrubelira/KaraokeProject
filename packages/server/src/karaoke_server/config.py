@@ -1,4 +1,5 @@
-"""Server settings: where the data lives, the two ports and the limits for new karaokes."""
+"""Server settings (plan v4 §3, decision 011): where the data lives, the port, the audio engine
+and the limits."""
 
 import os
 from dataclasses import dataclass, field, fields
@@ -7,18 +8,13 @@ from typing import Any
 
 GIB = 1024**3
 
-# yt-dlp changes every week to keep up with the sites, so it runs at its latest release, apart
-# from the project's own environment. Node is the JavaScript runtime YouTube now requires.
-YTDLP = ("uvx", "--from", "yt-dlp[default]@latest", "yt-dlp", "--js-runtimes", "node")
-
 REPO = Path(__file__).resolve().parents[4]
 
 
-def _flag(value: str | None) -> bool:
-    return (value or "").strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _default_data_dir() -> Path:
+def default_data_dir() -> Path:
+    """`%LOCALAPPDATA%\\karaoke` on Windows, `$XDG_DATA_HOME/karaoke` elsewhere."""
+    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        return Path(os.environ["LOCALAPPDATA"]) / "karaoke"
     base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
     return Path(base) / "karaoke"
 
@@ -26,42 +22,49 @@ def _default_data_dir() -> Path:
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path
-    home_host: str = "0.0.0.0"  # noqa: S104 - the home socket must reach phones
-    home_port: int = 8765
-    # Tunnels (Tailscale Serve) connect here; everything on this port counts as remote.
-    tunnel_port: int = 8766
+    host: str = "0.0.0.0"  # noqa: S104 - workers, screens and consoles on the LAN reach it
+    port: int = 8765
+    # Plain HTTP: everything is on one LAN (decision 011).
+    # The audio engine: "auto" (kp-audio on the PATH or next to Python), a path to it, or "off"
+    # (no sound: the stage keeps time for the screens alone, for development and tests).
+    audio: str = "auto"
+    # The secret kp-audio connects with; made at every start unless given (a kp-audio started
+    # by hand, in development).
+    audio_token: str | None = None
     web_dir: Path | None = field(default_factory=lambda: REPO / "web" / "build")
-    max_upload_bytes: int = 2 * GIB
-    max_duration: float = 20 * 60.0
-    min_free_bytes: int = 2 * GIB
-    # Lets anyone on the home network create, edit and delete, without pairing.
-    open_home: bool = False
-    fake_engine: bool = False
-    # Memory cap for each job's process; None works it out from the machine's RAM.
-    memory_max: int | None = None
-    # Swap the job may use beyond that; None leaves it to the system (WSL's swap file).
-    memory_swap_max: int | None = None
-    ytdlp: tuple[str, ...] = YTDLP
-    backup_dir: Path | None = None
+    max_upload_bytes: int = 4 * GIB
+    # The blob store may use this much; the oldest trash goes first when it is passed.
+    quota_bytes: int | None = None
+    trash_days: int = 30
+    # A worker that has not renewed its lease in this long has lost the task.
+    lease_seconds: float = 30.0
+    # How long a worker's lease request waits for a task before answering "nothing".
+    lease_wait_seconds: float = 20.0
+    # A start or a pause takes effect this long after it is given (at least: more if a screen
+    # answers slowly), so the audio and every screen change on the same instant.
+    go_lead_seconds: float = 0.12
+    # A seek while playing, this long: the screens look for the frame meanwhile.
+    seek_lead_seconds: float = 0.4
+    # Songs after the one on that screens and audio download and get ready ahead.
+    upcoming: int = 3
+    enrollment_hours: float = 24.0
 
     @classmethod
     def from_env(cls, **overrides: Any) -> "Settings":
         env = os.environ
-        port = int(env.get("KARAOKE_PORT") or 8765)
-        backup = env.get("KARAOKE_BACKUP_DIR")
         values: dict[str, Any] = {
             "data_dir": Path(env["KARAOKE_DATA"]) if env.get("KARAOKE_DATA") else None,
-            "home_port": port,
-            "tunnel_port": port + 1,
-            "open_home": _flag(env.get("KARAOKE_OPEN_HOME")),
-            "fake_engine": _flag(env.get("KARAOKE_FAKE_ENGINE")),
-            "backup_dir": Path(backup) if backup else None,
+            "port": int(env.get("KARAOKE_PORT") or 8765),
         }
+        if env.get("KARAOKE_AUDIO"):
+            values["audio"] = env["KARAOKE_AUDIO"]
+        if env.get("KARAOKE_AUDIO_TOKEN"):
+            values["audio_token"] = env["KARAOKE_AUDIO_TOKEN"]
+        if env.get("KARAOKE_QUOTA_GB"):
+            values["quota_bytes"] = int(float(env["KARAOKE_QUOTA_GB"]) * GIB)
         values.update({k: v for k, v in overrides.items() if v is not None})
         if values["data_dir"] is None:
-            values["data_dir"] = _default_data_dir()
-        if "home_port" in overrides and "tunnel_port" not in overrides:
-            values["tunnel_port"] = values["home_port"] + 1
+            values["data_dir"] = default_data_dir()
         known = {f.name for f in fields(cls)}
         unknown = set(values) - known
         if unknown:
@@ -69,30 +72,26 @@ class Settings:
         return cls(**values)
 
     @property
-    def library_dir(self) -> Path:
-        return self.data_dir / "library"
+    def blobs_dir(self) -> Path:
+        return self.data_dir / "blobs"
 
     @property
-    def jobs_dir(self) -> Path:
-        return self.data_dir / "jobs"
-
-    @property
-    def trash_dir(self) -> Path:
-        return self.data_dir / "trash"
-
-    @property
-    def tmp_dir(self) -> Path:
-        """Scratch space on disk: /tmp is in RAM on this machine."""
-        return self.data_dir / "tmp"
+    def uploads_dir(self) -> Path:
+        return self.data_dir / "uploads"
 
     @property
     def logs_dir(self) -> Path:
         return self.data_dir / "logs"
 
     @property
+    def backups_dir(self) -> Path:
+        return self.data_dir / "backups"
+
+    @property
     def db_path(self) -> Path:
-        return self.data_dir / "karaoke.db"
+        # A new file: a v3 database (karaoke.db) next to it is left alone.
+        return self.data_dir / "karaoke-v4.db"
 
     def ensure_dirs(self) -> None:
-        for path in (self.library_dir, self.jobs_dir, self.trash_dir, self.tmp_dir, self.logs_dir):
+        for path in (self.blobs_dir, self.uploads_dir, self.logs_dir):
             path.mkdir(parents=True, exist_ok=True)

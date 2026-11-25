@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.venv-windows/
 build/
 dist/
 
@@ -58,3 +59,6 @@ docs/archivo/
 *~
 .DS_Store
 Thumbs.db
+
+# Rust
+audio/target/

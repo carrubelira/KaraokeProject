@@ -1,0 +1,94 @@
+name: Audio engine and worker
+
+on:
+  push:
+    branches: ["main", "v4/**", "claude/**"]
+    paths: ["audio/**", "packages/**", "fixtures/**", ".github/workflows/audio.yml"]
+  pull_request:
+    branches: ["main"]
+    paths: ["audio/**", "packages/**", "fixtures/**", ".github/workflows/audio.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audio-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: kp-audio (${{ matrix.os }})
+    # kp-audio runs on the backend: Windows, macOS or Linux (decision 011). It decodes the stems
+    # with libopus (built with the runners' cmake, or the system's on Linux); Signalsmith Stretch
+    # (the key) needs libclang for its bindings. The runners' own rustup is used.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install stable --profile minimal --component clippy,rustfmt
+      - name: Native libraries (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends clang libasound2-dev libopus-dev
+      - name: Lints
+        if: runner.os == 'Linux'
+        working-directory: audio
+        run: cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings
+      - name: Tests
+        working-directory: audio
+        run: cargo test --workspace
+      - name: Sync bench (full length)
+        working-directory: audio
+        run: cargo run --release -p kp-syncbench
+      - name: The kp-audio binary
+        working-directory: audio
+        run: cargo build --release -p kp-audio
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: runner.os != 'Linux'
+        with:
+          name: kp-audio-${{ runner.os }}
+          path: |
+            audio/target/release/kp-audio
+            audio/target/release/kp-audio.exe
+          retention-days: 14
+
+  e2e:
+    name: Server, worker and kp-audio end to end (Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg clang libasound2-dev libopus-dev
+      - run: rustup toolchain install stable --profile minimal
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.6"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: cargo build -p kp-audio
+        working-directory: audio
+      - run: uv run python audio/tests/e2e.py
+
+  worker-windows:
+    name: Worker, server and contracts on Windows (no GPU)
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.6"
+          enable-cache: true
+      # The server's tests build their demo song with ffprobe, as the Linux jobs do.
+      - run: choco install ffmpeg -y --no-progress
+      - run: uv sync --locked
+      - run: uv run pytest -q packages/contracts packages/worker packages/server

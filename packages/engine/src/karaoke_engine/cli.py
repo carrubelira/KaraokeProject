@@ -34,10 +34,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     demo.add_argument("package", type=Path)
 
     audio = commands.add_parser(
-        "audio", help="level a package's stems to -14 LUFS and write them as m4a for browsers"
+        "audio",
+        help="measure a package's stems and write them as Opus with the gain that levels them",
     )
     audio.add_argument("package", type=Path)
     audio.add_argument("--mix", type=Path, help="the original song (default: the stems summed)")
+
+    package = commands.add_parser(
+        "package",
+        help="store a package's tracks by hash and write its v2 manifest (also migrates v3)",
+    )
+    package.add_argument("package", type=Path)
+    package.add_argument("--store", type=Path, required=True, help="the blob store folder")
+    package.add_argument("--id", help="content id (default: from the title)")
 
     make = commands.add_parser("make", help="make a karaoke package from a song and its lyrics")
     make.add_argument("source", type=Path, help="the song: any audio or video file ffmpeg reads")
@@ -141,6 +150,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _validate(args.path)
     if args.command == "audio":
         return _audio(args.package, args.mix)
+    if args.command == "package":
+        return _package(args.package, args.store, args.id)
     try:
         synthesize_package_audio(args.package)
     except (OSError, ValueError) as exc:  # ValueError covers pydantic's ValidationError
@@ -200,6 +211,20 @@ def _audio(package: Path, mix: Path | None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(f"{package}: {refs.instrumental}, {refs.vocals} at {refs.loudness_lufs} LUFS")
+    return 0
+
+
+def _package(package: Path, store: Path, content_id: str | None) -> int:
+    from karaoke_contracts.cas import BlobStore
+    from karaoke_engine.package import build_manifest
+
+    try:
+        manifest, blob = build_manifest(package, BlobStore(store), content_id=content_id)
+    except (OSError, ValueError, AudioError, subprocess.CalledProcessError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    kinds = ", ".join(t.kind for t in manifest.tracks)
+    print(f"{manifest.content_id} v{manifest.version}: {blob.sha256} ({kinds})")
     return 0
 
 

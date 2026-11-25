@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/lyrics.schema.json",
+  "$defs": {
+    "LanguageFallback": {
+      "description": "Records that a step could not use a resource for the requested language.",
+      "properties": {
+        "step": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "requested": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "used": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "requested",
+        "used",
+        "reason"
+      ],
+      "title": "LanguageFallback",
+      "type": "object"
+    },
+    "Line": {
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "start": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "end": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "singer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "role": {
+          "default": "lead",
+          "description": "backing: backing vocals (written in parentheses); they may overlap the lead.",
+          "enum": [
+            "lead",
+            "backing"
+          ],
+          "type": "string"
+        },
+        "words": {
+          "items": {
+            "$ref": "#/$defs/Word"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "start",
+        "end",
+        "singer",
+        "role",
+        "words"
+      ],
+      "title": "Line",
+      "type": "object"
+    },
+    "LyricsProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "lyrics_source": {
+          "enum": [
+            "user",
+            "asr",
+            "lrclib"
+          ],
+          "type": "string"
+        },
+        "separation_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "asr_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "align_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "engine_version": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "language_fallbacks": {
+          "items": {
+            "$ref": "#/$defs/LanguageFallback"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "lyrics_source",
+        "separation_model",
+        "asr_model",
+        "align_model",
+        "engine_version",
+        "language_fallbacks"
+      ],
+      "title": "LyricsProvenance",
+      "type": "object"
+    },
+    "Part": {
+      "description": "A sub-unit of a word (a syllable or a group of letters) with its own timing.",
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "start": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "end": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "text",
+        "start",
+        "end"
+      ],
+      "title": "Part",
+      "type": "object"
+    },
+    "Singer": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "color": {
+          "anyOf": [
+            {
+              "pattern": "^#[0-9A-Fa-f]{6}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "color"
+      ],
+      "title": "Singer",
+      "type": "object"
+    },
+    "Word": {
+      "properties": {
+        "text": {
+          "description": "Text as displayed, with its original spelling.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "start": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "end": {
+          "description": "Seconds from the start of the song audio.",
+          "minimum": 0,
+          "type": "number"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parts": {
+          "description": "Optional sub-units; when present their texts concatenate to the word text.",
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "start",
+        "end",
+        "confidence",
+        "parts"
+      ],
+      "title": "Word",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The `lyrics` track: lines, words and syllables with times and confidence, nothing else.",
+  "properties": {
+    "schema_version": {
+      "default": "2.0.0",
+      "pattern": "^2\\.\\d+\\.\\d+$",
+      "type": "string"
+    },
+    "language": {
+      "pattern": "^[a-z]{2,3}$",
+      "type": "string"
+    },
+    "singers": {
+      "items": {
+        "$ref": "#/$defs/Singer"
+      },
+      "type": "array"
+    },
+    "lines": {
+      "items": {
+        "$ref": "#/$defs/Line"
+      },
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/LyricsProvenance"
+    },
+    "edited": {
+      "default": false,
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "language",
+    "singers",
+    "lines",
+    "provenance",
+    "edited"
+  ],
+  "title": "Lyrics",
+  "type": "object"
+}

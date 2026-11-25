@@ -1,0 +1,31 @@
+{
+  "state": "waiting",
+  "epoch": 4,
+  "ready": true,
+  "flags": [
+    "fullscreen"
+  ],
+  "cache": [
+    {
+      "content_id": "demo-sintetico",
+      "manifest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "state": "ready",
+      "fraction": 1.0,
+      "error": null
+    },
+    {
+      "content_id": "laverca",
+      "manifest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "downloading",
+      "fraction": 0.4,
+      "error": null
+    }
+  ],
+  "sync": {
+    "error_ms": 4.2,
+    "rtt_ms": 1.8,
+    "drift_ppm": -31.0,
+    "dropped_frames": 0
+  },
+  "error": null
+}

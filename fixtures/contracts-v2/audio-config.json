@@ -1,0 +1,31 @@
+{
+  "routing": {
+    "master": "wasapi:hdmi-1",
+    "routes": [
+      {
+        "track": "instrumental",
+        "output": "wasapi:hdmi-1",
+        "gain_db": 0.0,
+        "delay_ms": 0.0
+      },
+      {
+        "track": "vocals",
+        "output": "wasapi:hdmi-1",
+        "gain_db": -6.0,
+        "delay_ms": 0.0
+      },
+      {
+        "track": "vocals",
+        "output": "wasapi:usb-2",
+        "gain_db": 0.0,
+        "delay_ms": 12.5
+      }
+    ],
+    "policies": {
+      "wasapi:usb-2": "continue"
+    }
+  },
+  "calibration_ms": {
+    "wasapi:hdmi-1": 38.0
+  }
+}

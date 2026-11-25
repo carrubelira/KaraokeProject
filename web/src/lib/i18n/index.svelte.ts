@@ -1,20 +1,18 @@
 import { en } from './en';
-import { es } from './es';
 import { gl, type Messages } from './gl';
 import type { Locale } from './plural';
 
 export type { Locale } from './plural';
 export type { Messages } from './gl';
 
-export const LOCALES: readonly Locale[] = ['gl', 'es', 'en'];
+export const LOCALES: readonly Locale[] = ['gl', 'en'];
 /** Each language's name in itself, for the language picker. */
 export const LOCALE_NAMES: Record<Locale, string> = {
 	gl: 'Galego',
-	es: 'Castellano',
 	en: 'English'
 };
 
-const DICTIONARIES: Record<Locale, Messages> = { gl, es, en };
+const DICTIONARIES: Record<Locale, Messages> = { gl, en };
 const STORAGE_KEY = 'foliada.locale';
 
 const isLocale = (value: string | null): value is Locale =>
@@ -26,7 +24,7 @@ const IBERIAN = ['gl', 'es', 'pt', 'ca', 'eu', 'ast'];
 /**
  * The stored choice; else Galician (the app's language) for anyone whose browser speaks Galician
  * or another Iberian language; else English for browsers that speak English; else Galician.
- * Spanish is always one tap away in the settings.
+ * English is always one tap away in the settings.
  */
 export function detectLocale(stored: string | null, languages: readonly string[]): Locale {
 	if (isLocale(stored)) return stored;

@@ -1,8 +1,9 @@
-"""The server's SQLite database: the song index, jobs, paired devices and party rooms.
+"""The server's SQLite database (plan v4 §3): contents, the task queue, workers and the stage.
 
-The package folders on disk are the truth about songs; the database only adds what a folder
-cannot say (when it was made, by which job). Every call runs on the event loop's thread and
-takes well under a millisecond, so one connection is enough.
+Blobs live on disk in the content store; the database knows which manifests exist, which tasks
+are waiting, leased or done, which workers are enrolled, the queue and each screen's settings.
+Every call runs on the event loop's thread and takes well under a millisecond, so one connection
+is enough.
 """
 
 import sqlite3
@@ -14,47 +15,168 @@ from typing import Any
 # Each entry upgrades the schema by one version; PRAGMA user_version says how many have run.
 MIGRATIONS: list[str] = [
     """
-    CREATE TABLE songs (
+    CREATE TABLE contents (
         id TEXT PRIMARY KEY,
+        manifest TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        artist TEXT,
+        language TEXT NOT NULL,
+        duration REAL NOT NULL,
         created_at TEXT NOT NULL,
-        job_id TEXT
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+    );
+    CREATE TABLE manifests (
+        sha256 TEXT PRIMARY KEY,
+        content_id TEXT NOT NULL REFERENCES contents (id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE (content_id, version)
     );
     CREATE TABLE jobs (
         id TEXT PRIMARY KEY,
         kind TEXT NOT NULL,
         title TEXT NOT NULL,
-        stage TEXT NOT NULL,
-        progress REAL NOT NULL DEFAULT 0,
-        song_id TEXT,
-        file TEXT,
+        state TEXT NOT NULL,
+        params TEXT NOT NULL,
+        result TEXT,
+        error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    CREATE TABLE tasks (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL REFERENCES jobs (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL,
+        state TEXT NOT NULL,
+        deps TEXT NOT NULL DEFAULT '[]',
+        params TEXT NOT NULL DEFAULT '{}',
+        inputs TEXT NOT NULL DEFAULT '[]',
+        outputs TEXT NOT NULL DEFAULT '{}',
+        data TEXT NOT NULL DEFAULT '{}',
+        priority INTEGER NOT NULL DEFAULT 0,
+        vram_mb INTEGER NOT NULL DEFAULT 0,
+        needs_internet INTEGER NOT NULL DEFAULT 0,
+        pinned_node TEXT,
+        lease_id TEXT,
+        node_id TEXT,
+        lease_expires REAL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        max_attempts INTEGER NOT NULL DEFAULT 3,
+        stage TEXT,
+        fraction REAL,
         error TEXT,
         error_code TEXT,
-        with_lyrics INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        stage_started REAL,
-        attempt INTEGER NOT NULL DEFAULT 1,
-        request TEXT NOT NULL,
-        source TEXT,
-        duration REAL,
-        stage_seconds TEXT NOT NULL DEFAULT '{}'
+        started_at REAL,
+        finished_at REAL
     );
-    CREATE INDEX jobs_by_stage ON jobs (stage, created_at);
-    CREATE TABLE devices (
+    CREATE INDEX tasks_by_state ON tasks (state, priority DESC, created_at);
+    CREATE TABLE stage_times (
+        kind TEXT NOT NULL,
+        stage TEXT NOT NULL,
+        seconds REAL NOT NULL,
+        at REAL NOT NULL
+    );
+    CREATE TABLE operators (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         token_hash TEXT NOT NULL UNIQUE,
+        preferences TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL
+    );
+    CREATE TABLE enrollments (
+        token_hash TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        expires_at REAL NOT NULL,
+        used_by TEXT
+    );
+    CREATE TABLE nodes (
+        id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        credential_hash TEXT NOT NULL UNIQUE,
+        capabilities TEXT NOT NULL,
+        config TEXT NOT NULL DEFAULT '{}',
         created_at TEXT NOT NULL,
-        last_seen TEXT NOT NULL
+        last_seen REAL NOT NULL,
+        revoked INTEGER NOT NULL DEFAULT 0
     );
-    CREATE TABLE pairings (
-        code TEXT PRIMARY KEY,
-        expires_at REAL NOT NULL
-    );
-    CREATE TABLE parties (
-        code TEXT PRIMARY KEY,
+    CREATE TABLE playlists (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        version INTEGER NOT NULL,
         data TEXT NOT NULL,
-        updated_at REAL NOT NULL
+        updated_at TEXT NOT NULL
+    );
+    CREATE TABLE uploads (
+        id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        received INTEGER NOT NULL DEFAULT 0,
+        blob TEXT,
+        created_at REAL NOT NULL
+    );
+    """,
+    # What a worker is doing inside a task, its log, and one queue per player instead of
+    # playlists (the playlist a player pointed at becomes its queue).
+    """
+    ALTER TABLE tasks ADD COLUMN step TEXT;
+    ALTER TABLE tasks ADD COLUMN message TEXT;
+    ALTER TABLE tasks ADD COLUMN stage_started REAL;
+    ALTER TABLE tasks ADD COLUMN log TEXT;
+    CREATE TABLE queues (
+        player_id TEXT PRIMARY KEY REFERENCES nodes (id) ON DELETE CASCADE,
+        version INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    INSERT INTO queues (player_id, version, items, updated_at)
+        SELECT n.id, p.version, json_extract(p.data, '$.items'), p.updated_at
+        FROM nodes n JOIN playlists p ON p.id = json_extract(n.config, '$.playlist_id')
+        WHERE n.kind = 'player';
+    UPDATE nodes SET config = json_remove(config, '$.playlist_id') WHERE kind = 'player';
+    DROP TABLE playlists;
+    """,
+    # Decision 011: one stage per backend. The busiest player's queue becomes the queue, its
+    # audio routing the stage's; players stop being nodes (kp-audio is the server's own
+    # process) and screens are kept by the id their browser made up.
+    """
+    CREATE TABLE queue (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    INSERT INTO queue (id, version, items, updated_at)
+        SELECT 1, version, items, updated_at FROM queues
+        ORDER BY json_array_length(items) DESC, updated_at DESC LIMIT 1;
+    CREATE TABLE stage_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    INSERT INTO stage_settings (key, value)
+        SELECT 'audio', json_object(
+            'routing', json_object(
+                'master', json_extract(config, '$.routing.master'),
+                'routes', json(COALESCE(json_extract(config, '$.routing.routes'), '[]')),
+                'policies', json(COALESCE(json_extract(config, '$.routing.policies'), '{}'))
+            ),
+            'calibration_ms', json(COALESCE(json_extract(config, '$.calibration.audio_ms'), '{}'))
+        )
+        FROM nodes WHERE kind = 'player' AND revoked = 0 AND config != '{}'
+        ORDER BY last_seen DESC LIMIT 1;
+    DROP TABLE queues;
+    DELETE FROM nodes WHERE kind = 'player';
+    DELETE FROM enrollments WHERE kind = 'player';
+    CREATE TABLE screens (
+        id TEXT PRIMARY KEY,
+        config TEXT NOT NULL DEFAULT '{}',
+        hello TEXT NOT NULL DEFAULT '{}',
+        first_seen REAL NOT NULL,
+        last_seen REAL NOT NULL
     );
     """,
 ]
@@ -109,6 +231,10 @@ class Database:
             self._conn.execute("COMMIT")
         finally:
             self._depth = 0
+
+    def one(self, sql: str, params: Sequence[Any] | dict[str, Any] = ()) -> sqlite3.Row | None:
+        row: sqlite3.Row | None = self._conn.execute(sql, params).fetchone()
+        return row
 
     def backup(self, dest: Path) -> None:
         """A consistent copy while the server keeps running.

@@ -1,0 +1,14 @@
+[package]
+name = "kp-syncbench"
+description = "Software sync bench: simulated audio devices with drift and jitter."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kp-clock = { path = "../clock" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

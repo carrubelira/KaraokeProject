@@ -1,0 +1,4 @@
+# audiopus_sys builds libopus with a CMakeLists that asks for CMake < 3.5; CMake 4 refuses
+# that unless told the oldest policy to assume. Harmless on CMake 3.
+[env]
+CMAKE_POLICY_VERSION_MINIMUM = "3.5"

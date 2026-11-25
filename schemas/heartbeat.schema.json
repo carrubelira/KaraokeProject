@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/heartbeat.schema.json",
+  "$defs": {
+    "Telemetry": {
+      "additionalProperties": false,
+      "properties": {
+        "gpu_util": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "vram_used_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "vram_free_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "gpu_temp_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cpu_util": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ram_used_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ram_total_mb": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "gpu_util",
+        "vram_used_mb",
+        "vram_free_mb",
+        "gpu_temp_c",
+        "cpu_util",
+        "ram_used_mb",
+        "ram_total_mb"
+      ],
+      "title": "Telemetry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "telemetry": {
+      "$ref": "#/$defs/Telemetry"
+    },
+    "running": {
+      "description": "Task ids it holds.",
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "telemetry",
+    "running"
+  ],
+  "title": "Heartbeat",
+  "type": "object"
+}

@@ -29,14 +29,13 @@ const icon = readFileSync(new URL('../static/icons/icon.svg', import.meta.url), 
 const globe = `data:image/svg+xml;base64,${Buffer.from(icon.replace(/<rect[^>]*\/>/, '')).toString('base64')}`;
 
 const css = `
-	@font-face { font-family: 'Unbounded'; src: url(${font('Unbounded.woff2')}); font-weight: 500 800; }
-	@font-face { font-family: 'Figtree'; src: url(${font('Figtree.woff2')}); font-weight: 400 700; }
+	@font-face { font-family: 'IBM Plex Sans'; src: url(${font('IBMPlexSans.woff2')}); font-weight: 400 600; }
 	* { margin: 0; box-sizing: border-box; }
 	html, body { width: 100%; height: 100%; }
 	body {
 		background: radial-gradient(120% 90% at 85% 0%, #0b2440, transparent 60%), #04070c;
 		color: #f1f5f8;
-		font-family: 'Figtree', sans-serif;
+		font-family: 'IBM Plex Sans', sans-serif;
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
@@ -46,8 +45,8 @@ const css = `
 	.globe { position: absolute; top: 50%; right: -60px; height: 125%; transform: translateY(-50%); }
 	.name {
 		position: relative;
-		font-family: 'Unbounded', sans-serif;
-		font-weight: 650;
+		font-family: 'IBM Plex Sans', sans-serif;
+		font-weight: 600;
 		line-height: 1.06;
 		letter-spacing: -0.035em;
 	}

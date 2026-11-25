@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
 </p>
 
+> **v4 en desenvolvemento** (rama `claude/trusting-johnson-3p992a`): servidor, workers con GPU, reprodutor nativo para Windows e macOS e un control web pensado para o teclado. O plan e o estado: [`docs/plan-v4/`](docs/plan-v4/ESTADO.md).
+
 **Proxecto Karaoke en Galego** converte calquera canción nun karaoke no que a letra se acende
 palabra a palabra e sílaba a sílaba, xusto cando se canta. Funciona no teu propio ordenador cunha
 tarxeta gráfica modesta, e cántase dende o móbil, o portátil ou a tele. Está feito **primeiro para
@@ -168,8 +170,8 @@ comunícanse en privado ([`SECURITY.md`](SECURITY.md)).
 ## Licenza e créditos
 
 O proxecto publícase baixo a [licenza MIT](LICENSE). Apóiase no traballo doutras persoas: os modelos
-de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes Unbounded, Figtree, Martian Mono,
-Atkinson Hyperlegible, Nunito e Inter; os datos do globo (Kontur, Natural Earth, Mapzen e Wikidata);
+de Proxecto Nós, HiTZ, OpenAI, Meta e Kimberley Jensen; as fontes IBM Plex,
+Atkinson Hyperlegible, Nunito e Inter; as bases abertas AcoustID, MusicBrainz e LRCLIB;
 e as cancións de artistas que comparten a súa música libremente. As súas licenzas están en
 [`NOTICE.md`](NOTICE.md). As capturas amosan cancións con licenzas Creative Commons e compártense
 baixo CC BY-SA 4.0.

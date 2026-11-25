@@ -1,842 +1,560 @@
 <script lang="ts">
-	// The main menu: Galicia at night on its own small planet, the four ways in, and below, the
-	// songs with the one in the spotlight beside them.
-	import { onDestroy } from 'svelte';
+	/**
+	 * Playback: what is on the stage (with a preview of its lyrics), which screens are ready for
+	 * it, and the queue. A song is added by searching it above the queue: Enter puts it at the
+	 * end, Shift+Enter right after the one on. Rows drag to reorder; J/K move, Enter cues (the
+	 * audio and the screens get it ready), Shift+Enter cues and starts it, Delete removes,
+	 * Alt+↑/↓ moves. Nothing plays until the operator starts it (Space).
+	 */
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { ApiError, listSongs, type SongSummary } from '#lib/api';
-	import { needsPairing } from '#lib/devices/explain.js';
-	import PairingNotice from '#lib/devices/PairingNotice.svelte';
+	import { onMount } from 'svelte';
+	import { rank } from '#lib/commands/fuzzy.js';
+	import { commands } from '#lib/commands/registry.svelte.js';
+	import Icon from '#lib/console/Icon.svelte';
+	import Monitor from '#lib/console/Monitor.svelte';
+	import { now } from '#lib/console/now.svelte.js';
+	import { onStage, screenName, screenTone, sessionTone } from '#lib/console/stage.js';
+	import { live } from '#lib/control/live.svelte.js';
+	import { positionNow } from '#lib/control/state.js';
 	import { i18n } from '#lib/i18n';
-	import { languageName } from '#lib/create/languages.js';
-	import { jobs } from '#lib/create/jobs.svelte.js';
-	import GlobeAnchor from '#lib/globe/GlobeAnchor.svelte';
-	import { LIGHTS, PEOPLE } from '#lib/globe/galicia.js';
-	import { stage, type Mood } from '#lib/globe/stage.svelte.js';
-	import { filterSongs, languagesOf } from '#lib/library/filter.js';
-	import SongRow from '#lib/library/SongRow.svelte';
-	import Cover from '#lib/poster/Cover.svelte';
-	import Button from '#lib/ui/Button.svelte';
-	import Icon from '#lib/ui/Icon.svelte';
-	import Wordmark from '#lib/ui/Wordmark.svelte';
-	import { formatCount, formatDuration } from '#lib/ui/format.js';
-	import { arrowNavigation } from '#lib/tv/focus.js';
-	import { saved } from '#lib/offline/saved.svelte.js';
+	import {
+		addToQueue,
+		moveInQueue,
+		placeInQueue,
+		removeFromQueue,
+		transport,
+		updateItem
+	} from '#lib/shell/actions.svelte.js';
+	import { clock } from '#lib/shell/format.js';
+	import { Selection } from '#lib/shell/selection.svelte.js';
 
-	let songs = $state.raw<SongSummary[] | null>(null);
-	let failed = $state<string | null>(null);
-	let unpaired = $state(false);
-	let query = $state('');
-	let language = $state('all');
-	let savedOnly = $state(false);
-	let online = $state(navigator.onLine);
-	let search = $state<HTMLInputElement | null>(null);
-	let board = $state<HTMLElement | null>(null);
-	let first = $state<HTMLAnchorElement | null>(null);
-	/** The item of the menu the pointer or the focus was on last. */
-	let chosen = $state(0);
-	/** The song whose details show beside the list. */
-	let pointed = $state<string | null>(null);
+	const t = $derived(i18n.t);
+	const session = $derived(live.state.session);
+	const on = $derived(onStage(live.state));
+	const items = $derived(live.state.queue.items);
+	const currentIndex = $derived(items.findIndex((i) => i.id === session.current?.item.id));
+	const selection = new Selection(() => items.map((i) => i.id));
+	const position = $derived.by(() => {
+		void now.value;
+		return positionNow(session, live.serverMicros());
+	});
+	const screens = $derived(live.state.screens.filter((s) => s.online));
+	/** How many of the screens that count have a song downloaded. */
+	function readyOn(contentId: string): { ready: number; total: number; fraction: number } {
+		const counted = live.state.screens.filter((s) => s.counts);
+		const entries = counted.map((s) => s.status?.cache.find((c) => c.content_id === contentId));
+		const ready = entries.filter((c) => c?.state === 'ready').length;
+		const fraction = entries.reduce((sum, c) => sum + (c?.fraction ?? 0), 0);
+		return {
+			ready,
+			total: counted.length,
+			fraction: counted.length ? fraction / counted.length : 0
+		};
+	}
+	const song = (id: string) => live.state.contents.find((c) => c.id === id);
+	const errors = $derived(live.state.audio.status.errors);
+	const audioDown = $derived(live.state.audio.required && !live.state.audio.online);
 
-	// On a TV driven by a keyboard or a clicker the arrows move around the whole page: the menu,
-	// then the search, the filters and the songs below. The menu's first item starts with focus.
-	$effect(() => arrowNavigation(document.body, () => first ?? board?.querySelector('a') ?? null));
-
-	const t = $derived(i18n.t.library);
-	const h = $derived(i18n.t.home);
-	const languages = $derived(songs ? languagesOf(songs) : []);
-	const shown = $derived(
-		songs ? filterSongs(songs, { query, language, saved: savedOnly ? saved.ids : null }) : []
+	let search = $state('');
+	let pick = $state(0);
+	const found = $derived(
+		search.trim() ? rank(search, live.state.contents, (c) => `${c.title} ${c.artist ?? ''}`, 8) : []
 	);
-	const filtering = $derived(query.trim() !== '' || language !== 'all' || savedOnly);
-	const spotlight = $derived(shown.find((song) => song.id === pointed) ?? shown[0] ?? null);
+	let dragging = $state<string | null>(null);
+	let over = $state<string | null>(null);
 
-	const items = $derived<{ href: string; word: string; hint: string; mood: Mood }[]>([
-		{
-			href: '#cancions',
-			word: h.sing,
-			hint: songs ? h.singHint(songs.length) : i18n.t.common.loading,
-			mood: 'calm'
-		},
-		{ href: resolve('/festa'), word: i18n.t.nav.party, hint: h.partyHint, mood: 'party' },
-		{ href: resolve('/crear'), word: i18n.t.nav.create, hint: h.createHint, mood: 'scan' },
-		{ href: resolve('/axustes'), word: i18n.t.nav.settings, hint: h.settingsHint, mood: 'tech' }
-	]);
-
-	/** The globe shows what the chosen item is about: a party, a karaoke being made, the settings. */
-	function choose(index: number) {
-		chosen = index;
-		stage.mood = items[index]?.mood ?? 'calm';
+	function add(id: string, next = false) {
+		void addToQueue([id], next);
+		search = '';
+		pick = 0;
 	}
 
-	/** Hours and minutes of music, as "1 h 34 min". */
-	function long(seconds: number): string {
-		const minutes = Math.round(seconds / 60);
-		return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${minutes % 60} min` : `${minutes} min`;
-	}
-	const total = $derived.by(() => {
-		if (!songs) return '';
-		const list = filtering ? shown : songs;
-		return h.total(t.count(list.length), long(list.reduce((sum, song) => sum + song.duration, 0)));
-	});
-
-	onDestroy(() => {
-		stage.mood = 'calm';
-	});
-
-	async function load() {
-		failed = null;
-		unpaired = false;
-		try {
-			songs = await listSongs();
-		} catch (error) {
-			// Away from home, an unpaired device sees nothing until it is paired.
-			unpaired = needsPairing(error);
-			failed =
-				error instanceof ApiError && error.status === 0 ? i18n.t.errors.network : t.loadError;
-		}
-	}
-	void load();
-
-	function open(song: SongSummary, event: MouseEvent) {
-		if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
-		event.preventDefault();
-		void goto(resolve('/cantar/[id]', { id: song.id }));
-	}
-
-	/** "Sing" goes down to the songs and puts the cursor in the search. */
-	function sing(event: MouseEvent) {
-		event.preventDefault();
-		const target = document.getElementById('cancions');
-		target?.scrollIntoView({ block: 'start' });
-		(search ?? board?.querySelector<HTMLElement>('a'))?.focus({ preventScroll: true });
-	}
-
-	function clearFilters() {
-		query = '';
-		language = 'all';
-		savedOnly = false;
-	}
-
-	function onKey(event: KeyboardEvent) {
-		const target = event.target instanceof Element ? event.target : document.body;
-		if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
+	function quickKey(event: KeyboardEvent) {
+		if (event.key === 'ArrowDown') {
+			pick = Math.min(pick + 1, found.length - 1);
 			event.preventDefault();
-			search?.focus();
+		} else if (event.key === 'ArrowUp') {
+			pick = Math.max(pick - 1, 0);
+			event.preventDefault();
+		} else if (event.key === 'Enter' && found[pick]) {
+			event.preventDefault();
+			add(found[pick].id, event.shiftKey);
 		}
 	}
+
+	function drop(beforeId: string | null) {
+		if (dragging) void placeInQueue(dragging, beforeId);
+		dragging = null;
+		over = null;
+	}
+
+	onMount(() => {
+		commands.scope = 'live';
+		const stop = now.use();
+		const group = () => t.groups.queue;
+		const unregister = commands.register(
+			{
+				id: 'live.down',
+				title: () => t.cmd.down,
+				group,
+				scope: 'live',
+				keys: ['j', 'ArrowDown'],
+				run: () => selection.move(1),
+				hidden: true
+			},
+			{
+				id: 'live.up',
+				title: () => t.cmd.up,
+				group,
+				scope: 'live',
+				keys: ['k', 'ArrowUp'],
+				run: () => selection.move(-1),
+				hidden: true
+			},
+			{
+				id: 'live.cue',
+				title: () => t.cmd.cue,
+				group,
+				scope: 'live',
+				keys: ['Enter'],
+				run: () => void (selection.current && transport.cue(selection.current))
+			},
+			{
+				id: 'live.playNow',
+				title: () => t.cmd.playNow,
+				group,
+				scope: 'live',
+				keys: ['Shift+Enter'],
+				run: () => void (selection.current && transport.playItem(selection.current))
+			},
+			{
+				id: 'live.remove',
+				title: () => t.cmd.remove,
+				group,
+				scope: 'live',
+				keys: ['Delete', 'Backspace'],
+				run: () => removeFromQueue(selection.targets)
+			},
+			{
+				id: 'live.moveUp',
+				title: () => t.cmd.moveUp,
+				group,
+				scope: 'live',
+				keys: ['Alt+ArrowUp'],
+				run: () => moveInQueue(selection.targets, -1)
+			},
+			{
+				id: 'live.moveDown',
+				title: () => t.cmd.moveDown,
+				group,
+				scope: 'live',
+				keys: ['Alt+ArrowDown'],
+				run: () => moveInQueue(selection.targets, 1)
+			},
+			{
+				id: 'live.mark',
+				title: () => t.cmd.toggleSelect,
+				group,
+				scope: 'live',
+				keys: ['x'],
+				run: () => selection.toggle()
+			}
+		);
+		return () => {
+			stop();
+			unregister();
+		};
+	});
 </script>
 
-<svelte:head><title>Karaoke en Galego</title></svelte:head>
-<svelte:window
-	onkeydown={onKey}
-	ononline={() => {
-		online = true;
-		void load();
-	}}
-	onoffline={() => (online = false)}
-/>
+<div class="page">
+	<header class="page-header">
+		<div>
+			<h1>{t.playback.title}</h1>
+			<p class="description">{t.playback.description}</p>
+		</div>
+	</header>
 
-<main class="home">
-	<section class="hero" aria-labelledby="menu-title">
-		<header class="top">
-			<a class="brand" href={resolve('/')}><Wordmark animate size="var(--t-0)" /></a>
-			<button
-				type="button"
-				class="still"
-				aria-pressed={stage.still}
-				aria-label={stage.still ? h.play : h.stop}
-				title={stage.still ? h.play : h.stop}
-				onclick={() => stage.toggleStill()}
-			>
-				<Icon name={stage.still ? 'play' : 'pause'} size={1} />
-			</button>
+	<section class="panel now">
+		<div class="preview"><Monitor song={on.song} {position} /></div>
+		<div class="info">
+			<span class="badge {sessionTone(live.state)}">
+				{audioDown ? t.player.audioDown : t.player.states[session.state]}
+			</span>
+			{#if on.song}
+				<h2 class="song-title">{on.song.title}</h2>
+				<p class="muted">{on.song.artist ?? ''}</p>
+				<dl class="details">
+					{#if on.item?.singer}
+						<dt>{t.playback.singer}</dt>
+						<dd>{on.item.singer}</dd>
+					{/if}
+					<dt>{t.playback.duration}</dt>
+					<dd class="mono">{clock(on.song.duration)}</dd>
+					<dt>{t.player.key}</dt>
+					<dd class="mono">{t.player.semitones(session.semitones)}</dd>
+					{#if on.next?.song}
+						<dt>{t.player.next}</dt>
+						<dd>{on.next.song.title}</dd>
+					{/if}
+				</dl>
+			{:else}
+				<p class="muted">{t.player.nothing}</p>
+			{/if}
+			{#if errors.length}
+				<div class="notice warn alerts" role="alert">
+					<Icon name="warn" size={18} />
+					<div>
+						<strong>{t.playback.alerts}</strong>
+						<ul>
+							{#each errors as error, i (i)}
+								<li>
+									{t.audioErrors[error.code] ?? error.code}
+									{#if error.device}<span class="muted">· {error.device}</span>{/if}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</div>
+			{/if}
+		</div>
+	</section>
+
+	<section class="panel">
+		<header class="panel-header">
+			<h2>{t.devices.screens}</h2>
+			<span class="muted small">{screens.length}</span>
 		</header>
-
-		<h1 id="menu-title" class="visually-hidden">{h.menu}</h1>
-		<nav class="menu" aria-label={h.menu}>
-			<ul>
-				{#each items as item, i (item.href)}
-					<li class:chosen={chosen === i} style:--i={i}>
-						{#if i === 0}
-							<!-- eslint-disable svelte/no-navigation-without-resolve -- a place in this page -->
-							<a
-								href={item.href}
-								bind:this={first}
-								onclick={sing}
-								onpointerenter={() => choose(i)}
-								onfocus={() => choose(i)}
-							>
-								<span class="word">{item.word}</span>
-								<span class="hint">{item.hint}</span>
-							</a>
-							<!-- eslint-enable svelte/no-navigation-without-resolve -->
-						{:else}
-							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- built with resolve() -->
-							<a href={item.href} onpointerenter={() => choose(i)} onfocus={() => choose(i)}>
-								<span class="word">{item.word}</span>
-								<span class="hint">
-									{#if i === 2 && jobs.working !== null}
-										<span class="working data">{Math.round(jobs.working * 100)} %</span>
-									{/if}
-									{item.hint}
-								</span>
-							</a>
+		{#if screens.length}
+			<ul class="screens">
+				{#each screens as screen (screen.id)}
+					<li>
+						<span class="badge {screenTone(screen)}">
+							{screen.status ? t.screenStates[screen.status.state] : '…'}
+						</span>
+						<strong class="truncate">{screenName(screen)}</strong>
+						{#if screen.status?.state === 'provisioning'}
+							{@const c = screen.status.cache.find((x) => x.manifest === session.current?.manifest)}
+							<span class="mono small muted">{Math.round((c?.fraction ?? 0) * 100)} %</span>
+						{/if}
+						{#if screen.status?.sync.error_ms !== null && screen.status?.sync.error_ms !== undefined}
+							<span class="mono small faint">±{screen.status.sync.error_ms.toFixed(0)} ms</span>
 						{/if}
 					</li>
 				{/each}
 			</ul>
-		</nav>
-
-		<div class="sphere">
-			<GlobeAnchor
-				label={h.globe(formatCount(PEOPLE), formatCount(LIGHTS))}
-				names
-				turnable
-				fit={0.82}
-			/>
-		</div>
-	</section>
-
-	<section id="cancions" class="songs" aria-labelledby="songs-title">
-		<header class="head">
-			<div class="heading">
-				<h2 id="songs-title">{t.title}</h2>
-				{#if songs && songs.length > 0}<p class="count">{total}</p>{/if}
-			</div>
-			{#if songs && songs.length > 0}
-				<div class="tools">
-					<label class="search">
-						<span class="visually-hidden">{t.search}</span>
-						<Icon name="search" size={1.25} />
-						<input
-							type="search"
-							bind:this={search}
-							bind:value={query}
-							placeholder={t.searchPlaceholder}
-							autocomplete="off"
-							spellcheck="false"
-							enterkeyhint="search"
-						/>
-						<kbd aria-hidden="true">/</kbd>
-					</label>
-					{#if languages.length > 1 || saved.list.length > 0}
-						<div class="chips" role="group" aria-label={i18n.t.create.language}>
-							<!-- "All" drops the language and the saved filter; the search stays as typed. -->
-							<button
-								type="button"
-								aria-pressed={language === 'all' && !savedOnly}
-								onclick={() => {
-									language = 'all';
-									savedOnly = false;
-								}}>{t.all}</button
-							>
-							{#each languages as code (code)}
-								<button
-									type="button"
-									aria-pressed={language === code}
-									onclick={() => (language = language === code ? 'all' : code)}
-									>{languageName(code)}</button
-								>
-							{/each}
-							{#if saved.list.length > 0}
-								<button
-									type="button"
-									aria-pressed={savedOnly}
-									onclick={() => (savedOnly = !savedOnly)}>{t.saved}</button
-								>
-							{/if}
-						</div>
-					{/if}
-				</div>
-			{/if}
-		</header>
-
-		{#if !online}<p class="offline" role="status">{t.offline}</p>{/if}
-
-		{#if unpaired}
-			<div class="notice panel">
-				<PairingNotice text={i18n.t.errors.server.not_paired} />
-			</div>
-		{:else if failed}
-			<div class="notice panel" role="alert">
-				<p>{failed}</p>
-				<Button onclick={load} icon="loop">{i18n.t.common.retry}</Button>
-			</div>
-		{:else if songs === null}
-			<ul class="board loading" aria-busy="true" aria-label={i18n.t.common.loading}>
-				{#each Array.from({ length: 6 }, (_, i) => i) as i (i)}
-					<li><div class="placeholder"></div></li>
-				{/each}
-			</ul>
-		{:else if songs.length === 0}
-			<div class="empty panel">
-				<h3>{t.emptyTitle}</h3>
-				<p>{t.emptyBody}</p>
-				<Button variant="primary" size="l" icon="create" href={resolve('/crear')}
-					>{t.emptyAction}</Button
-				>
-			</div>
-		{:else if shown.length === 0}
-			<div class="notice panel">
-				<p>{query.trim() ? t.noResults(query.trim()) : t.noResultsFiltered}</p>
-				<Button onclick={clearFilters}>{t.clearFilters}</Button>
-			</div>
 		{:else}
-			<div class="library">
-				<ul class="board" bind:this={board}>
-					{#each shown as song (song.id)}
-						<li onpointerenter={() => (pointed = song.id)} onfocusin={() => (pointed = song.id)}>
-							<SongRow
-								{song}
-								saved={saved.has(song.id)}
-								selected={spotlight?.id === song.id}
-								href={resolve('/cantar/[id]', { id: song.id })}
-								onopen={(event) => open(song, event)}
-							/>
-						</li>
-					{/each}
-				</ul>
-				{#if spotlight}
-					<aside class="detail panel" aria-label={spotlight.title}>
-						{#key spotlight.id}
-							<div class="card">
-								<div class="art"><Cover song={spotlight} awake /></div>
-								<h3>{spotlight.title}</h3>
-								<p class="artist">{spotlight.artist ?? i18n.t.common.unknownArtist}</p>
-								{#if spotlight.hook}<p class="hook">«{spotlight.hook}»</p>{/if}
-								<ul class="facts">
-									<li class="data">{formatDuration(spotlight.duration)}</li>
-									<li>{languageName(spotlight.language)}</li>
-									{#if spotlight.has_video}<li>{h.withVideo}</li>{/if}
-									<li>{spotlight.edited ? t.edited : h.lyricsBy[spotlight.lyrics_source]}</li>
-									{#if saved.has(spotlight.id)}<li class="kept">{t.savedOffline}</li>{/if}
-								</ul>
-								<div class="actions">
-									<Button
-										variant="primary"
-										size="l"
-										icon="play"
-										href={resolve('/cantar/[id]', { id: spotlight.id })}>{h.sing}</Button
-									>
-									<Button icon="edit" href={resolve('/editar/[id]', { id: spotlight.id })}
-										>{h.edit}</Button
-									>
-								</div>
-							</div>
-						{/key}
-					</aside>
-				{/if}
+			<div class="empty">
+				<p>{t.playback.noScreens}</p>
+				<a class="btn" href={resolve('/equipos')}>{t.nav.devices}</a>
 			</div>
 		{/if}
 	</section>
 
-	<footer class="credits">
-		<p>{h.credits}</p>
-	</footer>
-</main>
+	<section class="panel">
+		<header class="panel-header">
+			<h2>{t.playback.queue}</h2>
+			<span class="muted small">{t.library.count(items.length)}</span>
+		</header>
+		<div class="quick">
+			<Icon name="search" size={16} />
+			<input
+				class="field"
+				bind:value={search}
+				onkeydown={quickKey}
+				oninput={() => (pick = 0)}
+				placeholder={t.playback.addPlaceholder}
+				aria-label={t.playback.addPlaceholder}
+				data-search
+			/>
+			{#if found.length}
+				<ul class="found" role="listbox">
+					{#each found as c, i (c.id)}
+						<li role="option" aria-selected={i === pick}>
+							<button class:active={i === pick} onclick={() => add(c.id)}>
+								<span>{c.title}</span>
+								<span class="muted">{c.artist ?? ''}</span>
+								<span class="mono muted">{clock(c.duration)}</span>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+		{#if items.length}
+			<table class="table queue">
+				<thead>
+					<tr>
+						<th class="num">{t.playback.number}</th>
+						<th>{t.playback.song}</th>
+						<th>{t.playback.singer}</th>
+						<th class="num">{t.playback.duration}</th>
+						<th>{t.playback.status}</th>
+						<th><span class="sr-only">{t.common.more}</span></th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each items as item, i (item.id)}
+						{@const c = song(item.content_id)}
+						{@const have = readyOn(item.content_id)}
+						{@const isOn = item.id === session.current?.item.id}
+						<tr
+							aria-selected={selection.cursor === i}
+							class:selected={selection.cursor === i || selection.marked.has(item.id)}
+							class:on={isOn}
+							class:played={currentIndex >= 0 && i < currentIndex}
+							class:over={over === item.id}
+							draggable="true"
+							ondragstart={() => (dragging = item.id)}
+							ondragover={(e) => {
+								e.preventDefault();
+								over = item.id;
+							}}
+							ondragend={() => ((dragging = null), (over = null))}
+							ondrop={(e) => {
+								e.preventDefault();
+								drop(item.id);
+							}}
+							onclick={() => (selection.cursor = i)}
+						>
+							<td class="num faint">{i + 1}</td>
+							<td>
+								<div class="song-cell">
+									<strong class="truncate">{c?.title ?? item.content_id}</strong>
+									<span class="muted small truncate">{c?.artist ?? ''}</span>
+								</div>
+							</td>
+							<td>
+								<input
+									class="singer"
+									value={item.singer ?? ''}
+									placeholder="—"
+									aria-label={t.playback.singer}
+									onchange={(e) =>
+										void updateItem(item.id, { singer: e.currentTarget.value || null })}
+									onclick={(e) => e.stopPropagation()}
+								/>
+							</td>
+							<td class="num muted">{clock(c?.duration)}</td>
+							<td>
+								{#if isOn}
+									<span class="badge ok">{t.playback.onNow}</span>
+								{:else if currentIndex >= 0 && i < currentIndex}
+									<span class="faint small">{t.playback.played}</span>
+								{:else if have.total}
+									<span class="badge {have.ready === have.total ? 'ok' : 'info'}">
+										{t.playback.onScreens(have.ready, have.total)}{have.ready < have.total
+											? ` · ${Math.round(have.fraction * 100)} %`
+											: ''}
+									</span>
+								{/if}
+							</td>
+							<td class="row-actions">
+								<button
+									class="btn subtle icon"
+									title={t.cmd.playNow}
+									aria-label={t.cmd.playNow}
+									onclick={() => transport.playItem(item.id)}
+								>
+									<Icon name="play" size={16} />
+								</button>
+								<button
+									class="btn subtle icon"
+									title={t.cmd.edit}
+									aria-label={t.cmd.edit}
+									onclick={() => goto(resolve('/editar/[id]', { id: item.content_id }))}
+								>
+									<Icon name="edit" size={16} />
+								</button>
+								<button
+									class="btn subtle icon"
+									title={t.cmd.remove}
+									aria-label={t.cmd.remove}
+									onclick={() => removeFromQueue([item.id])}
+								>
+									<Icon name="close" size={16} />
+								</button>
+							</td>
+						</tr>
+					{/each}
+					<tr
+						class="tail"
+						class:over={over === '$end'}
+						ondragover={(e) => {
+							e.preventDefault();
+							over = '$end';
+						}}
+						ondrop={(e) => {
+							e.preventDefault();
+							drop(null);
+						}}
+					>
+						<td colspan="6" class="faint small">{t.playback.dragHint}</td>
+					</tr>
+				</tbody>
+			</table>
+		{:else}
+			<div class="empty">
+				<p>{t.playback.queueEmpty}</p>
+				<a class="btn" href={resolve('/biblioteca')}>{t.nav.library}</a>
+			</div>
+		{/if}
+	</section>
+</div>
 
 <style>
-	.home {
-		--edge: max(var(--page-x), var(--safe-x));
-		overflow-x: clip;
-	}
-
-	/* The first screen: the night. On phones the globe leads and the songs follow at once. */
-	.hero {
-		position: relative;
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-4);
-		padding: var(--s-4) var(--page-x) var(--s-6);
-	}
-
-	.top {
-		display: flex;
-		align-items: center;
-		gap: var(--s-4);
-		min-height: var(--target);
-	}
-
-	.brand {
-		margin-right: auto;
-		text-decoration: none;
-	}
-
-	.still {
-		display: grid;
-		place-items: center;
-		flex: none;
-		width: 2.75rem;
-		height: 2.75rem;
-		border: 1px solid var(--raia-forte);
-		border-radius: 50%;
-		background: var(--panel-claro);
-		color: var(--texto-2);
-		transition:
-			border-color var(--dur-1) ease,
-			color var(--dur-1) ease,
-			transform var(--dur-1) var(--ease);
-	}
-
-	.still:active {
-		transform: scale(0.94);
-	}
-
-	.menu {
-		display: none;
-	}
-
-	.sphere {
-		width: min(100%, 54dvh);
-		margin: 0 auto;
-	}
-
-	@keyframes appear {
-		from {
-			opacity: 0;
-			transform: translateY(0.35em);
-		}
-	}
-
-	@keyframes rise {
-		from {
-			opacity: 0;
-			transform: translateY(0.9rem);
-		}
-	}
-
-	@media (hover: hover) {
-		.still:hover {
-			border-color: var(--ceo);
-			color: var(--texto);
-		}
-	}
-
-	@media (min-width: 45em) {
-		.top {
-			display: none;
-		}
-	}
-
-	/* Laptop and TV: the menu on the left, the planet on the right. */
-	@media (min-width: 64em) {
-		.hero {
-			grid-template-columns: minmax(24rem, 0.86fr) minmax(0, 1.14fr);
-			grid-template-rows: auto minmax(0, 1fr);
-			column-gap: var(--s-6);
-			min-height: 100dvh;
-			padding: max(var(--s-5), var(--safe-y)) var(--edge);
-		}
-
-		.top {
-			display: flex;
-			grid-column: 1 / -1;
-			grid-row: 1;
-			z-index: 1;
-		}
-
-		.menu {
-			display: block;
-			grid-column: 1;
-			grid-row: 2;
-			align-self: center;
-			z-index: 1;
-		}
-
-		.menu ul {
-			display: grid;
-			gap: var(--s-3);
-			margin: 0;
-			padding: 0;
-			list-style: none;
-		}
-
-		.menu li {
-			animation: rise var(--dur-3) var(--ease) calc(var(--i) * 70ms + 120ms) both;
-		}
-
-		.menu a {
-			position: relative;
-			display: grid;
-			justify-items: start;
-			gap: 0.1rem;
-			width: fit-content;
-			padding: 0.15rem 0;
-			border-radius: var(--radius-control);
-			text-decoration: none;
-			outline-offset: 0.5rem;
-		}
-
-		/* The chosen item steps forward behind a short line of sky blue; the rest wait dimmed. */
-		.menu a::before {
-			content: '';
-			position: absolute;
-			left: 0;
-			top: calc(clamp(2.6rem, 5.2vw, 6.25rem) * 0.56);
-			width: 2.4rem;
-			height: 3px;
-			border-radius: 2px;
-			background: var(--ceo);
-			transform: scaleX(0);
-			transform-origin: left;
-			transition: transform var(--dur-2) var(--ease);
-		}
-
-		.word,
-		.hint {
-			transition:
-				transform var(--dur-3) var(--ease),
-				color var(--dur-2) ease;
-		}
-
-		.word {
-			font-family: var(--font-display);
-			font-size: clamp(2.6rem, 5.2vw, 6.25rem);
-			font-weight: 600;
-			line-height: 1.06;
-			letter-spacing: -0.035em;
-			color: color-mix(in oklab, var(--texto) 36%, transparent);
-		}
-
-		.hint {
-			display: flex;
-			align-items: baseline;
-			gap: var(--s-2);
-			font-size: var(--t-0);
-			color: var(--texto-3);
-		}
-
-		.working {
-			color: var(--ouro);
-		}
-
-		.chosen .word {
-			color: var(--texto);
-		}
-
-		.chosen .hint {
-			color: var(--texto-2);
-		}
-
-		.chosen .word,
-		.chosen .hint {
-			transform: translateX(3.4rem);
-		}
-
-		.chosen a::before {
-			transform: scaleX(1);
-		}
-
-		.sphere {
-			grid-column: 2;
-			grid-row: 1 / -1;
-			align-self: center;
-			justify-self: center;
-			width: min(100%, 96dvh);
-			margin: 0 calc(var(--edge) * -0.5) 0 0;
-		}
-	}
-
-	/* The songs. */
-	.songs {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-5);
-		max-width: var(--page-max);
-		margin: 0 auto;
-		padding: var(--s-7) var(--page-x) var(--s-8);
-	}
-
-	.head {
-		display: grid;
-		gap: var(--s-4);
-	}
-
-	.heading {
+	.screens {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: baseline;
-		gap: var(--s-2) var(--s-5);
+		gap: 8px 20px;
+		margin: 0;
+		padding: 12px 16px;
+		list-style: none;
 	}
-
-	h2 {
-		font-family: var(--font-display);
-		font-size: var(--t-4);
-		font-weight: 600;
-		letter-spacing: -0.03em;
-		line-height: 1.05;
-	}
-
-	.count {
-		color: var(--texto-2);
-	}
-
-	.tools {
-		display: grid;
-		gap: var(--s-3);
+	.screens li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 		min-width: 0;
 	}
-
-	.search {
+	.now {
+		display: grid;
+		grid-template-columns: minmax(280px, 460px) minmax(0, 1fr);
+		gap: 20px;
+		padding: 16px;
+	}
+	.info {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		min-width: 0;
+	}
+	.song-title {
+		font-size: 18px;
+	}
+	.info .details {
+		margin-top: 8px;
+	}
+	.alerts {
+		margin-top: 8px;
+		align-self: stretch;
+		color: var(--text);
+	}
+	.alerts :global(svg) {
+		flex: none;
+		color: var(--warn);
+	}
+	.alerts ul {
+		margin: 4px 0 0;
+		padding-left: 18px;
+	}
+	.quick {
 		position: relative;
 		display: flex;
 		align-items: center;
-		gap: var(--s-2);
-		min-height: var(--target);
-		padding: 0 var(--s-4) 0 var(--s-5);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-pill);
-		background: var(--panel-claro);
-		color: var(--texto-2);
-		transition:
-			border-color var(--dur-1) ease,
-			background-color var(--dur-1) ease;
+		gap: 10px;
+		padding: 12px 16px;
+		border-bottom: 1px solid var(--border);
+		color: var(--muted);
 	}
-
-	.search:focus-within {
-		border-color: var(--ceo);
-		background: var(--ceo-fondo);
-		color: var(--texto);
-	}
-
-	.search input {
-		flex: 1;
-		min-width: 0;
-		height: 2.75rem;
-		border: 0;
-		background: transparent;
-		outline: none;
-		color: var(--texto);
-	}
-
-	.search input::placeholder {
-		color: var(--texto-2);
-	}
-
-	kbd {
-		display: none;
-		padding: 0 0.5em;
-		border: 1px solid var(--raia-forte);
-		border-radius: 0.4rem;
-		font-family: var(--font-data);
-		font-size: var(--t--1);
-	}
-
-	@media (hover: hover) and (pointer: fine) {
-		.search:not(:focus-within) kbd {
-			display: inline-block;
-		}
-	}
-
-	.chips {
-		display: flex;
-		gap: var(--s-2);
-		overflow-x: auto;
-		scrollbar-width: none;
-		min-width: 0;
-		/* Room for the focus ring, which the scroller would otherwise cut. */
-		margin: -4px;
+	.found {
+		position: absolute;
+		z-index: 10;
+		top: calc(100% - 6px);
+		left: 42px;
+		right: 16px;
+		margin: 0;
 		padding: 4px;
-	}
-
-	.chips button {
-		flex: none;
-		min-height: 2.75rem;
-		padding: 0 var(--s-4);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-pill);
-		background: transparent;
-		font-weight: 600;
-		color: var(--texto-2);
-		transition:
-			background-color var(--dur-1) ease,
-			border-color var(--dur-1) ease,
-			color var(--dur-1) ease,
-			transform var(--dur-1) var(--ease);
-	}
-
-	.chips button:active {
-		transform: scale(0.96);
-	}
-
-	.chips button[aria-pressed='true'] {
-		border-color: var(--ceo);
-		background: var(--ceo-fondo);
-		color: var(--ceo);
-	}
-
-	@media (hover: hover) {
-		.chips button:hover {
-			color: var(--texto);
-		}
-	}
-
-	@media (min-width: 45em) {
-		.tools {
-			grid-template-columns: minmax(16rem, 26rem) minmax(0, 1fr);
-			align-items: center;
-			gap: var(--s-4);
-		}
-	}
-
-	.offline {
-		padding: var(--s-3) var(--s-5);
-		border: 1px solid var(--raia-forte);
-		border-radius: var(--radius-row);
-		background: var(--panel-claro);
-		font-weight: 600;
-	}
-
-	.library {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: var(--s-6);
-		align-items: start;
-	}
-
-	.board {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 2px;
-		margin: 0 calc(var(--s-2) * -1);
-		padding: 0;
 		list-style: none;
-		container-type: inline-size;
+		background: var(--surface-2);
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
 	}
-
-	/* A long library only lays out the rows near the screen. */
-	.board li {
-		content-visibility: auto;
-		contain-intrinsic-size: auto 4.5rem;
-	}
-
-	.placeholder {
-		height: 4.5rem;
-		border-radius: var(--radius-row);
-		background: var(--panel-claro);
-		animation: wait 1.6s ease-in-out infinite alternate;
-	}
-
-	@keyframes wait {
-		to {
-			opacity: 0.45;
-		}
-	}
-
-	/* The song the pointer or the focus is on, big, with what to do with it. */
-	.detail {
-		display: none;
-	}
-
-	@media (min-width: 64em) {
-		.library {
-			grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.75fr);
-			gap: var(--s-7);
-		}
-
-		.detail {
-			position: sticky;
-			top: var(--s-6);
-			display: block;
-			padding: var(--s-5);
-		}
-
-		.card {
-			display: grid;
-			gap: var(--s-3);
-			animation: appear var(--dur-2) var(--ease) both;
-		}
-
-		.art {
-			width: min(100%, 15rem);
-			margin-bottom: var(--s-2);
-			border-radius: var(--radius-row);
-			box-shadow: var(--sombra);
-		}
-
-		h3 {
-			font-family: var(--font-display);
-			font-size: var(--t-2);
-			font-weight: 600;
-			letter-spacing: -0.025em;
-			line-height: 1.12;
-			overflow-wrap: anywhere;
-		}
-
-		.artist {
-			margin-top: calc(var(--s-2) * -1);
-			color: var(--texto-2);
-		}
-
-		.hook {
-			font-size: var(--t-1);
-			font-style: italic;
-			line-height: 1.3;
-			color: var(--ouro);
-		}
-
-		.facts {
-			display: flex;
-			flex-wrap: wrap;
-			gap: var(--s-2);
-			margin: 0;
-			padding: 0;
-			list-style: none;
-		}
-
-		.facts li {
-			padding: 0.2rem 0.75rem;
-			border: 1px solid var(--raia);
-			border-radius: var(--radius-pill);
-			font-size: var(--t--1);
-			color: var(--texto-2);
-		}
-
-		.facts .kept {
-			border-color: color-mix(in oklab, var(--ceo) 50%, transparent);
-			color: var(--ceo);
-		}
-
-		.actions {
-			display: flex;
-			flex-wrap: wrap;
-			gap: var(--s-3);
-			margin-top: var(--s-2);
-		}
-	}
-
-	.notice,
-	.empty {
+	.found button {
 		display: grid;
-		justify-items: start;
-		gap: var(--s-4);
-		max-width: 44rem;
-		padding: var(--s-6);
+		grid-template-columns: 1fr auto auto;
+		gap: 12px;
+		width: 100%;
+		padding: 7px 10px;
+		border: 0;
+		border-radius: 4px;
+		background: none;
+		text-align: left;
+		cursor: pointer;
+	}
+	.found button.active,
+	.found button:hover {
+		background: var(--accent-soft);
+	}
+	.queue th:first-child,
+	.queue td:first-child {
+		width: 48px;
+	}
+	.queue tbody tr {
+		cursor: default;
+	}
+	.queue tr.on td:first-child {
+		box-shadow: inset 3px 0 0 var(--ok);
+	}
+	.queue tr.played {
+		opacity: 0.5;
+	}
+	.queue tr.over td,
+	.queue tr.tail.over td {
+		box-shadow: inset 0 2px 0 var(--accent);
+	}
+	.queue tr.tail:hover {
+		background: none;
+	}
+	.song-cell {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		max-width: 420px;
+	}
+	.singer {
+		width: 140px;
+		height: 28px;
+		padding: 0 8px;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		background: transparent;
+	}
+	.singer:hover,
+	.singer:focus {
+		border-color: var(--border-strong);
+		background: var(--bg);
+		outline: none;
+	}
+	.row-actions {
+		width: 120px;
+	}
+	.row-actions .btn {
+		opacity: 0;
+	}
+	tr:hover .row-actions .btn,
+	tr.selected .row-actions .btn,
+	.row-actions .btn:focus-visible {
+		opacity: 1;
 	}
 
-	.empty h3 {
-		font-family: var(--font-display);
-		font-size: var(--t-3);
-		font-weight: 600;
-		letter-spacing: -0.03em;
+	@media (max-width: 1000px) {
+		.now {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.row-actions .btn {
+			opacity: 1;
+		}
 	}
-
-	.empty p {
-		color: var(--texto-2);
-	}
-
-	.credits {
-		max-width: var(--page-max);
-		margin: 0 auto;
-		padding: 0 var(--page-x) var(--s-7);
-		font-size: var(--t--1);
-		color: var(--texto-3);
-	}
-
-	.credits p {
-		max-width: 60ch;
-		padding-top: var(--s-5);
-		border-top: 1px solid var(--raia);
+	@media (max-width: 640px) {
+		.queue th:nth-child(3),
+		.queue td:nth-child(3),
+		.queue th:nth-child(4),
+		.queue td:nth-child(4) {
+			display: none;
+		}
 	}
 </style>

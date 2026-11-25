@@ -22,6 +22,7 @@ SAMPLE_RATE = 44_100
 TARGET_LUFS = -14.0
 PEAK_CEILING_DBTP = -1.0
 BITRATES = {"instrumental": "160k", "vocals": "128k"}
+OPUS_RATE = 48_000
 
 
 class AudioError(RuntimeError):
@@ -114,20 +115,33 @@ def plan_gain(
     return Gain(db=db, lufs=round(mix.integrated + db, 2))
 
 
-def encode_m4a(src: Path, dest: Path, gain_db: float, bitrate: str) -> Path:
-    """AAC-LC in MP4 with the index first, so browsers can seek before the whole file arrives."""
+def encode_opus(src: Path, dest: Path, bitrate: str) -> Path:
+    """Opus in Ogg at 48 kHz, untouched in level: the player applies the gain (plan v4 §5).
+
+    Ogg records the pre-skip and the exact end, so the track starts and ends on the sample.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     _run(
         src,
-        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(src), "-vn", "-af",
-         f"volume={gain_db:.2f}dB", "-ac", "2", "-ar", str(SAMPLE_RATE), "-c:a", "aac", "-b:a",
-         bitrate, "-movflags", "+faststart", str(dest)],
+        ["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(src), "-vn", "-ac", "2", "-ar",
+         str(OPUS_RATE), "-c:a", "libopus", "-b:a", bitrate, "-vbr", "on",
+         "-application", "audio", "-f", "ogg", str(dest)],
     )  # fmt: skip
     return dest
 
 
+def opus_preskip(path: Path) -> int:
+    """The pre-skip in the OpusHead packet of an Ogg Opus file (samples at 48 kHz)."""
+    with path.open("rb") as file:
+        head = file.read(4096)
+    at = head.find(b"OpusHead")
+    if at < 0:
+        raise AudioError(path, "not an Ogg Opus file")
+    return int.from_bytes(head[at + 10 : at + 12], "little")
+
+
 def package_audio(mix: Path, stems: Stems, out_dir: Path) -> AudioRefs:
-    """Writes instrumental.m4a and vocals.m4a, levelled from the original mix.
+    """Writes instrumental.opus and vocals.opus, and the gain that levels them from the mix.
 
     The three loudness measures run at once, and so do the two encodes: each ffmpeg uses one
     core, and one after another they took a third of a song's whole processing time.
@@ -141,20 +155,21 @@ def package_audio(mix: Path, stems: Stems, out_dir: Path) -> AudioRefs:
     with tempfile.TemporaryDirectory(dir=out_dir) as tmp, ThreadPoolExecutor(2) as pool:
         roles = (("instrumental", stems.instrumental), ("vocals", stems.vocals))
         jobs = [
-            pool.submit(encode_m4a, src, Path(tmp) / f"{role}.m4a", gain.db, BITRATES[role])
+            pool.submit(encode_opus, src, Path(tmp) / f"{role}.opus", BITRATES[role])
             for role, src in roles
         ]
         for (role, _), job in zip(roles, jobs, strict=True):
-            job.result().replace(out_dir / f"{role}.m4a")
+            job.result().replace(out_dir / f"{role}.opus")
     return AudioRefs(
-        instrumental="instrumental.m4a",
-        vocals="vocals.m4a",
+        instrumental="instrumental.opus",
+        vocals="vocals.opus",
         loudness_lufs=None if gain.lufs is None else round(gain.lufs, 1),
+        gain_db=gain.db,
     )
 
 
 def convert_package(package_dir: Path, mix: Path | None = None) -> AudioRefs:
-    """Turns a package's stems (any format) into levelled m4a and points karaoke.json at them.
+    """Turns a package's stems (any format) into Opus and points karaoke.json at them.
 
     Without the original `mix`, the stems are summed to stand in for it.
     """

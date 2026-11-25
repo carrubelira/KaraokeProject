@@ -1,0 +1,65 @@
+{
+  "schema_version": "2.0.0",
+  "content_id": "demo-sintetico",
+  "version": 1,
+  "parent": null,
+  "created_at": "2026-11-19T12:00:00Z",
+  "title": "Mar de Vigo (demo sintética)",
+  "artist": null,
+  "language": "gl",
+  "duration": 32.0,
+  "tracks": [
+    {
+      "kind": "instrumental",
+      "blob": {
+        "sha256": "7045290d9b033e322bbfbde2488f58571b1f844ad005b5bfdf5478d5600249c0",
+        "size": 463837,
+        "media_type": "audio/ogg; codecs=opus"
+      },
+      "offset": 0.0,
+      "duration": 32.0065,
+      "audio": {
+        "codec": "opus",
+        "container": "ogg",
+        "sample_rate": 48000,
+        "channels": 2,
+        "preskip": 312,
+        "gain_db": 0.0,
+        "loudness_lufs": null
+      },
+      "video": null
+    },
+    {
+      "kind": "vocals",
+      "blob": {
+        "sha256": "e20239780aca31964bddefe97703d55637128ab26dcdd4fbb3135692a56f728a",
+        "size": 264161,
+        "media_type": "audio/ogg; codecs=opus"
+      },
+      "offset": 0.0,
+      "duration": 32.0065,
+      "audio": {
+        "codec": "opus",
+        "container": "ogg",
+        "sample_rate": 48000,
+        "channels": 2,
+        "preskip": 312,
+        "gain_db": 0.0,
+        "loudness_lufs": null
+      },
+      "video": null
+    },
+    {
+      "kind": "lyrics",
+      "blob": {
+        "sha256": "2886f7c199348d33cb7929aa08d23caa258ced33c8d250c1e45b761fadebdadf",
+        "size": 2325,
+        "media_type": "application/vnd.karaoke.lyrics+json"
+      },
+      "offset": 0.0,
+      "duration": 32.0,
+      "audio": null,
+      "video": null
+    }
+  ]
+}

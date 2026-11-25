@@ -1,5 +1,12 @@
 # Architecture
 
+> **v4** splits the system (plan: [`plan-v4/00-vision.md`](plan-v4/00-vision.md)): the server
+> ([`server.md`](server.md)) with its stage, the GPU workers ([`worker.md`](worker.md)), the
+> backend's audio engine ([`kp-audio.md`](kp-audio.md)), the web screens, all in step
+> ([`screens.md`](screens.md), decision 011) and the console ([`web.md`](web.md)). The engine
+> described below is the same one, now run by the workers; what follows about the web player and
+> the party is v3.
+
 How Proxecto Karaoke en Galego is built, from the song that comes in to the lyrics that light up
 on the TV. Every choice has its reasons, with what was measured and what was discarded, in the
 [decisions](plan-v3/decisiones/) (in Spanish; summary at the end).

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gaelfernandez1/KaraokeProject/schemas/screen-status.schema.json",
+  "$defs": {
+    "ContentCache": {
+      "additionalProperties": false,
+      "properties": {
+        "content_id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,79}$",
+          "type": "string"
+        },
+        "manifest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "absent",
+            "downloading",
+            "verifying",
+            "ready",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "fraction": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "content_id",
+        "manifest",
+        "state",
+        "fraction",
+        "error"
+      ],
+      "title": "ContentCache",
+      "type": "object"
+    },
+    "ScreenSync": {
+      "additionalProperties": false,
+      "properties": {
+        "error_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "p95 of picture vs timeline."
+        },
+        "rtt_ms": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "drift_ppm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dropped_frames": {
+          "default": 0,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "error_ms",
+        "rtt_ms",
+        "drift_ppm",
+        "dropped_frames"
+      ],
+      "title": "ScreenSync",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "state": {
+      "enum": [
+        "connecting",
+        "idle",
+        "provisioning",
+        "syncing",
+        "waiting",
+        "playing",
+        "paused",
+        "error"
+      ],
+      "type": "string"
+    },
+    "epoch": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The session epoch this state is about."
+    },
+    "ready": {
+      "default": false,
+      "description": "Its first frame is on screen, at the cue.",
+      "type": "boolean"
+    },
+    "flags": {
+      "items": {
+        "enum": [
+          "offline",
+          "hidden",
+          "degraded",
+          "fullscreen"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "cache": {
+      "items": {
+        "$ref": "#/$defs/ContentCache"
+      },
+      "type": "array"
+    },
+    "sync": {
+      "$ref": "#/$defs/ScreenSync"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "state",
+    "epoch",
+    "ready",
+    "flags",
+    "cache",
+    "sync",
+    "error"
+  ],
+  "title": "ScreenStatus",
+  "type": "object"
+}

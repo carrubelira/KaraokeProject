@@ -7,7 +7,79 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 
 ## [Unreleased]
 
+### Changed
+
+- **One stage per backend, its sound on the backend, its picture on web screens** (decision 011).
+  The native player is gone: `kp-audio` (the same audio engine, without windows, video or
+  FFmpeg: it decodes the stems with libopus) runs next to the server, which starts it, and sends each stem to the
+  sound cards and DACs there. Any browser on the LAN that opens `/pantalla` is a screen (laptops,
+  Tauri or Chromium kiosks): a state machine that downloads the song, waits on its first frame
+  and follows the server's timeline with its video and lyrics. The server publishes a versioned
+  session; nothing plays until the operator starts it, and the console says which screens are
+  ready. Two Edge screens on one laptop measured 1 ms apart.
+- One queue instead of one per player; the Outputs page is the backend's sound, and what each
+  screen shows is set in Devices.
+- Plain HTTP everywhere on the LAN: no certificate, no fingerprint to pin.
+- The stage's clock is the system's fine counter (`perf_counter`): on Windows, Python's
+  `monotonic` ticks every 15.6 ms and drifted 350 ppm from the screens' clocks.
+
 ### Added
+
+- `scripts/start.ps1` (Windows) and `scripts/start.sh` (Linux, `make start`): one command
+  prepares what is missing (the environment, the web app, kp-audio) and runs the server,
+  kp-audio and a worker, restarting what stops. On Windows the worker runs in WSL.
+
+### Fixed
+
+- A worker enrolled with `--same-host` said it was not on the server's machine once it ran.
+- `karaoke-server openapi` opened (and migrated) the real database; it uses an empty folder.
+- kp-audio stops with the server even when the server is killed, and its secret goes in a
+  header, not in the address the access log writes down.
+
+### Removed
+
+- The native player's screens, video decoding and its own copy of the lyrics layout (`kp-layout`),
+  `kp-media`, `kp-cache` and `kp-net`; player enrolment; TLS (`--no-tls`, `fingerprint`,
+  `--fingerprint`); the worker's `--player-lock` (the server knows when the stage plays);
+  `scripts/serve-forever.sh` (the launcher restarts what stops).
+
+### Fixed
+
+- A progress report arriving after a task was complete brought it back to life: its lease
+  expired, it ran again and the console showed it stuck ("The worker stopped answering").
+- The console missed changes it never heard of; now every event is numbered and a gap or a
+  silent line brings a fresh snapshot.
+- Outputs failed (500) when a player reported two sound outputs with the same name.
+- Adding a song with no active playlist did nothing yet said it was added.
+
+### Added
+
+- Contracts v2: manifests of tracks by SHA-256, lyrics, nodes, orders and routing, as JSON Schema,
+  TypeScript and Rust (`kp-proto`).
+- `karaoke-server` v4: content store with Range and checked uploads, resumable uploads, a task
+  DAG with leases and data affinity, enrolled nodes over a pinned TLS certificate, operators,
+  WebSockets for players and the control.
+- `karaoke-worker`: fetch, analyze, make and render tasks in a child process capped by a
+  systemd scope or a Windows Job Object.
+- `kp-player`: one clock for every output and screen, routing with gain and delay, pitch on the
+  guide vocals and the music, calibration, outputs that come and go, a waiting screen; the
+  software sync bench `kp-syncbench` and `make e2e-v4`.
+- The console: a plain desktop application, the same in every section: a sidebar of sections,
+  pages of panels and tables with states in words, and a player bar at the foot with the screen
+  driven, what it plays, the transport, the key and the volume; IBM Plex Sans and Mono; Galicia's
+  coastline drawn faintly behind the sidebar. Processing is one table of songs whose rows open
+  to every step, its log and what to do when it fails. Command palette, rebindable shortcuts,
+  undo, and the lyrics editor ([`docs/web.md`](docs/web.md), decision
+  `plan-v4/decisiones/010-consola.md`).
+- Songs from a link with an analysis first: the page's metadata, a Chromaprint fingerprint looked
+  up in AcoustID and MusicBrainz (language and cover), and lyrics from LRCLIB; the operator
+  reviews and corrects before anything heavy runs, and can send the song straight to a screen's
+  queue once it is made.
+- One queue per screen (playlists are gone; a screen's playlist became its queue), so adding a
+  song always has a target.
+- Workers say what is happening inside them: stage and step, a live log (kept whole once the
+  task ends), CPU and RAM on every system, and failures explained with what to do.
+
 
 - `karaoke captions`: professional subtitles for long interviews, phrase by phrase and in sync
   with the voice, written next to each video as SRT (for DaVinci Resolve, Premiere and VLC) and
@@ -56,7 +128,20 @@ and the web app. How a release is made: [`docs/releasing.md`](docs/releasing.md)
 - New type, colours and shapes everywhere: white and the flag's sky blue on a blue-black night,
   gold for what is lit, rounded panels that let the globe show through.
 
+### Removed
+
+- The PWA, the browser player, party mode, device pairing, network zones and the WSL setup.
+
 ### Changed
+
+- **v4, a distributed karaoke** ([`docs/plan-v4/`](docs/plan-v4/00-vision.md)): the server stores
+  songs by content and queues the work, GPU workers on Windows or Linux take it, a native player
+  for Windows and macOS plays every screen and output in sync, and a keyboard-first web control
+  drives it all. There is no compatibility with v3 at run time; `karaoke package` migrates v3
+  packages.
+- Song stems are Opus at 48 kHz, no longer levelled when encoded: `karaoke.json` 1.3.0 carries the
+  gain (`audio.gain_db`) and the player and the MP4 apply it.
+- The night globe shows Galicia in its real surroundings, its neighbours in half-light.
 
 - **Lyrics are timed by two models instead of one.** Each language's speech model now works with
   a model trained on songs in many languages, and their probabilities are averaged: each misses
